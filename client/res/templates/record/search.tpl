@@ -14,44 +14,41 @@
                     <span class="caret"></span>
                 </button>
                 <ul class="dropdown-menu pull-left filter-menu">
-                    {{#unless primaryFiltersDisabled}}
-                        <li>
-                            <a
-                                class="preset"
-                                tabindex="0"
-                                role="button"
-                                data-name=""
-                                data-action="selectPreset"
-                            ><div>{{translate 'all' category='presetFilters' scope=entityType}}</div></a>
-                        </li>
-                        {{#each presetFilterList}}
-                        <li>
-                            <a
-                                class="preset"
-                                tabindex="0"
-                                role="button"
-                                data-name="{{name}}"
-                                data-action="selectPreset"
-                            >
-                                <div>
-                                {{#if label}}{{label}}{{else}}{{translate name category='presetFilters' scope=../entityType}}{{/if}}
-                                </div>
-                            </a>
-                        </li>
-                        {{/each}}
-                        <li class="divider preset-control hidden"></li>
+                    <li>
+                        <a
+                            class="preset"
+                            tabindex="0"
+                            role="button"
+                            data-name=""
+                            data-action="selectPreset"
+                        ><div>{{translate 'all' category='presetFilters' scope=entityType}}</div></a>
+                    </li>
+                    {{#each presetFilterList}}
+                    <li>
+                        <a
+                            class="preset"
+                            tabindex="0"
+                            role="button"
+                            data-name="{{name}}"
+                            data-action="selectPreset"
+                        >
+                            <div>
+                            {{#if label}}{{label}}{{else}}{{translate name category='presetFilters' scope=../entityType}}{{/if}}
+                            </div>
+                        </a>
+                    </li>
+                    {{/each}}
+                    <li class="divider preset-control hidden"></li>
 
-                        <li class="preset-control remove-preset hidden">
-                            <a tabindex="0" role="button" data-action="removePreset">{{translate 'Remove Filter'}}</a>
-                        </li>
-                        <li class="preset-control save-preset hidden">
-                            <a tabindex="0" role="button" data-action="savePreset">{{translate 'Save Filter'}}</a>
-                        </li>
-
-                        {{#if boolFilterList.length}}
-                            <li class="divider"></li>
-                        {{/if}}
-                    {{/unless}}
+                    <li class="preset-control remove-preset hidden">
+                        <a tabindex="0" role="button" data-action="removePreset">{{translate 'Remove Filter'}}</a>
+                    </li>
+                    <li class="preset-control save-preset hidden">
+                        <a tabindex="0" role="button" data-action="savePreset">{{translate 'Save Filter'}}</a>
+                    </li>
+                    {{#if boolFilterList.length}}
+                        <li class="divider"></li>
+                    {{/if}}
 
                     {{#each boolFilterList}}
                         <li class="checkbox">

@@ -31,43 +31,29 @@ define('views/user/modals/access', ['views/modal'], function (Dep) {
     return Dep.extend({
 
         cssName: 'user-access',
-        multiple: false,
-        template: 'user/modals/access',
-        backdrop: true,
 
-        styleMap: {
-            yes: 'success',
-            all: 'success',
-            account: 'info',
-            contact: 'info',
-            team: 'info',
-            own: 'warning',
-            no: 'danger',
-            enabled: 'success',
-            disabled: 'danger',
-            'not-set': 'default',
-        },
+        multiple: false,
+
+        template: 'user/modals/access',
+
+        backdrop: true,
 
         data: function () {
             return {
                 valuePermissionDataList: this.getValuePermissionList(),
-                levelListTranslation: this.getLanguage().get('Role', 'options', 'levelList') || {},
-                styleMap: this.styleMap,
+                levelListTranslation: this.getLanguage().get('Role', 'options', 'levelList') || {}
             };
         },
 
         getValuePermissionList: function () {
-            const list = this.getMetadata().get(['app', 'acl', 'valuePermissionList'], []);
-            const dataList = [];
-
-            list.forEach(item => {
-                const o = {};
+            var list = this.getMetadata().get(['app', 'acl', 'valuePermissionList'], []);
+            var dataList = [];
+            list.forEach(function (item) {
+                var o = {};
                 o.name = item;
                 o.value = this.options.aclData[item];
-
                 dataList.push(o);
-            });
-
+            }, this);
             return dataList;
         },
 
@@ -79,12 +65,12 @@ define('views/user/modals/access', ['views/modal'], function (Dep) {
                 }
             ];
 
-            const fieldTable = Espo.Utils.cloneDeep(this.options.aclData.fieldTable || {});
+            var fieldTable = Espo.Utils.cloneDeep(this.options.aclData.fieldTable || {});
 
-            for (const scope in fieldTable) {
-                const scopeData = fieldTable[scope] || {};
+            for (var scope in fieldTable) {
+                var scopeData = fieldTable[scope] || {};
 
-                for (const field in scopeData) {
+                for (var field in scopeData) {
                     if (
                         this.getMetadata()
                             .get(['app', 'acl', 'mandatory', 'scopeFieldLevel', scope, field]) !== null
@@ -108,8 +94,7 @@ define('views/user/modals/access', ['views/modal'], function (Dep) {
                     data: this.options.aclData.table,
                     fieldData: fieldTable,
                 },
-                final: true,
-                selector: '.user-access-table',
+                final: true
             });
 
             this.headerText = this.translate('Access');

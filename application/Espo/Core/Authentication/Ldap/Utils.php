@@ -188,6 +188,8 @@ class Utils
     {
         $options = $this->getOptions();
 
-        return array_diff_key($options, array_flip($this->permittedEspoOptions));
+        $zendOptions = array_diff_key($options, array_flip($this->permittedEspoOptions));
+
+        return $zendOptions;
     }
 }

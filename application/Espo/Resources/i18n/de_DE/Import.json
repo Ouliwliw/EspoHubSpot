@@ -64,8 +64,7 @@
     "confirmRemoveDuplicates": "Dadurch werden alle importierten Datensätze, die als Duplikate erkannt wurden, dauerhaft entfernt. Sind Sie sicher?",
     "removeImportLog": "Dies wird das Importprotokoll entfernen. Alle importierten Datensätze werden beibehalten. Verwenden Sie es, wenn Sie sicher sind, dass der Import in Ordnung ist.",
     "confirmRemoveImportLog": "Dadurch wird das Importprotokoll entfernt. Alle importierten Aufzeichnungen werden aufbewahrt. Sie können die Importergebnisse nicht rückgängig machen. Sind Sie sicher?",
-    "importRunning": "Import läuft...",
-    "noErrors": "Keine Fehler"
+    "importRunning": "Import läuft..."
   },
   "fields": {
     "file": "Datei",
@@ -99,8 +98,5 @@
   },
   "links": {
     "errors": "Fehler"
-  },
-  "params": {
-    "phoneNumberCountry": "Landesvorwahl"
   }
 }

@@ -21,11 +21,11 @@
         <table class="table audited-summary-table">
             <tbody>
             {{#each fieldsArr}}
-                <tr class="row" data-name="{{field}}">
+                <tr>
                     <td style="width: 30%">
                         <span class="text-muted">{{translate field category='fields' scope=../parentType}}</span>
                     </td>
-                    <td style="width: 30%" class="cell-was">
+                    <td style="width: 30%">
                         {{#unless noValues}}
                             {{{var was ../this}}}
                         {{/unless}}
@@ -35,7 +35,7 @@
                             <span class="text-muted small fas fa-arrow-right"></span>
                         {{/unless}}
                     </td>
-                    <td style="width: 30%" class="cell-became">
+                    <td style="width: 30%">
                         {{#unless noValues}}
                             {{{var became ../this}}}
                         {{/unless}}

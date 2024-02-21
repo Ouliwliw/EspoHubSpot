@@ -40,14 +40,8 @@ class EnumIntFieldView extends EnumFieldView {
     validations = []
 
     fetch() {
-        const raw = this.$element.val();
-
-        if (raw === '') {
-            return {[this.name]: null};
-        }
-
-        const value = parseInt(raw);
-        const data = {};
+        let value = parseInt(this.$element.val());
+        let data = {};
 
         data[this.name] = value;
 

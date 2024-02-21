@@ -69,11 +69,6 @@
         }
     },
     {
-        "route": "/GlobalStream",
-        "method": "get",
-        "actionClassName": "Espo\\Tools\\Stream\\Api\\GetGlobal"
-    },
-    {
         "route": "/GlobalSearch",
         "method": "get",
         "actionClassName": "Espo\\Tools\\GlobalSearch\\Api\\Get"
@@ -390,11 +385,6 @@
         "actionClassName": "Espo\\Tools\\EmailAddress\\Api\\GetSearch"
     },
     {
-        "route": "/User/:id/stream/own",
-        "method": "get",
-        "actionClassName": "Espo\\Tools\\Stream\\Api\\GetOwn"
-    },
-    {
         "route": "/User/:id/acl",
         "method": "get",
         "actionClassName": "Espo\\Tools\\UserSecurity\\Api\\GetUserAcl"
@@ -517,16 +507,6 @@
         "params": {
             "controller": "Stream",
             "action": "listPosts",
-            "id": ":id",
-            "scope": ":controller"
-        }
-    },
-    {
-        "route": "/:controller/:id/updateStream",
-        "method": "get",
-        "params": {
-            "controller": "Stream",
-            "action": "listUpdates",
             "id": ":id",
             "scope": ":controller"
         }

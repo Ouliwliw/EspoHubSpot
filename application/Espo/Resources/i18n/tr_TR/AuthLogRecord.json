@@ -24,10 +24,9 @@
   "options": {
     "denialReason": {
       "CREDENTIALS": "Geçersiz kimlik bilgileri",
-      "INACTIVE_USER": "Pasif kullanıcı",
+      "INACTIVE_USER": "Etkin olmayan kullanıcı",
       "IS_PORTAL_USER": "Portal kullanıcısı",
-      "IS_NOT_PORTAL_USER": "Portal kullanıcısı değil",
-      "USER_IS_NOT_IN_PORTAL": "Bu kullanıcı portalle ilgili değil"
+      "USER_IS_NOT_IN_PORTAL": "Bu kullanıcı portalla ilgili değil"
     }
   }
 }

@@ -30,7 +30,6 @@
 namespace Espo\Classes\Select\Email\AdditionalAppliers;
 
 use Espo\Core\Select\Applier\AdditionalApplier;
-use Espo\Core\Select\Primary\Filters\One;
 use Espo\Core\Select\SearchParams;
 use Espo\Classes\Select\Email\Helpers\JoinHelper;
 use Espo\Entities\Email;
@@ -58,10 +57,6 @@ class Main implements AdditionalApplier
 
     private function applyIndexes(?string $folder, SelectBuilder $queryBuilder, SearchParams $searchParams): void
     {
-        if ($searchParams->getPrimaryFilter() === One::NAME) {
-            return;
-        }
-
         if ($searchParams->getTextFilter()) {
             return;
         }

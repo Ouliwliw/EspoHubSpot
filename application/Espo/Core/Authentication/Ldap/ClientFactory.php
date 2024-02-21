@@ -29,13 +29,11 @@
 
 namespace Espo\Core\Authentication\Ldap;
 
-use Laminas\Ldap\Exception\LdapException;
-
 class ClientFactory
 {
     /**
      * @param array<string, mixed> $options
-     * @throws LdapException
+     * @throws \Laminas\Ldap\Exception\LdapException
      */
     public function create(array $options): Client
     {

@@ -41,8 +41,6 @@ use RuntimeException;
  * in another storage. E.g. a single Redis data store can be utilized with
  * multiple Espo replicas (for scalability purposes).
  * Defined at metadata > app > containerServices > authTokenManager.
- *
- * @noinspection PhpUnused
  */
 class EspoManager implements Manager
 {
@@ -58,7 +56,8 @@ class EspoManager implements Manager
 
     public function get(string $token): ?AuthToken
     {
-        return $this->repository
+        /** @var ?AuthTokenEntity $authToken */
+        $authToken = $this->repository
             ->select([
                 'id',
                 'isActive',
@@ -73,10 +72,13 @@ class EspoManager implements Manager
             ])
             ->where(['token' => $token])
             ->findOne();
+
+        return $authToken;
     }
 
     public function create(Data $data): AuthToken
     {
+        /** @var AuthTokenEntity $authToken */
         $authToken = $this->repository->getNew();
 
         $authToken
@@ -100,7 +102,6 @@ class EspoManager implements Manager
 
     public function inactivate(AuthToken $authToken): void
     {
-        /** @noinspection PhpConditionAlreadyCheckedInspection */
         if (!$authToken instanceof AuthTokenEntity) {
             throw new RuntimeException();
         }
@@ -114,7 +115,6 @@ class EspoManager implements Manager
 
     public function renew(AuthToken $authToken): void
     {
-        /** @noinspection PhpConditionAlreadyCheckedInspection */
         if (!$authToken instanceof AuthTokenEntity) {
             throw new RuntimeException();
         }
@@ -159,11 +159,11 @@ class EspoManager implements Manager
         $length = self::TOKEN_RANDOM_LENGTH;
 
         if (function_exists('random_bytes')) {
-            /** @noinspection PhpUnhandledExceptionInspection */
             return bin2hex(random_bytes($length));
         }
 
         if (function_exists('openssl_random_pseudo_bytes')) {
+            /** @var string $randomValue */
             $randomValue = openssl_random_pseudo_bytes($length);
 
             return bin2hex($randomValue);

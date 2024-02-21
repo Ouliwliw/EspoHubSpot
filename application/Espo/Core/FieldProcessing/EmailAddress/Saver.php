@@ -30,7 +30,6 @@
 namespace Espo\Core\FieldProcessing\EmailAddress;
 
 use Espo\Core\ORM\Repository\Option\SaveOption;
-use Espo\Core\ORM\Type\FieldType;
 use Espo\Entities\EmailAddress;
 use Espo\Repositories\EmailAddress as EmailAddressRepository;
 use Espo\ORM\Entity;
@@ -60,7 +59,7 @@ class Saver implements SaverInterface
             return;
         }
 
-        if ($defs->getField('emailAddress')->getType() !== FieldType::EMAIL) {
+        if ($defs->getField('emailAddress')->getType() !== 'email') {
             return;
         }
 
@@ -70,7 +69,7 @@ class Saver implements SaverInterface
             $emailAddressData = $entity->get('emailAddressData');
         }
 
-        if ($emailAddressData !== null && $entity->isAttributeChanged('emailAddressData')) {
+        if ($emailAddressData !== null) {
             $this->storeData($entity);
 
             return;
@@ -78,35 +77,36 @@ class Saver implements SaverInterface
 
         if ($entity->has('emailAddress')) {
             $this->storePrimary($entity);
+
+            return;
         }
     }
 
     private function storeData(Entity $entity): void
     {
-        if (!$entity->has('emailAddressData')) {
-            return;
-        }
-
         $emailAddressValue = $entity->get('emailAddress');
 
         if (is_string($emailAddressValue)) {
             $emailAddressValue = trim($emailAddressValue);
         }
 
-        $emailAddressData = $entity->get('emailAddressData');
+        $emailAddressData = null;
+
+        if ($entity->has('emailAddressData')) {
+            $emailAddressData = $entity->get('emailAddressData');
+        }
+
+        if (is_null($emailAddressData)) {
+            return;
+        }
 
         if (!is_array($emailAddressData)) {
             return;
         }
 
-        $noPrimary = array_filter($emailAddressData, fn ($item) => !empty($item->primary)) === [];
-
-        if ($noPrimary && $emailAddressData !== []) {
-            $emailAddressData[0]->primary = true;
-        }
-
         $keyList = [];
         $keyPreviousList = [];
+
         $previousEmailAddressData = [];
 
         if (!$entity->isNew()) {
@@ -129,9 +129,9 @@ class Saver implements SaverInterface
             $key = strtolower($key);
 
             $hash->$key = [
-                'primary' => !empty($row->primary),
-                'optOut' => !empty($row->optOut),
-                'invalid' => !empty($row->invalid),
+                'primary' => !empty($row->primary) ? true : false,
+                'optOut' => !empty($row->optOut) ? true : false,
+                'invalid' => !empty($row->invalid) ? true : false,
                 'emailAddress' => trim($row->emailAddress),
             ];
 
@@ -182,9 +182,9 @@ class Saver implements SaverInterface
             }
 
             $hashPrevious->$key = [
-                'primary' => (bool) $row->primary,
-                'optOut' => (bool) $row->optOut,
-                'invalid' => (bool) $row->invalid,
+                'primary' => $row->primary ? true : false,
+                'optOut' => $row->optOut ? true : false,
+                'invalid' => $row->invalid ? true : false,
                 'emailAddress' => $row->emailAddress,
             ];
 
@@ -215,11 +215,10 @@ class Saver implements SaverInterface
                     $hash->{$key}['invalid'] != $hashPrevious->{$key}['invalid'] ||
                     $hash->{$key}['emailAddress'] !== $hashPrevious->{$key}['emailAddress'];
 
-                if (
-                    $hash->{$key}['primary'] &&
-                    $hash->{$key}['primary'] === $hashPrevious->{$key}['primary']
-                ) {
-                    $primary = false;
+                if ($hash->{$key}['primary']) {
+                    if ($hash->{$key}['primary'] == $hashPrevious->{$key}['primary']) {
+                        $primary = false;
+                    }
                 }
             }
 
@@ -464,6 +463,8 @@ class Saver implements SaverInterface
             ])
             ->findOne();
 
+        $isNewEmailAddress = false;
+
         if (!$emailAddressNew) {
             $emailAddressNew = $this->entityManager->getNewEntity(EmailAddress::ENTITY_TYPE);
 
@@ -478,6 +479,8 @@ class Saver implements SaverInterface
             }
 
             $this->entityManager->saveEntity($emailAddressNew);
+
+            $isNewEmailAddress = true;
         }
 
         $emailAddressValueOld = $entity->getFetched('emailAddress');

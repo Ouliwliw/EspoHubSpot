@@ -2,14 +2,14 @@
   "fields": {
     "parent": "Üst seçenek",
     "status": "Durum",
-    "dateSent": "Gönderilen Tarih",
+    "dateSent": "Gönderilen Tariht",
     "from": "Kimden",
     "to": "Kime",
     "replyTo": "Cevapla",
-    "replyToString": "Cevapla (String)",
+    "replyToString": "Cevapla (dizi)",
     "body": "Mesaj",
     "subject": "Konu",
-    "attachments": "Dosyalar",
+    "attachments": "Dosya Ekle",
     "selectTemplate": "Şablonu Seçin",
     "fromAddress": "Kimden",
     "emailAddress": "Eposta Adresi",
@@ -23,7 +23,7 @@
     "isImportant": "Önemli",
     "isUsers": "Kullanıcı",
     "inTrash": "Çöpte",
-    "name": "Ad (Konu)",
+    "name": "İsim (Konu)",
     "isReplied": "Yanıtlandı",
     "isNotReplied": "Yanıtlanmadı",
     "folder": "Klasör ",
@@ -37,10 +37,8 @@
     "messageIdInternal": "Mesaj Kimliği (Dahili)",
     "folderId": "Klasör Kimliği",
     "fromName": "Kimden",
-    "fromString": "Başlangıç Değeri",
     "toEmailAddresses": "Gönderilecek e-mail Adresi",
     "bccEmailAddresses": "BCC e-mail Adresi",
-    "replyToEmailAddresses": "Eposta Adreslerine Yanıtla",
     "fromEmailAddress": "Kimden (Bağlantı)",
     "replyToAddress": "Yanıt Adresi"
   },
@@ -55,8 +53,7 @@
     "fromEmailAddress": "Kimden",
     "toEmailAddresses": "E-posta Adreslerine",
     "ccEmailAddresses": "E-posta Adreslerine CC",
-    "bccEmailAddresses": "E-posta Adreslerine BCC",
-    "replyToEmailAddresses": "Email Adreslerine Yanıtla"
+    "bccEmailAddresses": "E-posta Adreslerine BCC"
   },
   "options": {
     "status": {
@@ -82,7 +79,7 @@
     "Email Templates": "E-mail Taslakları",
     "Send Test Email": "Test e-mail Gönder",
     "Send": "Gönder",
-    "Email Address": "Email Adresi",
+    "Email Address": "E-mail Adresi",
     "Mark Read": "Okundu olarak İşaretle",
     "Sending...": "Gönderiliyor...",
     "Save Draft": "Taslağı Kaydet",
@@ -100,11 +97,7 @@
   "messages": {
     "testEmailSent": "Test e-maili gönderilmiştir",
     "emailSent": "E-mail gönderildi",
-    "savedAsDraft": "Taslak olarak kayıt edildi",
-    "confirmInsertTemplate": "Eposta içeriği kaybolacak. Şablona eklemek istermisiniz?",
-    "invalidCredentials": "Geçersiz kimlik bilgileri.",
-    "unknownError": "Bilinmeyen hata.",
-    "recipientAddressRejected": "Alıcı adresi reddedildi."
+    "savedAsDraft": "Taslak olarak kayıt edildi"
   },
   "presetFilters": {
     "sent": "Gönderildi",

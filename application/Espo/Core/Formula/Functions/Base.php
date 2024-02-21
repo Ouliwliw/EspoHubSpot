@@ -29,9 +29,10 @@
 
 namespace Espo\Core\Formula\Functions;
 
+use Espo\Core\Exceptions\Error;
 
-use Espo\Core\Formula\Exceptions\Error;
 use Espo\Core\Interfaces\Injectable;
+
 use Espo\ORM\Entity;
 
 use Espo\Core\Formula\Processor;
@@ -40,7 +41,7 @@ use Espo\Core\Formula\Argument;
 use stdClass;
 
 /**
- * @deprecated Use BaseFunction instead.
+ * @deprecated Use BaseFormula instead.
  */
 abstract class Base implements Injectable
 {
@@ -114,9 +115,6 @@ abstract class Base implements Injectable
         return $this->variables ?? (object) [];
     }
 
-    /**
-     * @throws Error
-     */
     protected function getEntity() /** @phpstan-ignore-line */
     {
         if (!$this->entity) {
@@ -128,14 +126,14 @@ abstract class Base implements Injectable
 
     /**
      * @return mixed
-     * @throws Error
+     * @throws \Espo\Core\Formula\Exceptions\Error
      */
     public abstract function process(stdClass $item);
 
     /**
      * @param mixed $item
      * @return mixed
-     * @throws Error
+     * @throws \Espo\Core\Formula\Exceptions\Error
      */
     protected function evaluate($item)
     {
@@ -146,7 +144,7 @@ abstract class Base implements Injectable
 
     /**
      * @return mixed[]
-     * @throws Error
+     * @throws \Espo\Core\Formula\Exceptions\Error
      */
     protected function fetchArguments(stdClass $item): array
     {

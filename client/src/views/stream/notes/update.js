@@ -57,10 +57,10 @@ class UpdateNoteStreamView extends NoteStreamView {
         this.wait(true);
 
         this.getModelFactory().create(this.model.get('parentType'), model => {
-            const modelWas = model;
-            const modelBecame = model.clone();
+            let modelWas = model;
+            let modelBecame = model.clone();
 
-            const data = this.model.get('data');
+            let data = this.model.get('data');
 
             data.attributes = data.attributes || {};
 
@@ -69,18 +69,18 @@ class UpdateNoteStreamView extends NoteStreamView {
 
             this.fieldsArr = [];
 
-            const fields = this.fieldList = data.fields;
+            let fields = data.fields;
 
             fields.forEach(field => {
-                const type = model.getFieldType(field) || 'base';
-                const viewName = this.getMetadata().get(['entityDefs', model.entityType, 'fields', field, 'view']) ||
+                let type = model.getFieldType(field) || 'base';
+                let viewName = this.getMetadata().get(['entityDefs', model.entityType, 'fields', field, 'view']) ||
                     this.getFieldManager().getViewName(type);
 
-                const attributeList = this.getFieldManager().getEntityTypeFieldAttributeList(model.entityType, field);
+                let attributeList = this.getFieldManager().getEntityTypeFieldAttributeList(model.entityType, field);
 
                 let hasValue = false;
 
-                for (const attribute of attributeList) {
+                for (let attribute of attributeList) {
                     if (attribute in data.attributes.was) {
                         hasValue = true;
 
@@ -105,7 +105,6 @@ class UpdateNoteStreamView extends NoteStreamView {
                     },
                     mode: 'detail',
                     inlineEditDisabled: true,
-                    selector: `.row[data-name="${field}"] .cell-was`,
                 });
 
                 this.createView(field + 'Became', viewName, {
@@ -116,7 +115,6 @@ class UpdateNoteStreamView extends NoteStreamView {
                     },
                     mode: 'detail',
                     inlineEditDisabled: true,
-                    selector: `.row[data-name="${field}"] .cell-became`,
                 });
 
                 this.fieldsArr.push({
@@ -137,16 +135,6 @@ class UpdateNoteStreamView extends NoteStreamView {
     toggleDetails(event, target) {
         if (this.$el.find('.details').hasClass('hidden')) {
             this.$el.find('.details').removeClass('hidden');
-
-            this.fieldList.forEach(field => {
-                const wasField = this.getView(field + 'Was');
-                const becomeField = this.getView(field + 'Became');
-
-                if (wasField && becomeField) {
-                    wasField.trigger('panel-show-propagated');
-                    becomeField.trigger('panel-show-propagated');
-                }
-            });
 
             $(target).find('span')
                 .removeClass('fa-chevron-down')

@@ -126,15 +126,12 @@ class SelectRecordsModalView extends ModalView {
 
         this.scope = this.entityType = this.options.scope || this.scope;
 
-        const orderBy = this.options.orderBy ||
-            this.getMetadata().get(['clientDefs', this.scope, 'selectRecords', 'orderBy']);
+        const customDefaultOrderBy = this.getMetadata().get(['clientDefs', this.scope, 'selectRecords', 'orderBy']);
+        const customDefaultOrder = this.getMetadata().get(['clientDefs', this.scope, 'selectRecords', 'order']);
 
-        const order = this.options.orderDirection ||
-            this.getMetadata().get(['clientDefs', this.scope, 'selectRecords', 'order']);
-
-        if (orderBy) {
-            this.defaultOrderBy = orderBy;
-            this.defaultOrder = order || false;
+        if (customDefaultOrderBy) {
+            this.defaultOrderBy = customDefaultOrderBy;
+            this.defaultOrder = customDefaultOrder || false;
         }
 
         if (this.noCreateScopeList.indexOf(this.scope) !== -1) {
@@ -170,20 +167,18 @@ class SelectRecordsModalView extends ModalView {
             }
         }
 
-        if (!this.options.headerText) {
-            this.$header = $('<span>');
+        this.$header = $('<span>');
 
-            this.$header.append(
-                $('<span>').text(
-                    this.translate('Select') + ' · ' +
-                    this.getLanguage().translate(this.scope, 'scopeNamesPlural')
-                )
-            );
+        this.$header.append(
+            $('<span>').text(
+                this.translate('Select') + ' · ' +
+                this.getLanguage().translate(this.scope, 'scopeNamesPlural')
+            )
+        );
 
-            this.$header.prepend(
-                this.getHelper().getScopeColorIconHtml(this.scope)
-            );
-        }
+        this.$header.prepend(
+            this.getHelper().getScopeColorIconHtml(this.scope)
+        );
 
         this.waitForView('list');
 

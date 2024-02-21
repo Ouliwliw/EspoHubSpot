@@ -26,60 +26,59 @@
  * these Appropriate Legal Notices must retain the display of the "EspoCRM" word.
  ************************************************************************/
 
-import View from 'view';
+define('views/admin/label-manager/category', ['view'], function (Dep) {
 
-class LabelManagerCategoryView extends View {
+    return Dep.extend({
 
-    template = 'admin/label-manager/category'
+        template: 'admin/label-manager/category',
 
-    events = {}
-
-    data() {
-        return {
-            categoryDataList: this.getCategoryDataList(),
-        };
-    }
-
-    setup() {
-        this.scope = this.options.scope;
-        this.language = this.options.language;
-        this.categoryData = this.options.categoryData;
-    }
-
-    getCategoryDataList() {
-        const labelList = Object.keys(this.categoryData);
-
-        labelList.sort((v1, v2) => {
-            return v1.localeCompare(v2);
-        });
-
-        const categoryDataList = [];
-
-        labelList.forEach(name => {
-            let value = this.categoryData[name];
-
-            if (value === null) {
-                value = '';
-            }
-
-            if (value.replace) {
-                value = value.replace(/\n/i, '\\n');
-            }
-
-            const o = {
-                name: name,
-                value: value,
+        data: function () {
+            return {
+                categoryDataList: this.getCategoryDataList()
             };
+        },
 
-            const arr = name.split('[.]');
+        events: {},
 
-            o.label = arr.slice(1).join(' . ');
+        setup: function () {
+            this.scope = this.options.scope;
+            this.language = this.options.language;
+            this.categoryData = this.options.categoryData;
+        },
 
-            categoryDataList.push(o);
-        });
+        getCategoryDataList: function () {
+            var labelList = Object.keys(this.categoryData);
 
-        return categoryDataList;
-    }
-}
+            labelList.sort((v1, v2) => {
+                return v1.localeCompare(v2);
+            });
 
-export default LabelManagerCategoryView;
+            var categoryDataList = [];
+
+            labelList.forEach(name => {
+                var value = this.categoryData[name];
+
+                if (value === null) {
+                    value = '';
+                }
+
+                if (value.replace) {
+                    value = value.replace(/\n/i, '\\n');
+                }
+
+                var o = {
+                    name: name,
+                    value: value,
+                };
+
+                var arr = name.split('[.]');
+
+                o.label = arr.slice(1).join(' . ');
+
+                categoryDataList.push(o);
+            });
+
+            return categoryDataList;
+        },
+    });
+});

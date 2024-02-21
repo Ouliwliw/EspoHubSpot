@@ -44,35 +44,12 @@ class DateFieldView extends BaseFieldView {
     editTemplate = 'fields/date/edit'
     searchTemplate = 'fields/date/search'
 
-    validations = [
-        'required',
-        'date',
-        'after',
-        'before',
-    ]
+    validations = ['required', 'date', 'after', 'before']
 
     searchTypeList = [
-        'lastSevenDays',
-        'ever',
-        'isEmpty',
-        'currentMonth',
-        'lastMonth',
-        'nextMonth',
-        'currentQuarter',
-        'lastQuarter',
-        'currentYear',
-        'lastYear',
-        'today',
-        'past',
-        'future',
-        'lastXDays',
-        'nextXDays',
-        'olderThanXDays',
-        'afterXDays',
-        'on',
-        'after',
-        'before',
-        'between',
+        'lastSevenDays', 'ever', 'isEmpty', 'currentMonth', 'lastMonth', 'nextMonth', 'currentQuarter',
+        'lastQuarter', 'currentYear', 'lastYear', 'today', 'past', 'future', 'lastXDays', 'nextXDays',
+        'olderThanXDays', 'afterXDays', 'on', 'after', 'before', 'between',
     ]
 
     initialSearchIsNotIdle = true
@@ -93,9 +70,8 @@ class DateFieldView extends BaseFieldView {
         }
     }
 
-    // noinspection JSCheckFunctionSignatures
     data() {
-        const data = super.data();
+        let data = super.data();
 
         data.dateValue = this.getDateStringValue();
 
@@ -107,25 +83,30 @@ class DateFieldView extends BaseFieldView {
         }
 
         if (this.isSearchMode()) {
-            const value = this.getSearchParamsData().value || this.searchParams.dateValue;
-            const valueTo = this.getSearchParamsData().valueTo || this.searchParams.dateValueTo;
+            let value = this.getSearchParamsData().value || this.searchParams.dateValue;
+            let valueTo = this.getSearchParamsData().valueTo || this.searchParams.dateValueTo;
 
             data.dateValue = this.getDateTime().toDisplayDate(value);
             data.dateValueTo = this.getDateTime().toDisplayDate(valueTo);
 
-            if (['lastXDays', 'nextXDays', 'olderThanXDays', 'afterXDays'].includes(this.getSearchType())) {
+            if (~['lastXDays', 'nextXDays', 'olderThanXDays', 'afterXDays']
+                    .indexOf(this.getSearchType())
+            ) {
                 data.number = this.searchParams.value;
             }
         }
 
-        // noinspection JSValidateTypes
         return data;
     }
 
     setupSearch() {
-        this.addHandler('change', 'select.search-type', (e, /** HTMLSelectElement */target) => {
-            this.handleSearchType(target.value);
-        });
+        this.events = _.extend({
+            'change select.search-type': (e) => {
+                let type = $(e.currentTarget).val();
+
+                this.handleSearchType(type);
+            },
+        }, this.events || {});
     }
 
     stringifyDateValue(value) {
@@ -158,17 +139,17 @@ class DateFieldView extends BaseFieldView {
             return this.getDateTime().toDisplayDate(value);
         }
 
-        const timezone = this.getDateTime().getTimeZone();
-        const internalDateTimeFormat = this.getDateTime().internalDateTimeFormat;
-        const readableFormat = this.getDateTime().getReadableDateFormat();
-        const valueWithTime = value + ' 00:00:00';
+        let timezone = this.getDateTime().getTimeZone();
+        let internalDateTimeFormat = this.getDateTime().internalDateTimeFormat;
+        let readableFormat = this.getDateTime().getReadableDateFormat();
+        let valueWithTime = value + ' 00:00:00';
 
-        const today = moment().tz(timezone).startOf('day');
+        let today = moment().tz(timezone).startOf('day');
         let dateTime = moment.tz(valueWithTime, internalDateTimeFormat, timezone);
 
-        const temp = today.clone();
+        var temp = today.clone();
 
-        const ranges = {
+        var ranges = {
             'today': [temp.unix(), temp.add(1, 'days').unix()],
             'tomorrow': [temp.unix(), temp.add(1, 'days').unix()],
             'yesterday': [temp.add(-3, 'days').unix(), temp.add(1, 'days').unix()],
@@ -201,7 +182,7 @@ class DateFieldView extends BaseFieldView {
             return -1;
         }
 
-        const value = this.model.get(this.name);
+        var value = this.model.get(this.name);
 
         return this.stringifyDateValue(value);
     }
@@ -214,7 +195,7 @@ class DateFieldView extends BaseFieldView {
 
             // @todo Introduce ui/date-picker.
 
-            this.$element.on('change', /** Record */e => {
+            this.$element.on('change', (e) => {
                 if (!wait) {
                     this.trigger('change');
                     wait = true;
@@ -229,17 +210,15 @@ class DateFieldView extends BaseFieldView {
             });
 
             this.$element.on('click', () => {
-                // noinspection JSUnresolvedReference
                 this.$element.datepicker('show');
             });
 
-            const options = {
+            let options = {
                 format: this.getDateTime().dateFormat.toLowerCase(),
                 weekStart: this.getDateTime().weekStart,
                 autoclose: true,
                 todayHighlight: true,
                 keyboardNavigation: true,
-                assumeNearbyYear: true,
                 todayBtn: this.getConfig().get('datepickerTodayButton') || false,
                 orientation: 'bottom auto',
                 templates: {
@@ -251,11 +230,9 @@ class DateFieldView extends BaseFieldView {
                     'body',
             };
 
-            const language = this.getConfig().get('language');
+            let language = this.getConfig().get('language');
 
-            // noinspection JSUnresolvedReference
             if (!(language in $.fn.datepicker.dates)) {
-                // noinspection JSUnresolvedReference
                 $.fn.datepicker.dates[language] = {
                     days: this.translate('dayNames', 'lists'),
                     daysShort: this.translate('dayNamesShort', 'lists'),
@@ -269,63 +246,50 @@ class DateFieldView extends BaseFieldView {
 
             options.language = language;
 
-            // noinspection JSUnresolvedReference
             this.$element.datepicker(options);
 
             if (this.mode === this.MODE_SEARCH) {
-                this.$el.find('select.search-type').on('change', () => this.trigger('change'));
-                this.$el.find('input.number').on('change', () => this.trigger('change'));
+                let $elAdd = this.$el.find('input.additional');
 
-                // noinspection JSUnresolvedReference
-                this.$el.find('.input-group.additional').datepicker(options);
+                $elAdd.datepicker(options);
 
-                this.initDatePickerEventHandlers('input.filter-from', options);
-                this.initDatePickerEventHandlers('input.filter-to', options);
+                $elAdd.parent().find('button.date-picker-btn').on('click', () => {
+                    $elAdd.datepicker('show');
+                });
+
+                this.$el.find('select.search-type').on('change', () => {
+                    this.trigger('change');
+                });
+
+                this.$el.find('input.number').on('change', () => {
+                    this.trigger('change');
+                });
+
+                $elAdd.on('change', e => {
+                    this.trigger('change');
+
+                    if (e.isTrigger) {
+                        if (document.activeElement !== $elAdd.get(0)) {
+                            $elAdd.focus();
+                        }
+                    }
+                });
+
+                $elAdd.on('click', () => {
+                    $elAdd.datepicker('show');
+                });
             }
 
             this.$element.parent().find('button.date-picker-btn').on('click', () => {
-                // noinspection JSUnresolvedReference
                 this.$element.datepicker('show');
             });
 
             if (this.mode === this.MODE_SEARCH) {
-                const $searchType = this.$el.find('select.search-type');
+                let $searchType = this.$el.find('select.search-type');
 
                 this.handleSearchType($searchType.val());
             }
         }
-    }
-
-    /**
-     * @private
-     * @param {string} selector
-     * @param {Record} options
-     */
-    initDatePickerEventHandlers(selector, options) {
-        const $input = this.$el.find(selector);
-
-        // noinspection JSUnresolvedReference
-        //$input.datepicker(options);
-
-        //$input.parent().find('button.date-picker-btn').on('click', () => {
-            // noinspection JSUnresolvedReference
-        //    $input.datepicker('show');
-        //});
-
-        $input.on('change', /** Record */e => {
-            this.trigger('change');
-
-            if (e.isTrigger) {
-                if (document.activeElement !== $input.get(0)) {
-                    $input.focus();
-                }
-            }
-        });
-
-        $input.on('click', () => {
-            // noinspection JSUnresolvedReference
-            $input.datepicker('show');
-        });
     }
 
     handleSearchType(type) {
@@ -333,14 +297,14 @@ class DateFieldView extends BaseFieldView {
         this.$el.find('div.additional').addClass('hidden');
         this.$el.find('div.additional-number').addClass('hidden');
 
-        if (['on', 'notOn', 'after', 'before'].includes(type)) {
+        if (~['on', 'notOn', 'after', 'before'].indexOf(type)) {
             this.$el.find('div.primary').removeClass('hidden');
         }
-        else if (['lastXDays', 'nextXDays', 'olderThanXDays', 'afterXDays'].includes(type)) {
+        else if (~['lastXDays', 'nextXDays', 'olderThanXDays', 'afterXDays'].indexOf(type)) {
             this.$el.find('div.additional-number').removeClass('hidden');
         }
         else if (type === 'between') {
-            this.$el.find('div.primary').addClass('hidden');
+            this.$el.find('div.primary').removeClass('hidden');
             this.$el.find('div.additional').removeClass('hidden');
         }
     }
@@ -363,7 +327,7 @@ class DateFieldView extends BaseFieldView {
 
     /** @inheritDoc */
     fetch() {
-        const data = {};
+        let data = {};
 
         data[this.name] = this.parse(this.$element.val());
 
@@ -372,39 +336,39 @@ class DateFieldView extends BaseFieldView {
 
     /** @inheritDoc */
     fetchSearch() {
-        const type = this.fetchSearchType();
+        let value = this.parseDate(this.$element.val());
+
+        let type = this.fetchSearchType();
+        let data;
 
         if (type === 'between') {
-            const valueFrom = this.parseDate(this.$el.find('input.filter-from').val());
-            const valueTo = this.parseDate(this.$el.find('input.filter-to').val());
-
-            if (!valueFrom || !valueTo) {
+            if (!value) {
                 return null;
             }
 
-            return {
+            let valueTo = this.parseDate(this.$el.find('input.additional').val());
+
+            if (!valueTo) {
+                return null;
+            }
+
+            data = {
                 type: type,
-                value: [valueFrom, valueTo],
+                value: [value, valueTo],
                 data: {
-                    value: valueFrom,
-                    valueTo: valueTo,
+                    value: value,
+                    valueTo: valueTo
                 },
             };
-        }
-
-        let data;
-        const value = this.parseDate(this.$element.val());
-
-        if (['lastXDays', 'nextXDays', 'olderThanXDays', 'afterXDays'].includes(type)) {
-            const number = this.$el.find('input.number').val();
+        } else if (~['lastXDays', 'nextXDays', 'olderThanXDays', 'afterXDays'].indexOf(type)) {
+            let number = this.$el.find('input.number').val();
 
             data = {
                 type: type,
                 value: number,
-                date: true,
             };
         }
-        else if (['on', 'notOn', 'after', 'before'].includes(type)) {
+        else if (~['on', 'notOn', 'after', 'before'].indexOf(type)) {
             if (!value) {
                 return null;
             }
@@ -428,7 +392,6 @@ class DateFieldView extends BaseFieldView {
         else {
             data = {
                 type: type,
-                date: true,
             };
         }
 
@@ -445,7 +408,7 @@ class DateFieldView extends BaseFieldView {
         }
 
         if (this.model.get(this.name) === null) {
-            const msg = this.translate('fieldIsRequired', 'messages')
+            let msg = this.translate('fieldIsRequired', 'messages')
                 .replace('{field}', this.getLabelText());
 
             this.showValidationMessage(msg);
@@ -457,7 +420,7 @@ class DateFieldView extends BaseFieldView {
     // noinspection JSUnusedGlobalSymbols
     validateDate() {
         if (this.model.get(this.name) === -1) {
-            const msg = this.translate('fieldShouldBeDate', 'messages')
+            let msg = this.translate('fieldShouldBeDate', 'messages')
                 .replace('{field}', this.getLabelText());
 
             this.showValidationMessage(msg);
@@ -468,21 +431,21 @@ class DateFieldView extends BaseFieldView {
 
     // noinspection JSUnusedGlobalSymbols
     validateAfter() {
-        const field = this.model.getFieldParam(this.name, 'after');
+        let field = this.model.getFieldParam(this.name, 'after');
 
         if (!field) {
             return false;
         }
 
-        const value = this.model.get(this.name);
-        const otherValue = this.model.get(field);
+        let value = this.model.get(this.name);
+        let otherValue = this.model.get(field);
 
         if (!(value && otherValue)) {
             return;
         }
 
         if (moment(value).unix() <= moment(otherValue).unix()) {
-            const msg = this.translate('fieldShouldAfter', 'messages')
+            let msg = this.translate('fieldShouldAfter', 'messages')
                 .replace('{field}', this.getLabelText())
                 .replace('{otherField}', this.translate(field, 'fields', this.entityType));
 
@@ -494,21 +457,21 @@ class DateFieldView extends BaseFieldView {
 
     // noinspection JSUnusedGlobalSymbols
     validateBefore() {
-        const field = this.model.getFieldParam(this.name, 'before');
+        let field = this.model.getFieldParam(this.name, 'before');
 
         if (!field) {
             return false;
         }
 
-        const value = this.model.get(this.name);
-        const otherValue = this.model.get(field);
+        let value = this.model.get(this.name);
+        let otherValue = this.model.get(field);
 
         if (!(value && otherValue)) {
             return;
         }
 
         if (moment(value).unix() >= moment(otherValue).unix()) {
-            const msg = this.translate('fieldShouldBefore', 'messages')
+            let msg = this.translate('fieldShouldBefore', 'messages')
                 .replace('{field}', this.getLabelText())
                 .replace('{otherField}', this.translate(field, 'fields', this.entityType));
 

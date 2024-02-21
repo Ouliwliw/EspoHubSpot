@@ -31,7 +31,6 @@
 import LinkMultipleFieldView from 'views/fields/link-multiple';
 import RegExpPattern from 'helpers/reg-exp-pattern';
 import Select from 'ui/select';
-import Autocomplete from 'ui/autocomplete';
 
 /**
  * A link-multiple field with relation column(s).
@@ -191,7 +190,7 @@ class LinkMultipleWithColumnsFieldView extends LinkMultipleFieldView {
 
             $el.append(
                 $('<span>').text(' '),
-                $('<span>').addClass('text-muted middle-dot'),
+                $('<span>').addClass('text-muted chevron-right'),
                 $('<span>').text(' '),
                 $('<span>').text(text).addClass('text-muted small')
             );
@@ -510,56 +509,78 @@ class LinkMultipleWithColumnsFieldView extends LinkMultipleFieldView {
     }
 
     initAutocomplete(id) {
-        if (!this._autocompleteList) {
-            /** @type {Autocomplete[]} */
-            this._autocompleteList = [];
+        if (!this._autocompleteElementList) {
+            this._autocompleteElementList = [];
         }
 
         this.columnList.forEach(column => {
-            const type = this.columnsDefs[column].type;
+            let type = this.columnsDefs[column].type;
 
-            if (type !== this.COLUMN_TYPE_VARCHAR) {
-                return;
+            if (type === this.COLUMN_TYPE_VARCHAR) {
+                let options = this.columnsDefs[column].options;
+
+                if (options && options.length) {
+                    let $element = this.$el.find('[data-column="'+column+'"][data-id="'+id+'"]');
+
+                    if (!$element.length) {
+                        return;
+                    }
+
+                    $element.autocomplete({
+                        minChars: 0,
+                        lookup: options,
+                        maxHeight: 200,
+                        beforeRender: (c) => {
+                            c.addClass('small');
+                        },
+                        formatResult: (suggestion) => {
+                            return this.getHelper().escapeString(suggestion.value);
+                        },
+                        lookupFilter: (suggestion, query, queryLowerCase) => {
+                            if (suggestion.value.toLowerCase().indexOf(queryLowerCase) === 0) {
+                                if (suggestion.value.length === queryLowerCase.length) {
+                                    return false;
+                                }
+
+                                return true;
+                            }
+
+                            return false;
+                        },
+                        onSelect: () => {
+                            this.trigger('change');
+                            $element.trigger('change');
+                            $element.focus();
+                        },
+                    });
+
+                    $element.attr('autocomplete', 'espo-' + this.name + '-' + column + '-' + id);
+
+                    $element.on('focus', () => {
+                        if ($element.val()) {
+                            return;
+                        }
+
+                        $element.autocomplete('onValueChange');
+                    });
+
+                    this._autocompleteElementList.push($element);
+
+                    this.once('delete-link:' + id, () => {
+                        $element.autocomplete('dispose');
+                    });
+                }
             }
-
-            const options = this.columnsDefs[column].options;
-
-            if (!(options && options.length)) {
-                return;
-            }
-
-            const $element = this.$el.find(`[data-column="${column}"][data-id="${id}"]`);
-
-            if (!$element.length) {
-                return;
-            }
-
-            const autocomplete = new Autocomplete($element.get(0), {
-                name: this.name + 'Column' + id,
-                triggerSelectOnValidInput: true,
-                autoSelectFirst: true,
-                handleFocusMode: 1,
-                focusOnSelect: true,
-                onSelect: () => {
-                    this.trigger('change');
-                    $element.trigger('change');
-                },
-                lookup: options,
-            });
-
-            this._autocompleteList.push(autocomplete);
-
-            this.once('delete-link:' + id, () => autocomplete.dispose());
         });
     }
 
     disposeColumnAutocompletes() {
-        if (this._autocompleteList && this._autocompleteList.length) {
-            this._autocompleteList.forEach(autocomplete =>{
-                autocomplete.dispose()
+        if (this._autocompleteElementList && this._autocompleteElementList.length) {
+            this._autocompleteElementList.forEach($el =>{
+                $el.autocomplete('dispose');
             });
 
-            this._autocompleteList = [];
+            this._autocompleteElementList = [];
         }
     }
 

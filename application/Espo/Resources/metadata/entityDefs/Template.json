@@ -41,12 +41,10 @@
             "default": 20
         },
         "printFooter": {
-            "type": "bool",
-            "inlineEditDisabled": true
+            "type": "bool"
         },
         "printHeader": {
-            "type": "bool",
-            "inlineEditDisabled": true
+            "type": "bool"
         },
         "footerPosition": {
             "type": "float",
@@ -55,10 +53,6 @@
         "headerPosition": {
             "type": "float",
             "default": 0
-        },
-        "style": {
-            "type": "text",
-            "view": "views/template/fields/style"
         },
         "teams": {
             "type": "linkMultiple"

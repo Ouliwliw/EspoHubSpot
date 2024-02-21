@@ -30,7 +30,6 @@
 
 import BaseFieldView from 'views/fields/base';
 import Varchar from 'views/fields/varchar';
-import Autocomplete from 'ui/autocomplete';
 
 /**
  * An address field.
@@ -42,13 +41,9 @@ class AddressFieldView extends BaseFieldView {
     listTemplate = 'fields/address/detail'
     detailTemplate = 'fields/address/detail'
     editTemplate = 'fields/address/edit'
-    // noinspection JSUnusedGlobalSymbols
     editTemplate1 = 'fields/address/edit-1'
-    // noinspection JSUnusedGlobalSymbols
     editTemplate2 = 'fields/address/edit-2'
-    // noinspection JSUnusedGlobalSymbols
     editTemplate3 = 'fields/address/edit-3'
-    // noinspection JSUnusedGlobalSymbols
     editTemplate4 = 'fields/address/edit-4'
     searchTemplate = 'fields/address/search'
 
@@ -75,9 +70,8 @@ class AddressFieldView extends BaseFieldView {
         },
     }
 
-    // noinspection JSCheckFunctionSignatures
     data() {
-        const data = super.data();
+        let data = super.data();
 
         data.ucName = Espo.Utils.upperCaseFirst(this.name);
 
@@ -113,7 +107,6 @@ class AddressFieldView extends BaseFieldView {
             data.countryMaxLength = this.countryMaxLength;
         }
 
-        // noinspection JSValidateTypes
         return data;
     }
 
@@ -134,7 +127,7 @@ class AddressFieldView extends BaseFieldView {
             isSet = isSet || this.model.has(attribute);
         });
 
-        const isEmpty = !isNotEmpty;
+        let isEmpty = !isNotEmpty;
 
         if (isEmpty) {
             if (this.mode === this.MODE_LIST) {
@@ -148,20 +141,19 @@ class AddressFieldView extends BaseFieldView {
             return null;
         }
 
-        const methodName = 'getFormattedAddress' + this.getAddressFormat().toString();
+        let methodName = 'getFormattedAddress' + this.getAddressFormat().toString();
 
         if (methodName in this) {
             return this[methodName]();
         }
     }
 
-    // noinspection JSUnusedGlobalSymbols
     getFormattedAddress1() {
-        const postalCodeValue = this.model.get(this.postalCodeField);
-        const streetValue = this.model.get(this.streetField);
-        const cityValue = this.model.get(this.cityField);
-        const stateValue = this.model.get(this.stateField);
-        const countryValue = this.model.get(this.countryField);
+        let postalCodeValue = this.model.get(this.postalCodeField);
+        let streetValue = this.model.get(this.streetField);
+        let cityValue = this.model.get(this.cityField);
+        let stateValue = this.model.get(this.stateField);
+        let countryValue = this.model.get(this.countryField);
 
         let html = '';
 
@@ -203,13 +195,12 @@ class AddressFieldView extends BaseFieldView {
         return html;
     }
 
-    // noinspection JSUnusedGlobalSymbols
     getFormattedAddress2() {
-        const postalCodeValue = this.model.get(this.postalCodeField);
-        const streetValue = this.model.get(this.streetField);
-        const cityValue = this.model.get(this.cityField);
-        const stateValue = this.model.get(this.stateField);
-        const countryValue = this.model.get(this.countryField);
+        let postalCodeValue = this.model.get(this.postalCodeField);
+        let streetValue = this.model.get(this.streetField);
+        let cityValue = this.model.get(this.cityField);
+        let stateValue = this.model.get(this.stateField);
+        let countryValue = this.model.get(this.countryField);
 
         let html = '';
 
@@ -256,13 +247,12 @@ class AddressFieldView extends BaseFieldView {
         return html;
     }
 
-    // noinspection JSUnusedGlobalSymbols
     getFormattedAddress3() {
-        const postalCodeValue = this.model.get(this.postalCodeField);
-        const streetValue = this.model.get(this.streetField);
-        const cityValue = this.model.get(this.cityField);
-        const stateValue = this.model.get(this.stateField);
-        const countryValue = this.model.get(this.countryField);
+        let postalCodeValue = this.model.get(this.postalCodeField);
+        let streetValue = this.model.get(this.streetField);
+        let cityValue = this.model.get(this.cityField);
+        let stateValue = this.model.get(this.stateField);
+        let countryValue = this.model.get(this.countryField);
 
         let html = '';
 
@@ -304,13 +294,12 @@ class AddressFieldView extends BaseFieldView {
         return html;
     }
 
-    // noinspection JSUnusedGlobalSymbols
     getFormattedAddress4() {
-        const postalCodeValue = this.model.get(this.postalCodeField);
-        const streetValue = this.model.get(this.streetField);
-        const cityValue = this.model.get(this.cityField);
-        const stateValue = this.model.get(this.stateField);
-        const countryValue = this.model.get(this.countryField);
+        let postalCodeValue = this.model.get(this.postalCodeField);
+        let streetValue = this.model.get(this.streetField);
+        let cityValue = this.model.get(this.cityField);
+        let stateValue = this.model.get(this.stateField);
+        let countryValue = this.model.get(this.countryField);
 
         let html = '';
 
@@ -357,14 +346,13 @@ class AddressFieldView extends BaseFieldView {
 
     _getTemplateName() {
         if (this.mode === this.MODE_EDIT) {
-            const prop = 'editTemplate' + this.getAddressFormat().toString();
+            let prop = 'editTemplate' + this.getAddressFormat().toString();
 
             if (prop in this) {
                 return this[prop];
             }
         }
 
-        // @todo
         return super._getTemplateName();
     }
 
@@ -374,72 +362,184 @@ class AddressFieldView extends BaseFieldView {
 
     afterRender() {
         if (this.mode === this.MODE_EDIT) {
-            this.$street = this.$el.find(`[data-name="${this.streetField}"]`);
-            this.$postalCode = this.$el.find(`[data-name="${this.postalCodeField}"]`);
-            this.$state = this.$el.find(`[data-name="${this.stateField}"]`);
-            this.$city = this.$el.find(`[data-name="${this.cityField}"]`);
-            this.$country = this.$el.find(`[data-name="${this.countryField}"]`);
+            this.$street = this.$el.find('[data-name="' + this.streetField + '"]');
+            this.$postalCode = this.$el.find('[data-name="' + this.postalCodeField + '"]');
+            this.$state = this.$el.find('[data-name="' + this.stateField + '"]');
+            this.$city = this.$el.find('[data-name="' + this.cityField + '"]');
+            this.$country = this.$el.find('[data-name="' + this.countryField + '"]');
 
-            this.$street.on('change', () => this.trigger('change'));
-            this.$postalCode.on('change', () => this.trigger('change'));
-            this.$state.on('change', () => this.trigger('change'));
-            this.$city.on('change', () => this.trigger('change'));
-            this.$country.on('change', () => this.trigger('change'));
+            this.$street.on('change', () => {
+                this.trigger('change');
+            });
 
-            const countryList = this.getConfig().get('addressCountryList') || [];
-            const cityList = this.getConfig().get('addressCityList') || [];
-            const stateList = this.getConfig().get('addressStateList') || [];
+            this.$postalCode.on('change', () => {
+                this.trigger('change');
+            });
+
+            this.$state.on('change', () => {
+                this.trigger('change');
+            });
+
+            this.$city.on('change', () => {
+                this.trigger('change');
+            });
+
+            this.$country.on('change', () => {
+                this.trigger('change');
+            });
+
+            let countryList = this.getConfig().get('addressCountryList') || [];
 
             if (countryList.length) {
-                const autocomplete = new Autocomplete(this.$country.get(0), {
-                    name: this.name + 'Country',
-                    triggerSelectOnValidInput: true,
-                    autoSelectFirst: true,
-                    handleFocusMode: 1,
-                    focusOnSelect: true,
+                this.$country.autocomplete({
+                    minChars: 0,
                     lookup: countryList,
-                    onSelect: () => this.trigger('change'),
+                    maxHeight: 200,
+                    formatResult: suggestion => {
+                        return this.getHelper().escapeString(suggestion.value);
+                    },
+                    lookupFilter: (suggestion, query, queryLowerCase) => {
+                        if (suggestion.value.toLowerCase().indexOf(queryLowerCase) === 0) {
+                            if (suggestion.value.length === queryLowerCase.length) {
+                                return false;
+                            }
+
+                            return true;
+                        }
+
+                        return false;
+                    },
+                    onSelect: () => {
+                        this.trigger('change');
+
+                        this.$country.focus();
+                    },
                 });
 
-                this.once('render remove', () => autocomplete.dispose());
+                this.$country.on('focus', () => {
+                    if (this.$country.val()) {
+                        return;
+                    }
+
+                    this.$country.autocomplete('onValueChange');
+                });
+
+                this.once('render', () => {
+                    this.$country.autocomplete('dispose');
+                });
+
+                this.once('remove', () => {
+                    this.$country.autocomplete('dispose');
+                });
+
+                this.$country.attr('autocomplete', 'espo-country');
             }
+
+            let cityList = this.getConfig().get('addressCityList') || [];
 
             if (cityList.length) {
-                const autocomplete = new Autocomplete(this.$city.get(0), {
-                    name: this.name + 'City',
-                    triggerSelectOnValidInput: true,
-                    autoSelectFirst: true,
-                    handleFocusMode: 1,
-                    focusOnSelect: true,
+                this.$city.autocomplete({
+                    minChars: 0,
                     lookup: cityList,
-                    onSelect: () => this.trigger('change'),
+                    maxHeight: 200,
+                    formatResult: (suggestion) => {
+                        return this.getHelper().escapeString(suggestion.value);
+                    },
+                    lookupFilter: (suggestion, query, queryLowerCase) => {
+                        if (suggestion.value.toLowerCase().indexOf(queryLowerCase) === 0) {
+                            if (suggestion.value.length === queryLowerCase.length) {
+                                return false;
+                            }
+
+                            return true;
+                        }
+
+                        return false;
+                    },
+                    onSelect: () => {
+                        this.trigger('change');
+
+                        this.$city.focus();
+                    },
                 });
 
-                this.once('render remove', () => autocomplete.dispose());
+                this.$city.on('focus', () => {
+                    if (this.$city.val()) {
+                        return;
+                    }
+
+                    this.$city.autocomplete('onValueChange');
+                });
+
+                this.once('render', () => {
+                    this.$city.autocomplete('dispose');
+                });
+
+                this.once('remove', () => {
+                    this.$city.autocomplete('dispose');
+                });
+
+                this.$city.attr('autocomplete', 'espo-city');
             }
 
+            let stateList = this.getConfig().get('addressStateList') || [];
+
             if (stateList.length) {
-                const autocomplete = new Autocomplete(this.$state.get(0), {
-                    name: this.name + 'State',
-                    triggerSelectOnValidInput: true,
-                    autoSelectFirst: true,
-                    handleFocusMode: 1,
-                    focusOnSelect: true,
+                this.$state.autocomplete({
+                    minChars: 0,
                     lookup: stateList,
-                    onSelect: () => this.trigger('change'),
+                    maxHeight: 200,
+                    formatResult: suggestion => {
+                        return this.getHelper().escapeString(suggestion.value);
+                    },
+                    lookupFilter: function (suggestion, query, queryLowerCase) {
+                        if (suggestion.value.toLowerCase().indexOf(queryLowerCase) === 0) {
+                            if (suggestion.value.length === queryLowerCase.length) {
+                                return false;
+                            }
+
+                            return true;
+                        }
+
+                        return false;
+                    },
+                    onSelect: () => {
+                        this.trigger('change');
+
+                        this.$state.focus();
+                    },
                 });
 
-                this.once('render remove', () => autocomplete.dispose());
+                this.$state.on('focus', () => {
+                    if (this.$state.val()) {
+                        return;
+                    }
+
+                    this.$state.autocomplete('onValueChange');
+                });
+
+                this.once('render', () => {
+                    this.$state.autocomplete('dispose');
+                });
+
+                this.once('remove', () => {
+                    this.$state.autocomplete('dispose');
+                });
+
+                this.$state.attr('autocomplete', 'espo-state');
             }
 
             this.controlStreetTextareaHeight();
-            this.$street.on('input', () => this.controlStreetTextareaHeight());
+
+            this.$street.on('input', () => {
+                this.controlStreetTextareaHeight();
+            });
         }
     }
 
     controlStreetTextareaHeight(lastHeight) {
-        const scrollHeight = this.$street.prop('scrollHeight');
-        const clientHeight = this.$street.prop('clientHeight');
+        let scrollHeight = this.$street.prop('scrollHeight');
+        let clientHeight = this.$street.prop('clientHeight');
 
         if (typeof lastHeight === 'undefined' && clientHeight === 0) {
             setTimeout(this.controlStreetTextareaHeight.bind(this), 10);
@@ -450,7 +550,7 @@ class AddressFieldView extends BaseFieldView {
         if (clientHeight === lastHeight) return;
 
         if (scrollHeight > clientHeight + 1) {
-            const rows = this.$street.prop('rows');
+            let rows = this.$street.prop('rows');
             this.$street.attr('rows', rows + 1);
 
             this.controlStreetTextareaHeight(clientHeight);
@@ -464,13 +564,13 @@ class AddressFieldView extends BaseFieldView {
     setup() {
         super.setup();
 
-        const actualAttributePartList = this.getMetadata().get(['fields', this.type, 'actualFields']) || [];
+        let actualAttributePartList = this.getMetadata().get(['fields', this.type, 'actualFields']) || [];
 
         this.addressAttributeList = [];
         this.addressPartList = [];
 
         actualAttributePartList.forEach(item => {
-            const attribute = this.name + Espo.Utils.upperCaseFirst(item);
+            let attribute = this.name + Espo.Utils.upperCaseFirst(item);
 
             this.addressAttributeList.push(attribute);
             this.addressPartList.push(item);
@@ -483,13 +583,13 @@ class AddressFieldView extends BaseFieldView {
     }
 
     validateRequired() {
-        const validate = name => {
+        let validate = name => {
             if (this.model.isRequired(name)) {
                 if (this.model.get(name) === '') {
-                    const msg = this.translate('fieldIsRequired', 'messages')
+                    let msg = this.translate('fieldIsRequired', 'messages')
                         .replace('{field}', this.translate(name, 'fields', this.entityType));
 
-                    this.showValidationMessage(msg, '[data-name="' + name + '"]');
+                    this.showValidationMessage(msg, '[data-name="'+name+'"]');
 
                     return true;
                 }
@@ -515,9 +615,8 @@ class AddressFieldView extends BaseFieldView {
             this.model.getFieldParam(this.countryField, 'required');
     }
 
-    // noinspection JSUnusedGlobalSymbols
     validatePattern() {
-        const fieldList = [
+        let fieldList = [
             this.postalCodeField,
             this.stateField,
             this.cityField,
@@ -526,7 +625,7 @@ class AddressFieldView extends BaseFieldView {
 
         let result = false;
 
-        for (const field of fieldList) {
+        for (let field of fieldList) {
             result = Varchar.prototype.fieldValidatePattern.call(this, field) || result;
         }
 
@@ -534,7 +633,7 @@ class AddressFieldView extends BaseFieldView {
     }
 
     fetch() {
-        const data = {};
+        let data = {};
 
         data[this.postalCodeField] = this.$postalCode.val().toString().trim();
         data[this.streetField] = this.$street.val().toString().trim();
@@ -542,7 +641,7 @@ class AddressFieldView extends BaseFieldView {
         data[this.cityField] = this.$city.val().toString().trim();
         data[this.countryField] = this.$country.val().toString().trim();
 
-        const attributeList = [
+        let attributeList = [
             this.postalCodeField,
             this.streetField,
             this.stateField,
@@ -560,7 +659,7 @@ class AddressFieldView extends BaseFieldView {
     }
 
     fetchSearch() {
-        const value = this.$el.find('input.main-element')
+        let value = this.$el.find('input.main-element')
             .val()
             .toString()
             .trim();

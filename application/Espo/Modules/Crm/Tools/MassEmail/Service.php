@@ -41,17 +41,26 @@ use Espo\Modules\Crm\Entities\MassEmail as MassEmailEntity;
 use Espo\ORM\Collection;
 use Espo\ORM\Entity;
 use Espo\ORM\EntityManager;
-
 use stdClass;
 
 class Service
 {
+    private EntityManager $entityManager;
+    private Acl $acl;
+    private QueueCreator $queueCreator;
+    private SendingProcessor $sendingProcessor;
+
     public function __construct(
-        private EntityManager $entityManager,
-        private Acl $acl,
-        private QueueCreator $queueCreator,
-        private SendingProcessor $sendingProcessor
-    ) {}
+        EntityManager $entityManager,
+        Acl $acl,
+        QueueCreator $queueCreator,
+        SendingProcessor $sendingProcessor
+    ) {
+        $this->entityManager = $entityManager;
+        $this->acl = $acl;
+        $this->queueCreator = $queueCreator;
+        $this->sendingProcessor = $sendingProcessor;
+    }
 
     /**
      * SMTP data for the front-end.

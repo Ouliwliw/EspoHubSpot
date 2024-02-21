@@ -36,16 +36,24 @@ use stdClass;
  */
 class Data
 {
+    private ?string $message = null;
+    private ?string $token = null;
+    private ?string $view = null;
+    private ?string $failReason = null;
     /** @var array<string, mixed> */
     private array $data = [];
 
-    /** @noinspection PhpSameParameterValueInspection */
     private function __construct(
-        private ?string $message = null,
-        private ?string $failReason = null,
-        private ?string $token = null,
-        private ?string $view = null
-    ) {}
+        ?string $message = null,
+        ?string $failReason = null,
+        ?string $token = null,
+        ?string $view = null
+    ) {
+        $this->message = $message;
+        $this->failReason = $failReason;
+        $this->token = $token;
+        $this->view = $view;
+    }
 
     public static function create(): self
     {
@@ -95,7 +103,6 @@ class Data
         return $obj;
     }
 
-    /** @noinspection PhpUnused */
     public function withFailReason(?string $failReason): self
     {
         $obj = clone $this;
@@ -104,7 +111,6 @@ class Data
         return $obj;
     }
 
-    /** @noinspection PhpUnused */
     public function withToken(?string $token): self
     {
         $obj = clone $this;
@@ -113,7 +119,6 @@ class Data
         return $obj;
     }
 
-    /** @noinspection PhpUnused */
     public function withView(?string $view): self
     {
         $obj = clone $this;

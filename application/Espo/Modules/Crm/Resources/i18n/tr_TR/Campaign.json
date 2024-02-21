@@ -1,16 +1,16 @@
 {
   "fields": {
-    "name": "Ad",
+    "name": "İsim",
     "description": "Açıklama",
-    "status": "Durum",
-    "type": "Tip",
+    "status": "Durum ",
+    "type": "tip ",
     "startDate": "Başlangıç ​​tarihi",
     "endDate": "Bitiş tarihi",
     "targetLists": "Hedef Listeler",
     "excludingTargetLists": "Hedef Listeleri Hariç Tutma",
-    "sentCount": "Gönderildi",
+    "sentCount": "gönderildi",
     "openedCount": "Açılmış",
-    "clickedCount": "Tıklandı",
+    "clickedCount": "tıklandı",
     "optedOutCount": "Devre dışı bırakıldı",
     "bouncedCount": "Geri Döndü",
     "hardBouncedCount": "Sert Geri Döndü",
@@ -33,8 +33,8 @@
     "contacts": "İletişim kişileri",
     "leads": "Müşteri Potansiyelleri",
     "opportunities": "Fırsatlar",
-    "campaignLogRecords": "Kayıt",
-    "massEmails": "Toplu emailler",
+    "campaignLogRecords": "Kütük",
+    "massEmails": "Toplu E-postalar",
     "trackingUrls": "İzleme URL'leri",
     "contactsTemplate": "Kişi Şablonu",
     "leadsTemplate": "Fırsat Şabonu ",
@@ -43,15 +43,17 @@
   },
   "options": {
     "type": {
-      "Television": "Televizyon",
-      "Radio": "Radyo",
+      "Email": "E-posta   ",
+      "Web": "Ağ",
+      "Television": "Televizyon!",
+      "Radio": "radyo",
       "Newsletter": "Bülten",
       "Mail": "Email"
     },
     "status": {
-      "Planning": "Planlanıyor",
-      "Active": "Aktif",
-      "Inactive": "Pasif",
+      "Planning": "Planlama",
+      "Active": "Aktif ",
+      "Inactive": "Inaktif ",
       "Complete": "Tamamla"
     }
   },
@@ -61,19 +63,19 @@
     "Statistics": "İstatistikler",
     "hard": "sert",
     "soft": "Yumuşak",
-    "Unsubscribe": "Abonelikten Ayrıl (Bülten üyeliğinden çıkma)",
-    "Mass Emails": "Toplu Email",
-    "Email Templates": "Email şablonları",
+    "Unsubscribe": "Unsubscribe (Bülten üyeliğinden çıkma)",
+    "Mass Emails": "Toplu E-postalar",
+    "Email Templates": "E-posta şablonları",
     "Unsubscribe again": "Tekrar abonelikten çık",
     "Subscribe again": "Tekrar üye olun",
     "Create Target List": "Hedef Liste Yarat",
     "Mail Merge": "Eposta Birleştirme"
   },
   "presetFilters": {
-    "active": "Aktif"
+    "active": "Aktif "
   },
   "messages": {
-    "unsubscribed": "Posta listemizden ayrıldınız",
+    "unsubscribed": "Posta listemizden çıktınız",
     "subscribedAgain": "Tekrar abone oldunuz."
   },
   "tooltips": {

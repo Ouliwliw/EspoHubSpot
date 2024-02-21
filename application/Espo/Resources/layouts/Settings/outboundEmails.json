@@ -4,8 +4,7 @@
         "rows": [
             [{"name": "outboundEmailFromAddress"}, {"name": "outboundEmailIsShared"}],
             [{"name": "outboundEmailFromName"}, {"name": "outboundEmailBccAddress"}],
-            [false, {"name": "emailAddressLookupEntityTypeList"}],
-            [false, {"name": "emailAddressSelectEntityTypeList"}]
+            [false, {"name": "emailAddressLookupEntityTypeList"}]
         ]
     },
     {

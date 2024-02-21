@@ -44,10 +44,10 @@ class AttachmentMultipleFieldView extends BaseFieldView {
     searchTemplate = 'fields/link-multiple/search'
 
     previewSize = 'medium'
-    nameHashName
-    idsName
-    nameHash
-    foreignScope
+    nameHashName = null
+    idsName = null
+    nameHash = null
+    foreignScope = null
     showPreviews = true
     accept = null
     validations = ['ready', 'required']
@@ -56,9 +56,9 @@ class AttachmentMultipleFieldView extends BaseFieldView {
     events = {
         /** @this AttachmentMultipleFieldView */
         'click a.remove-attachment': function (e) {
-            const $div = $(e.currentTarget).parent();
+            let $div = $(e.currentTarget).parent();
 
-            const id = $div.attr('data-id');
+            let id = $div.attr('data-id');
 
             if (id) {
                 this.deleteAttachment(id);
@@ -72,8 +72,8 @@ class AttachmentMultipleFieldView extends BaseFieldView {
         },
         /** @this AttachmentMultipleFieldView */
         'change input.file': function (e) {
-            const $file = $(e.currentTarget);
-            const files = e.currentTarget.files;
+            let $file = $(e.currentTarget);
+            let files = e.currentTarget.files;
 
             this.uploadFiles(files);
 
@@ -83,7 +83,7 @@ class AttachmentMultipleFieldView extends BaseFieldView {
         },
         /** @this AttachmentMultipleFieldView */
         'click a.action[data-action="insertFromSource"]': function (e) {
-            const name = $(e.currentTarget).data('name');
+            let name = $(e.currentTarget).data('name');
 
             this.insertFromSource(name);
         },
@@ -91,12 +91,12 @@ class AttachmentMultipleFieldView extends BaseFieldView {
         'click a[data-action="showImagePreview"]': function (e) {
             e.preventDefault();
 
-            const id = $(e.currentTarget).data('id');
+            let id = $(e.currentTarget).data('id');
 
-            const attachmentIdList = this.model.get(this.idsName) || [];
-            const typeHash = this.model.get(this.typeHashName) || {};
+            let attachmentIdList = this.model.get(this.idsName) || [];
+            let typeHash = this.model.get(this.typeHashName) || {};
 
-            const imageIdList = [];
+            let imageIdList = [];
 
             attachmentIdList.forEach(cId => {
                 if (!this.isTypeIsImage(typeHash[cId])) {
@@ -106,7 +106,7 @@ class AttachmentMultipleFieldView extends BaseFieldView {
                 imageIdList.push(cId);
             });
 
-            const imageList = [];
+            let imageList = [];
 
             imageIdList.forEach((cId) => {
                 imageList.push({
@@ -126,21 +126,18 @@ class AttachmentMultipleFieldView extends BaseFieldView {
         },
         /** @this AttachmentMultipleFieldView */
         'keydown label.attach-file-label': function (e) {
-            const key = Espo.Utils.getKeyFromKeyEvent(e);
+            let key = Espo.Utils.getKeyFromKeyEvent(e);
 
             if (key === 'Enter') {
-                const element = /** @type {HTMLInputElement} */this.$el.find('input.file').get(0);
-
-                element.click();
+                this.$el.find('input.file').get(0).click();
             }
         },
     }
 
-    // noinspection JSCheckFunctionSignatures
     data() {
-        const ids = this.model.get(this.idsName);
+        let ids = this.model.get(this.idsName);
 
-        const data = {
+        let data = {
             ...super.data(),
             idValues: this.model.get(this.idsName),
             idValuesString: ids ? ids.join(',') : '',
@@ -155,7 +152,6 @@ class AttachmentMultipleFieldView extends BaseFieldView {
             data.sourceList = this.sourceList;
         }
 
-        // noinspection JSValidateTypes
         return data;
     }
 
@@ -184,7 +180,7 @@ class AttachmentMultipleFieldView extends BaseFieldView {
             this.acceptAttribute = this.accept.join(', ');
         }
 
-        const sourceDefs = this.getMetadata().get(['clientDefs', 'Attachment', 'sourceDefs']) || {};
+        let sourceDefs = this.getMetadata().get(['clientDefs', 'Attachment', 'sourceDefs']) || {};
 
         this.sourceList = Espo.Utils.clone(this.params.sourceList || []);
 
@@ -196,7 +192,7 @@ class AttachmentMultipleFieldView extends BaseFieldView {
                 return self.indexOf(item) === i;
             })
             .filter((item) => {
-                const defs = sourceDefs[item] || {};
+                let defs = sourceDefs[item] || {};
 
                 if (defs.accessDataList) {
                     if (
@@ -209,7 +205,7 @@ class AttachmentMultipleFieldView extends BaseFieldView {
                 }
 
                 if (defs.configCheck) {
-                    const arr = defs.configCheck.split('.');
+                    let arr = defs.configCheck.split('.');
 
                     if (!this.getConfig().getByPath(arr)) {
                         return false;
@@ -236,7 +232,7 @@ class AttachmentMultipleFieldView extends BaseFieldView {
 
     setupSearch() {
         this.events['change select.search-type'] = e => {
-            const type = $(e.currentTarget).val();
+            let type = $(e.currentTarget).val();
 
             this.handleSearchType(type);
         };
@@ -257,7 +253,7 @@ class AttachmentMultipleFieldView extends BaseFieldView {
     }
 
     handleResize() {
-        const width = this.$el.width();
+        let width = this.$el.width();
 
         this.$el.find('img.image-preview').css('maxWidth', width + 'px');
     }
@@ -298,19 +294,19 @@ class AttachmentMultipleFieldView extends BaseFieldView {
     }
 
     removeId(id) {
-        const arr = _.clone(this.model.get(this.idsName) || []);
-        const i = arr.indexOf(id);
+        let arr = _.clone(this.model.get(this.idsName) || []);
+        let i = arr.indexOf(id);
 
         arr.splice(i, 1);
 
         this.model.set(this.idsName, arr);
 
-        const nameHash = _.clone(this.model.get(this.nameHashName) || {});
+        let nameHash = _.clone(this.model.get(this.nameHashName) || {});
         delete nameHash[id];
 
         this.model.set(this.nameHashName, nameHash);
 
-        const typeHash = _.clone(this.model.get(this.typeHashName) || {});
+        let typeHash = _.clone(this.model.get(this.typeHashName) || {});
         delete typeHash[id];
 
         this.model.set(this.typeHashName, typeHash);
@@ -325,19 +321,19 @@ class AttachmentMultipleFieldView extends BaseFieldView {
     }
 
     pushAttachment(attachment, link, ui) {
-        const arr = _.clone(this.model.get(this.idsName) || []);
+        let arr = _.clone(this.model.get(this.idsName) || []);
 
         arr.push(attachment.id);
 
         this.model.set(this.idsName, arr, {ui: ui});
 
-        const typeHash = _.clone(this.model.get(this.typeHashName) || {});
+        let typeHash = _.clone(this.model.get(this.typeHashName) || {});
 
         typeHash[attachment.id] = attachment.get('type');
 
         this.model.set(this.typeHashName, typeHash, {ui: ui});
 
-        const nameHash = _.clone(this.model.get(this.nameHashName) || {});
+        let nameHash = _.clone(this.model.get(this.nameHashName) || {});
 
         nameHash[attachment.id] = attachment.get('name');
 
@@ -349,12 +345,10 @@ class AttachmentMultipleFieldView extends BaseFieldView {
             return null;
         }
 
-        // noinspection HtmlRequiredAltAttribute,RequiredAttributes
-        return $('<img>')
+        return  $('<img>')
             .attr('src', this.getImageUrl(id, 'small'))
             .attr('title', name)
-            .attr('alt', name)
-            .attr('draggable', 'false')
+            .attr('draggable', false)
             .css({
                 maxWidth: (this.imageSizes[this.previewSize] || {})[0],
                 maxHeight: (this.imageSizes[this.previewSize] || {})[1],
@@ -364,21 +358,21 @@ class AttachmentMultipleFieldView extends BaseFieldView {
     }
 
     getBoxPreviewHtml(name, type, id) {
-        const $text = $('<span>').text(name);
+        let $text = $('<span>').text(name);
 
         if (!id) {
             return $text.get(0).outerHTML;
         }
 
         if (this.showPreviews) {
-            const html = this.getEditPreview(name, type, id);
+            let html = this.getEditPreview(name, type, id);
 
             if (html) {
                 return html;
             }
         }
 
-        const url = this.getBasePath() + '?entryPoint=download&id=' + id;
+        let url = this.getBasePath() + '?entryPoint=download&id=' + id;
 
         return $('<a>')
             .attr('href', url)
@@ -388,9 +382,9 @@ class AttachmentMultipleFieldView extends BaseFieldView {
     }
 
     addAttachmentBox(name, type, id) {
-        const $attachments = this.$attachments;
+        let $attachments = this.$attachments;
 
-        const $remove = $('<a>')
+        let $remove = $('<a>')
             .attr('role', 'button')
             .attr('tabindex', '0')
             .addClass('remove-attachment pull-right')
@@ -398,18 +392,18 @@ class AttachmentMultipleFieldView extends BaseFieldView {
                 $('<span>').addClass('fas fa-times')
             );
 
-        const previewHtml = this.getBoxPreviewHtml(name, type, id);
+        let previewHtml = this.getBoxPreviewHtml(name, type, id);
 
-        const $att = $('<div>')
+        let $att = $('<div>')
             .addClass('gray-box')
             .append($remove)
             .append(
                 $('<span>')
                     .addClass('preview')
-                    .append($(previewHtml))
+                    .append(previewHtml)
             );
 
-        const $container = $('<div>').append($att);
+        let $container = $('<div>').append($att);
 
         $attachments.append($container);
 
@@ -419,7 +413,7 @@ class AttachmentMultipleFieldView extends BaseFieldView {
             return $att;
         }
 
-        const $loading = $('<span>')
+        let $loading = $('<span>')
             .addClass('small uploading-message')
             .text(this.translate('Uploading...'));
 
@@ -428,9 +422,9 @@ class AttachmentMultipleFieldView extends BaseFieldView {
         $att.on('ready', () => {
             $loading.html(this.translate('Ready'));
 
-            const id = $att.attr('data-id');
+            let id = $att.attr('data-id');
 
-            const previewHtml = this.getBoxPreviewHtml(name, type, id);
+            let previewHtml = this.getBoxPreviewHtml(name, type, id);
 
             $att.find('.preview').html(previewHtml);
 
@@ -442,13 +436,13 @@ class AttachmentMultipleFieldView extends BaseFieldView {
         return $att;
     }
 
-    showValidationMessage(msg, selector, view) {
-        const $label = this.$el.find('label');
-        const title = $label.attr('title');
+    showValidationMessage(msg, selector) {
+        let $label = this.$el.find('label');
+        let title = $label.attr('title');
 
         $label.attr('title', '');
 
-        super.showValidationMessage(msg, selector, view);
+        super.showValidationMessage(msg, selector);
 
         $label.attr('title', title);
     }
@@ -456,9 +450,9 @@ class AttachmentMultipleFieldView extends BaseFieldView {
     getMaxFileSize() {
         let maxFileSize = this.params.maxFileSize || 0;
 
-        const noChunk = !this.getConfig().get('attachmentUploadChunkSize');
-        const attachmentUploadMaxSize = this.getConfig().get('attachmentUploadMaxSize') || 0;
-        const appMaxUploadSize = this.getHelper().getAppParam('maxUploadSize') || 0;
+        let noChunk = !this.getConfig().get('attachmentUploadChunkSize');
+        let attachmentUploadMaxSize = this.getConfig().get('attachmentUploadMaxSize') || 0;
+        let appMaxUploadSize = this.getHelper().getAppParam('maxUploadSize') || 0;
 
         if (!maxFileSize || maxFileSize > attachmentUploadMaxSize) {
             maxFileSize = attachmentUploadMaxSize;
@@ -477,11 +471,11 @@ class AttachmentMultipleFieldView extends BaseFieldView {
 
         let exceedsMaxFileSize = false;
 
-        const maxFileSize = this.getMaxFileSize();
+        let maxFileSize = this.getMaxFileSize();
 
         if (maxFileSize) {
             for (let i = 0; i < files.length; i++) {
-                const file = files[i];
+                let file = files[i];
 
                 if (file.size > maxFileSize * 1024 * 1024) {
                     exceedsMaxFileSize = true;
@@ -490,7 +484,7 @@ class AttachmentMultipleFieldView extends BaseFieldView {
         }
 
         if (exceedsMaxFileSize) {
-            const msg = this.translate('fieldMaxFileSizeError', 'messages')
+            let msg = this.translate('fieldMaxFileSizeError', 'messages')
                 .replace('{field}', this.getLabelText())
                 .replace('{max}', maxFileSize);
 
@@ -502,9 +496,9 @@ class AttachmentMultipleFieldView extends BaseFieldView {
         this.isUploading = true;
 
         this.getModelFactory().create('Attachment', model => {
-            const canceledList = [];
-            const fileList = [];
-            const uploadedList = [];
+            let canceledList = [];
+
+            let fileList = [];
 
             for (let i = 0; i < files.length; i++) {
                 fileList.push(files[i]);
@@ -512,16 +506,15 @@ class AttachmentMultipleFieldView extends BaseFieldView {
                 totalCount++;
             }
 
-
             /** @type module:helpers/file-upload */
-            const uploadHelper = new FileUpload(this.getConfig());
+            let uploadHelper = new FileUpload(this.getConfig());
 
             fileList.forEach(file => {
-                const $attachmentBox = this.addAttachmentBox(file.name, file.type);
+                let $attachmentBox = this.addAttachmentBox(file.name, file.type);
 
-                const $uploadingMsg = $attachmentBox.parent().find('.uploading-message');
+                let $uploadingMsg = $attachmentBox.parent().find('.uploading-message');
 
-                const mediator = {};
+                let mediator = {};
 
                 $attachmentBox.find('.remove-attachment').on('click.uploading', () => {
                     canceledList.push(attachment.cid);
@@ -539,7 +532,7 @@ class AttachmentMultipleFieldView extends BaseFieldView {
                     mediator.isCanceled = true;
                 });
 
-                const attachment = model.clone();
+                let attachment = model.clone();
 
                 attachment.set('role', 'Attachment');
                 attachment.set('parentType', this.model.entityType);
@@ -548,7 +541,7 @@ class AttachmentMultipleFieldView extends BaseFieldView {
                 uploadHelper
                     .upload(file, attachment, {
                         afterChunkUpload: (size) => {
-                            const msg = Math.floor((size / file.size) * 100) + '%';
+                            let msg = Math.floor((size / file.size) * 100) + '%';
 
                             $uploadingMsg.html(msg);
                         },
@@ -568,10 +561,9 @@ class AttachmentMultipleFieldView extends BaseFieldView {
                         $attachmentBox.trigger('ready');
 
                         uploadedCount++;
-                        uploadedList.push(attachment);
 
                         if (uploadedCount === totalCount && this.isUploading) {
-                            this.model.trigger('attachment-uploaded:' + this.name, uploadedList);
+                            this.model.trigger('attachment-uploaded:' + this.name);
                             this.afterAttachmentsUploaded.call(this);
 
                             this.isUploading = false;
@@ -617,15 +609,15 @@ class AttachmentMultipleFieldView extends BaseFieldView {
         if (this.mode === this.MODE_EDIT) {
             this.$attachments = this.$el.find('div.attachments');
 
-            const ids = this.model.get(this.idsName) || [];
+            let ids = this.model.get(this.idsName) || [];
 
-            const nameHash = this.model.get(this.nameHashName);
-            const typeHash = this.model.get(this.typeHashName) || {};
+            let hameHash = this.model.get(this.nameHashName);
+            let typeHash = this.model.get(this.typeHashName) || {};
 
             ids.forEach(id => {
-                if (nameHash) {
-                    const name = nameHash[id];
-                    const type = typeHash[id] || null;
+                if (hameHash) {
+                    let name = hameHash[id];
+                    let type = typeHash[id] || null;
 
                     this.addAttachmentBox(name, type, id);
                 }
@@ -639,7 +631,7 @@ class AttachmentMultipleFieldView extends BaseFieldView {
                 e.preventDefault();
                 e.stopPropagation();
 
-                const event = /** @type {DragEvent} */e.originalEvent;
+                event = e.originalEvent;
 
                 if (
                     event.dataTransfer &&
@@ -660,7 +652,7 @@ class AttachmentMultipleFieldView extends BaseFieldView {
         }
 
         if (this.mode === this.MODE_SEARCH) {
-            const type = this.$el.find('select.search-type').val();
+            let type = this.$el.find('select.search-type').val();
 
             this.handleSearchType(type);
         }
@@ -696,7 +688,6 @@ class AttachmentMultipleFieldView extends BaseFieldView {
                 .outerHTML;
         }
 
-        // noinspection HtmlRequiredAltAttribute,RequiredAttributes
         return $('<a>')
             .attr('data-action', 'showImagePreview')
             .attr('data-id', id)
@@ -706,7 +697,6 @@ class AttachmentMultipleFieldView extends BaseFieldView {
                 $('<img>')
                     .attr('src', this.getImageUrl(id, this.previewSize))
                     .addClass('image-preview')
-                    .attr('alt', name)
                     .css({
                         maxWidth: (this.imageSizes[this.previewSize] || {})[0],
                         maxHeight: (this.imageSizes[this.previewSize] || {})[1],
@@ -718,19 +708,19 @@ class AttachmentMultipleFieldView extends BaseFieldView {
 
     getValueForDisplay() {
         if (this.isDetailMode() || this.isListMode()) {
-            const nameHash = this.nameHash;
-            const typeHash = this.model.get(this.typeHashName) || {};
+            let nameHash = this.nameHash;
+            let typeHash = this.model.get(this.typeHashName) || {};
 
-            const previews = [];
-            const names = [];
+            let previews = [];
+            let names = [];
 
-            for (const id in nameHash) {
-                const type = typeHash[id] || false;
-                const name = nameHash[id];
+            for (let id in nameHash) {
+                let type = typeHash[id] || false;
+                let name = nameHash[id];
 
                 if (
                     this.showPreviews &&
-                    this.previewTypeList.includes(type) &&
+                    ~this.previewTypeList.indexOf(type) &&
                     (
                         this.isDetailMode() ||
                         this.isListMode() && this.showPreviewsInListMode
@@ -773,7 +763,7 @@ class AttachmentMultipleFieldView extends BaseFieldView {
                 return '';
             }
 
-            const $container = $('<div>')
+            let $container = $('<div>')
                 .append(
                     $('<div>')
                         .addClass('attachment-block-container')
@@ -787,7 +777,7 @@ class AttachmentMultipleFieldView extends BaseFieldView {
     }
 
     insertFromSource(source) {
-        const viewName =
+        let viewName =
             this.getMetadata().get(['clientDefs', 'Attachment', 'sourceDefs', source, 'insertModalView']) ||
             this.getMetadata().get(['clientDefs', source, 'modalViews', 'select']) ||
             'views/modals/select-records';
@@ -879,7 +869,7 @@ class AttachmentMultipleFieldView extends BaseFieldView {
     validateRequired() {
         if (this.isRequired()) {
             if ((this.model.get(this.idsName) || []).length === 0) {
-                const msg = this.translate('fieldIsRequired', 'messages')
+                let msg = this.translate('fieldIsRequired', 'messages')
                     .replace('{field}', this.getLabelText());
 
                 this.showValidationMessage(msg, 'label');
@@ -889,10 +879,9 @@ class AttachmentMultipleFieldView extends BaseFieldView {
         }
     }
 
-    // noinspection JSUnusedGlobalSymbols
     validateReady() {
         if (this.isUploading) {
-            const msg = this.translate('fieldIsUploading', 'messages')
+            let msg = this.translate('fieldIsUploading', 'messages')
                 .replace('{field}', this.getLabelText());
 
             this.showValidationMessage(msg, 'label');
@@ -902,20 +891,19 @@ class AttachmentMultipleFieldView extends BaseFieldView {
     }
 
     fetch() {
-        const data = {};
+        let data = {};
 
         data[this.idsName] = this.model.get(this.idsName) || [];
 
         return data;
     }
 
-    // noinspection JSUnusedLocalSymbols
     handleSearchType(type) {
         this.$el.find('div.link-group-container').addClass('hidden');
     }
 
     fetchSearch() {
-        const type = this.$el.find('select.search-type').val();
+        let type = this.$el.find('select.search-type').val();
 
         if (type === 'isEmpty') {
             return {

@@ -106,8 +106,7 @@
         "maxCount": "Maximum number of items allowed to be selected.",
         "displayAsList": "Each item in a new line.",
         "optionsVarchar": "A list of autocomplete values.",
-        "linkReadOnly": "Field value can't be specified by user. But can be calculated by formula.\n\nIt will also disable the ability to create a related record from relationship panels.",
-        "relateOnImport": "When importing with this field, it will automatically relate a record with a matching foreign record. Use this functionality only if the foreign field is considered as unique."
+        "linkReadOnly": "Field value can't be specified by user. But can be calculated by formula.\n\nIt will also disable the ability to create a related record from relationship panels."
     },
     "fieldParts": {
         "address": {
@@ -163,7 +162,6 @@
         "linkMultiple": "A set of records related through Has-Many (many-to-many or one-to-many) relationship. Not all relationships have their link-multiple fields. Only those do, where Link-Multiple parameter(s) is enabled."
     },
     "messages": {
-        "confirmRemove": "Are you sure you want to remove the *{field}* field?\n\nField removal does not remove data from the database. Data from the database will be removed if you run hard rebuild.",
         "fieldNameIsNotAllowed": "Field name '{field}' is not allowed.",
         "fieldAlreadyExists": "Field '{field}' already exists in '{entityType}'.",
         "linkWithSameNameAlreadyExists": "Link with the name '{field}' already exists in '{entityType}'."

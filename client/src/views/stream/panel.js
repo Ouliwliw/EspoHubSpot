@@ -39,11 +39,6 @@ class PanelStreamView extends RelationshipPanelView {
     relatedListFiltersDisabled = true
     layoutName = null
     filterList = ['all', 'posts', 'updates']
-    /** @type {import('collections/note').default} */
-    collection
-
-    /** @private */
-    _justPosted = false
 
     additionalEvents = {
         /** @this PanelStreamView */
@@ -58,7 +53,7 @@ class PanelStreamView extends RelationshipPanelView {
         'click .action[data-action="switchInternalMode"]': function (e) {
             this.isInternalNoteMode = !this.isInternalNoteMode;
 
-            const $a = $(e.currentTarget);
+            var $a = $(e.currentTarget);
 
             if (this.isInternalNoteMode) {
                 $a.addClass('enabled');
@@ -97,7 +92,7 @@ class PanelStreamView extends RelationshipPanelView {
     }
 
     data() {
-        const data = super.data();
+        let data = super.data();
 
         data.postDisabled = this.postDisabled;
         data.placeholderText = this.placeholderText;
@@ -121,10 +116,10 @@ class PanelStreamView extends RelationshipPanelView {
 
         if (!this.postingMode) {
             if (this.$textarea.val() && this.$textarea.val().length) {
-                this.getPostFieldView().controlTextareaHeight();
+                this.getView('postField').controlTextareaHeight();
             }
 
-            let isClicked = false;
+            var isClicked = false;
 
             $('body').on('click.stream-panel', (e) => {
                 if (byFocus && !isClicked) {
@@ -133,7 +128,7 @@ class PanelStreamView extends RelationshipPanelView {
                     return;
                 }
 
-                const $target = $(e.target);
+                var $target = $(e.target);
 
                 if ($target.parent().hasClass('remove-attachment')) {
                     return;
@@ -151,14 +146,11 @@ class PanelStreamView extends RelationshipPanelView {
                     return;
                 }
 
-                const attachmentsIds = this.seed.get('attachmentsIds') || [];
+                var attachmentsIds = this.seed.get('attachmentsIds') || [];
 
                 if (
                     !attachmentsIds.length &&
-                    (
-                        !this.getAttachmentsFieldView() ||
-                        !this.getAttachmentsFieldView().isUploading
-                    )
+                    (!this.getView('attachments') || !this.getView('attachments').isUploading)
                 ) {
                     this.disablePostingMode();
                 }
@@ -175,8 +167,8 @@ class PanelStreamView extends RelationshipPanelView {
 
         this.$textarea.val('');
 
-        if (this.getAttachmentsFieldView()) {
-            this.getAttachmentsFieldView().empty();
+        if (this.hasView('attachments')) {
+            this.getView('attachments').empty();
         }
 
         this.$el.find('.buttons-panel').addClass('hide');
@@ -222,7 +214,7 @@ class PanelStreamView extends RelationshipPanelView {
             this.storeControl();
         });
 
-        const storedAttachments = this.getSessionStorage().get(this.storageAttachmentsKey);
+        var storedAttachments = this.getSessionStorage().get(this.storageAttachmentsKey);
 
         this.setupActions();
 
@@ -304,18 +296,18 @@ class PanelStreamView extends RelationshipPanelView {
             return;
         }
 
-        const topic = 'streamUpdate.' + this.model.entityType + '.' + this.model.id;
+        var topic = 'streamUpdate.' + this.model.entityType + '.' + this.model.id;
         this.streamUpdateWebSocketTopic = topic;
 
         this.isSubscribedToWebSocket = true;
 
-        this.getHelper().webSocketManager.subscribe(topic, (t, /** Record */data) => {
-            if (data.createdById === this.getUser().id && this._justPosted) {
+        this.getHelper().webSocketManager.subscribe(topic, (t, data) => {
+            if (data.createdById === this.getUser().id) {
                 return;
             }
 
             if (data.noteId) {
-                const model = this.collection.get(data.noteId);
+                let model = this.collection.get(data.noteId);
 
                 if (model) {
                     model.fetch();
@@ -343,10 +335,10 @@ class PanelStreamView extends RelationshipPanelView {
     }
 
     storeControl() {
-        let isNotEmpty = false;
+        var isNotEmpty = false;
 
         if (this.$textarea && this.$textarea.length) {
-            const text = this.$textarea.val();
+            var text = this.$textarea.val();
 
             if (text.length) {
                 this.getSessionStorage().set(this.storageTextKey, text);
@@ -360,7 +352,7 @@ class PanelStreamView extends RelationshipPanelView {
             }
         }
 
-        const attachmentIdList = this.seed.get('attachmentsIds') || [];
+        var attachmentIdList = this.seed.get('attachmentsIds') || [];
 
         if (attachmentIdList.length) {
             this.getSessionStorage().set(this.storageAttachmentsKey, {
@@ -379,7 +371,8 @@ class PanelStreamView extends RelationshipPanelView {
 
         if (isNotEmpty) {
             this.getSessionStorage().set(this.storageIsInernalKey, this.isInternalNoteMode);
-        } else {
+        }
+        else {
             this.getSessionStorage().clear(this.storageIsInernalKey);
         }
     }
@@ -399,7 +392,7 @@ class PanelStreamView extends RelationshipPanelView {
 
     initPostEvents(view) {
         this.listenTo(view, 'add-files', (files) => {
-            this.getAttachmentsFieldView().uploadFiles(files);
+            this.getView('attachments').uploadFiles(files);
 
             if (!this.postingMode) {
                 this.enablePostingMode();
@@ -413,7 +406,7 @@ class PanelStreamView extends RelationshipPanelView {
         this.$postContainer = this.$el.find('.post-container');
         this.$postButton = this.$el.find('button.post');
 
-        const storedText = this.getSessionStorage().get(this.storageTextKey);
+        let storedText = this.getSessionStorage().get(this.storageTextKey);
 
         if (storedText && storedText.length) {
             this.hasStoredText = true;
@@ -426,13 +419,13 @@ class PanelStreamView extends RelationshipPanelView {
             this.$el.find('.action[data-action="switchInternalMode"]').addClass('enabled');
         }
 
-        const collection = this.collection;
+        let collection = this.collection;
 
         this.listenToOnce(collection, 'sync', () => {
             this.createView('list', 'views/stream/record/list', {
                 selector: '> .list-container',
                 collection: collection,
-                model: this.model,
+                model: this.model
             }, view => {
                 view.render();
             });
@@ -462,10 +455,10 @@ class PanelStreamView extends RelationshipPanelView {
             this.once('show', () => collection.fetch());
         }
 
-        const assignmentPermission = this.getAcl().getPermissionLevel('assignmentPermission');
+        let assignmentPermission = this.getAcl().getPermissionLevel('assignmentPermission');
 
-        const buildUserListUrl = term => {
-            let url = 'User?orderBy=name&limit=7&q=' + term + '&' + $.param({'primaryFilter': 'active'});
+        let buildUserListUrl = term => {
+            var url = 'User?orderBy=name&limit=7&q=' + term + '&' + $.param({'primaryFilter': 'active'});
 
             if (assignmentPermission === 'team') {
                 url += '&' + $.param({'boolFilterList': ['onlyMyTeam']})
@@ -507,12 +500,12 @@ class PanelStreamView extends RelationshipPanelView {
             });
         }
 
-        const $a = this.$el.find('.buttons-panel a.stream-post-info');
+        let $a = this.$el.find('.buttons-panel a.stream-post-info');
 
-        const text1 = this.translate('infoMention', 'messages', 'Stream');
-        const text2 = this.translate('infoSyntax', 'messages', 'Stream');
+        let text1 = this.translate('infoMention', 'messages', 'Stream');
+        let text2 = this.translate('infoSyntax', 'messages', 'Stream');
 
-        const syntaxItemList = [
+        let syntaxItemList = [
             ['code', '`{text}`'],
             ['multilineCode', '```{text}```'],
             ['strongText', '**{text}**'],
@@ -522,26 +515,28 @@ class PanelStreamView extends RelationshipPanelView {
             ['link', '[{text}](url)'],
         ];
 
-        const messageItemList = [];
+        let messageItemList = [];
 
         syntaxItemList.forEach(item => {
-            const text = this.translate(item[0], 'syntaxItems', 'Stream');
-            const result = item[1].replace('{text}', text);
+            let text = this.translate(item[0], 'syntaxItems', 'Stream');
+            let result = item[1].replace('{text}', text);
 
             messageItemList.push(result);
         });
 
-        const $ul = $('<ul>')
+        let $ul = $('<ul>')
             .append(
                 messageItemList.map(text => $('<li>').text(text))
             );
 
-        const messageHtml =
+        let messageHtml =
             this.getHelper().transformMarkdownInlineText(text1) + '<br><br>' +
             this.getHelper().transformMarkdownInlineText(text2) + ':<br>' +
             $ul.get(0).outerHTML;
 
-        Espo.Ui.popover($a, {content: messageHtml}, this);
+        Espo.Ui.popover($a, {
+            content: messageHtml,
+        }, this);
 
         this.createView('attachments', 'views/stream/fields/attachment-multiple', {
             model: this.seed,
@@ -559,29 +554,14 @@ class PanelStreamView extends RelationshipPanelView {
         this.$el.find('textarea.note').prop('rows', 1);
     }
 
-    /**
-     * @return {import('views/fields/text').default}
-     */
-    getPostFieldView() {
-        return this.getView('postField');
-    }
-
-    /**
-     * @return {import('views/fields/attachment-multiple').default}
-     */
-    getAttachmentsFieldView() {
-        return this.getView('attachments');
-    }
-
     post() {
-        const message = this.$textarea.val();
+        let message = this.$textarea.val();
 
         this.disablePostButton();
         this.$textarea.prop('disabled', true);
 
         this.getModelFactory().create('Note', model => {
-
-            if (this.getAttachmentsFieldView().validateReady()) {
+            if (this.getView('attachments').validateReady()) {
                 this.$textarea.prop('disabled', false);
                 this.enablePostButton();
 
@@ -589,8 +569,7 @@ class PanelStreamView extends RelationshipPanelView {
             }
 
             if (message.trim() === '' && (this.seed.get('attachmentsIds') || []).length === 0) {
-                Espo.Ui.error(this.translate('Post cannot be empty'))
-
+                this.notify('Post cannot be empty', 'error');
                 this.$textarea.prop('disabled', false);
                 this.controlPostButtonAvailability();
 
@@ -605,9 +584,6 @@ class PanelStreamView extends RelationshipPanelView {
             model.set('isInternal', this.isInternalNoteMode);
 
             this.prepareNoteForPost(model);
-
-            this._justPosted = true;
-            setTimeout(() => this._justPosted = false, 1000);
 
             Espo.Ui.notify(' ... ');
 
@@ -650,21 +626,20 @@ class PanelStreamView extends RelationshipPanelView {
 
         this.actionList.push({
             action: 'viewPostList',
-            text: this.translate('View Posts', 'labels', 'Note'),
+            html:
+                $('<span>')
+                    .append(
+                        $('<span>').text(this.translate('View List')),
+                        ' &middot; ',
+                        $('<span>').text(this.translate('posts', 'filters', 'Note')),
+                    )
+                    .get(0).innerHTML,
             onClick: () => this.actionViewPostList(),
         });
 
-        if (this.model.entityType === 'User') {
-            this.actionList.push({
-                action: 'viewUserActivity',
-                text: this.translate('View Activity', 'labels', 'Note'),
-                onClick: () => this.actionViewUserActivity(),
-            });
-        }
-
         this.actionList.push(false);
 
-        this.filterList.forEach(item => {
+        this.filterList.forEach((item) => {
             let selected ;
 
             selected = item === 'all' ?
@@ -690,32 +665,17 @@ class PanelStreamView extends RelationshipPanelView {
         });
     }
 
+    // noinspection JSUnusedGlobalSymbols
     actionViewPostList() {
-        const url = this.model.entityType + '/' + this.model.id + '/posts';
+        var url = this.model.entityType + '/' + this.model.id + '/posts';
 
-        const data = {
+        var data = {
             scope: 'Note',
             viewOptions: {
                 url: url,
                 title: this.translate('Stream') +
                     ' @right ' + this.translate('posts', 'filters', 'Note'),
                 forceSelectAllAttributes: true,
-            },
-        };
-
-        this.actionViewRelatedList(data);
-    }
-
-    actionViewUserActivity() {
-        const url = `User/${this.model.id}/stream/own`;
-
-        const data = {
-            scope: 'Note',
-            viewOptions: {
-                url: url,
-                title: this.translate('Stream') + ' @right ' + this.translate('activity', 'filters', 'Note'),
-                forceSelectAllAttributes: true,
-                filtersLayoutName: 'filtersGlobal',
             },
         };
 
@@ -744,16 +704,9 @@ class PanelStreamView extends RelationshipPanelView {
         }
     }
 
-    /**
-     * @return {import('views/stream/record/list').default}
-     */
-    getListView() {
-        this.getView('list')
-    }
-
     actionRefresh() {
-        if (this.getListView()) {
-            this.getListView().showNewRecords();
+        if (this.hasView('list')) {
+            this.getView('list').showNewRecords();
         }
     }
 
@@ -770,14 +723,14 @@ class PanelStreamView extends RelationshipPanelView {
     }
 
     controlPostButtonAvailability(postEntered) {
-        const attachmentsIdList = this.seed.get('attachmentsIds') || [];
+        let attachmentsIdList = this.seed.get('attachmentsIds') || [];
         let post = this.seed.get('post');
 
         if (typeof postEntered !== 'undefined') {
             post = postEntered;
         }
 
-        const isEmpty = !post && !attachmentsIdList.length;
+        let isEmpty = !post && !attachmentsIdList.length;
 
         if (isEmpty) {
             if (this.$postButton.hasClass('disabled')) {

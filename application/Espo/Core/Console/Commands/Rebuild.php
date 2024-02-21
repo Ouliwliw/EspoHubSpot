@@ -36,9 +36,6 @@ use Espo\Core\DataManager;
 use Espo\Core\Exceptions\Error;
 use Espo\Core\Utils\Database\Schema\RebuildMode;
 
-/**
- * @noinspection PhpUnused
- */
 class Rebuild implements Command
 {
     public function __construct(private DataManager $dataManager)

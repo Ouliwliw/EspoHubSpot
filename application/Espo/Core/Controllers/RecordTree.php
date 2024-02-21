@@ -33,8 +33,6 @@ use Espo\Core\Exceptions\Forbidden;
 use Espo\Core\Exceptions\BadRequest;
 use Espo\Core\Exceptions\Error;
 
-use Espo\Core\Exceptions\NotFound;
-use Espo\Core\ORM\Entity;
 use Espo\Services\RecordTree as Service;
 use Espo\Core\Api\Request;
 
@@ -53,8 +51,7 @@ class RecordTree extends Record
      * @throws BadRequest
      * @throws Error
      * @throws Forbidden
-     * @throws NotFound
-     * @noinspection PhpUnused
+     * @throws \Espo\Core\Exceptions\NotFound
      */
     public function getActionListTree(Request $request): stdClass
     {
@@ -99,8 +96,6 @@ class RecordTree extends Record
     /**
      * @return string[]
      * @throws Forbidden
-     * @throws BadRequest
-     * @noinspection PhpUnused
      */
     public function getActionLastChildrenIdList(Request $request): array
     {
@@ -114,7 +109,7 @@ class RecordTree extends Record
     }
 
     /**
-     * @return Service<Entity>
+     * @return Service<\Espo\Core\ORM\Entity>
      */
     protected function getRecordTreeService(): Service
     {

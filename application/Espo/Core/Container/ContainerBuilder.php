@@ -94,7 +94,6 @@ class ContainerBuilder
 
     /**
      * @param array<string, class-string<Loader>> $classNames
-     * @noinspection PhpUnused
      */
     public function withLoaderClassNames(array $classNames): self
     {
@@ -137,7 +136,6 @@ class ContainerBuilder
 
     /**
      * @param class-string $fileManagerClassName
-     * @noinspection PhpUnused
      */
     public function withFileManagerClassName(string $fileManagerClassName): self
     {
@@ -148,7 +146,6 @@ class ContainerBuilder
 
     /**
      * @param class-string $dataCacheClassName
-     * @noinspection PhpUnused
      */
     public function withDataCacheClassName(string $dataCacheClassName): self
     {

@@ -30,7 +30,6 @@
 namespace Espo\Modules\Crm\Tools\Opportunity\Report;
 
 use Espo\Core\Acl;
-use Espo\Core\Exceptions\BadRequest;
 use Espo\Core\Exceptions\Forbidden;
 use Espo\Core\Select\SelectBuilderFactory;
 use Espo\Core\Utils\Config;
@@ -39,19 +38,32 @@ use Espo\Modules\Crm\Entities\Opportunity;
 use Espo\ORM\EntityManager;
 use Espo\ORM\Query\Part\Expression;
 use Espo\ORM\Query\Part\Order;
-use RuntimeException;
 use stdClass;
 
 class ByLeadSource
 {
+    private Acl $acl;
+    private Config $config;
+    private Metadata $metadata;
+    private EntityManager $entityManager;
+    private SelectBuilderFactory $selectBuilderFactory;
+    private Util $util;
+
     public function __construct(
-        private Acl $acl,
-        private Config $config,
-        private Metadata $metadata,
-        private EntityManager $entityManager,
-        private SelectBuilderFactory $selectBuilderFactory,
-        private Util $util
-    ) {}
+        Acl $acl,
+        Config $config,
+        Metadata $metadata,
+        EntityManager $entityManager,
+        SelectBuilderFactory $selectBuilderFactory,
+        Util $util
+    ) {
+        $this->acl = $acl;
+        $this->config = $config;
+        $this->metadata = $metadata;
+        $this->entityManager = $entityManager;
+        $this->selectBuilderFactory = $selectBuilderFactory;
+        $this->util = $util;
+    }
 
     /**
      * @throws Forbidden
@@ -66,24 +78,19 @@ class ByLeadSource
             throw new Forbidden();
         }
 
-        if (!$this->acl->checkField(Opportunity::ENTITY_TYPE, 'amount')) {
-            throw new Forbidden("No access to 'amount' field.");
+        if (in_array('amount', $this->acl->getScopeForbiddenAttributeList(Opportunity::ENTITY_TYPE))) {
+            throw new Forbidden();
         }
 
         [$from, $to] = $range->getRange();
 
         $options = $this->metadata->get('entityDefs.Lead.fields.source.options', []);
 
-        try {
-            $queryBuilder = $this->selectBuilderFactory
-                ->create()
-                ->from(Opportunity::ENTITY_TYPE)
-                ->withStrictAccessControl()
-                ->buildQueryBuilder();
-        }
-        catch (BadRequest|Forbidden $e) {
-            throw new RuntimeException($e->getMessage());
-        }
+        $queryBuilder = $this->selectBuilderFactory
+            ->create()
+            ->from(Opportunity::ENTITY_TYPE)
+            ->withStrictAccessControl()
+            ->buildQueryBuilder();
 
         $whereClause = [
             ['stage!=' => $this->util->getLostStageList()],

@@ -29,7 +29,6 @@
 /** @module views/fields/text */
 
 import BaseFieldView from 'views/fields/base';
-import MailtoHelper from 'helpers/misc/mailto';
 
 /**
  * A text field.
@@ -172,7 +171,7 @@ class TextFieldView extends BaseFieldView {
     }
 
     /**
-     * @public
+     * @private
      * @param {Number} [lastHeight]
      */
     controlTextareaHeight(lastHeight) {
@@ -420,10 +419,17 @@ class TextFieldView extends BaseFieldView {
             to: emailAddress,
         };
 
-        const helper = new MailtoHelper(this.getConfig(), this.getPreferences(), this.getAcl());
+        if (
+            this.getConfig().get('emailForceUseExternalClient') ||
+            this.getPreferences().get('emailUseExternalClient') ||
+            !this.getAcl().checkScope('Email', 'create')
+        ) {
+            Espo.loader.require('email-helper', EmailHelper => {
+                const emailHelper = new EmailHelper();
 
-        if (helper.toUse()) {
-            document.location.href = helper.composeLink(attributes);
+                document.location.href = emailHelper
+                    .composeMailToLink(attributes, this.getConfig().get('outboundEmailBccAddress'));
+            });
 
             return;
         }

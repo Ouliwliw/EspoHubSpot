@@ -35,7 +35,6 @@ import RecordModal from 'helpers/record-modal';
 import SelectProvider from 'helpers/list/select-provider';
 import RecordListSettingsView from 'views/record/list/settings';
 import ListSettingsHelper from 'helpers/list/settings';
-import StickyBarHelper from 'helpers/list/misc/sticky-bar';
 
 /**
  * A record-list view. Renders and processes list items, actions.
@@ -113,7 +112,9 @@ class ListRecordView extends View {
      */
     scope = null
 
-    /** @protected */
+    /**
+     * @protected
+     */
     _internalLayoutType = 'list-row'
 
     /**
@@ -130,13 +131,19 @@ class ListRecordView extends View {
      */
     showCount = true
 
-    /** @protected */
+    /**
+     * @protected
+     */
     rowActionsColumnWidth = 25
 
-    /** @protected */
+    /**
+     * @protected
+     */
     checkboxColumnWidth = 40
 
-    /** @protected */
+    /**
+     * @protected
+     */
     minColumnWidth = 100
 
     /**
@@ -325,22 +332,6 @@ class ListRecordView extends View {
     quickEditDisabled = false
 
     /**
-     * Force settings.
-     *
-     * @protected
-     * @type {boolean}
-     */
-    forceSettings = false
-
-    /**
-     * Disable settings.
-     *
-     * @protected
-     * @type {boolean}
-     */
-    settingsDisabled = false
-
-    /**
      * Column definitions.
      *
      * @typedef module:views/record/list~columnDefs
@@ -370,7 +361,9 @@ class ListRecordView extends View {
      */
     listLayout = null
 
-    /** @private */
+    /**
+     * @private
+     */
     _internalLayout = null
 
     /**
@@ -472,7 +465,9 @@ class ListRecordView extends View {
      */
     noDataDisabled = false
 
-    /** @private */
+    /**
+     * @private
+     */
     _$focusedCheckbox = null
 
     /**
@@ -487,7 +482,9 @@ class ListRecordView extends View {
      */
     massActionDefs = null
 
-    /** @private */
+    /**
+     * @private
+     */
     _additionalRowActionList
 
     /** @inheritDoc */
@@ -764,14 +761,122 @@ class ListRecordView extends View {
         this.deactivate();
     }
 
-    /** @protected */
-    initStickyBar() {
-        this._stickyBarHelper = new StickyBarHelper(this);
+    /**
+     * @protected
+     */
+    initStickedBar() {
+        const controlSticking = () => {
+            if (this.checkedList.length === 0 && !this.allResultIsChecked) {
+                return;
+            }
 
-        this._stickyBarHelper.init();
+            const scrollTop = $scrollable.scrollTop();
+
+            const stickTop = buttonsTop;
+            const edge = middleTop + $middle.outerHeight(true);
+
+            if (isSmallWindow && $('#navbar .navbar-body').hasClass('in')) {
+                return;
+            }
+
+            if (scrollTop >= edge) {
+                $stickedBar.removeClass('hidden');
+                $navbarRight.addClass('has-sticked-bar');
+
+                return;
+            }
+
+            if (scrollTop > stickTop) {
+                $stickedBar.removeClass('hidden');
+                $navbarRight.addClass('has-sticked-bar');
+
+                return;
+            }
+
+            $stickedBar.addClass('hidden');
+            $navbarRight.removeClass('has-sticked-bar');
+        };
+
+        const $stickedBar = this.$stickedBar = this.$el.find('.sticked-bar');
+        const $middle = this.$el.find('> .list');
+
+        const $window = $(window);
+
+        let $scrollable = $window;
+        let $navbarRight = $('#navbar .navbar-right');
+
+        this.on('render', () => {
+            this.$stickedBar = null;
+        });
+
+        const isModal = !!this.$el.closest('.modal-body').length;
+
+        const screenWidthXs = this.getThemeManager().getParam('screenWidthXs');
+        const navbarHeight = this.getThemeManager().getParam('navbarHeight');
+
+        const isSmallWindow = $(window.document).width() < screenWidthXs;
+
+        const getOffsetTop = (element) => {
+            let offsetTop = 0;
+
+            const withHeader = !isSmallWindow && !isModal;
+
+            do {
+                if (element.classList.contains('modal-body')) {
+                    break;
+                }
+
+                if (!isNaN(element.offsetTop)) {
+                    offsetTop += element.offsetTop;
+                }
+
+                element = element.offsetParent;
+            } while (element);
+
+            if (withHeader) {
+                offsetTop -= navbarHeight;
+            }
+
+            return offsetTop;
+        };
+
+        if (isModal) {
+            $scrollable = this.$el.closest('.modal-body');
+            $navbarRight = $scrollable.parent().find('.modal-footer');
+        }
+
+        let middleTop = getOffsetTop($middle.get(0));
+        let buttonsTop =  getOffsetTop(this.$el.find('.list-buttons-container').get(0));
+
+        if (!isModal) {
+            // padding
+            middleTop -= 5;
+            buttonsTop -= 5;
+        }
+
+        $scrollable.off('scroll.list-' + this.cid);
+        $scrollable.on('scroll.list-' + this.cid, () => controlSticking());
+
+        $window.off('resize.list-' + this.cid);
+        $window.on('resize.list-' + this.cid, () => controlSticking());
+
+        this.on('check', () => {
+            if (this.checkedList.length === 0 && !this.allResultIsChecked) {
+                return;
+            }
+
+            controlSticking();
+        });
+
+        this.on('remove', () => {
+            $scrollable.off('scroll.list-' + this.cid);
+            $window.off('resize.list-' + this.cid);
+        });
     }
 
-    /** @protected */
+    /**
+     * @protected
+     */
     showActions() {
         this.$el.find('.actions-button').removeClass('hidden');
 
@@ -780,22 +885,26 @@ class ListRecordView extends View {
             !this.stickedBarDisabled &&
             this.massActionList.length
         ) {
-            if (!this._stickyBarHelper) {
-                this.initStickyBar();
+            if (!this.$stickedBar) {
+                this.initStickedBar();
             }
         }
     }
 
-    /** @protected */
+    /**
+     * @protected
+     */
     hideActions() {
         this.$el.find('.actions-button').addClass('hidden');
 
-        if (this._stickyBarHelper) {
-            this._stickyBarHelper.hide();
+        if (this.$stickedBar) {
+            this.$stickedBar.addClass('hidden');
         }
     }
 
-    /** @protected */
+    /**
+     * @protected
+     */
     selectAllHandler(isChecked) {
         this.checkedList = [];
 
@@ -998,7 +1107,9 @@ class ListRecordView extends View {
         });
     }
 
-    /** @protected */
+    /**
+     * @protected
+     */
     deactivate() {
         if (this.$el) {
             this.$el.find(".pagination li").addClass('disabled');
@@ -1948,7 +2059,9 @@ class ListRecordView extends View {
         }
     }
 
-    /** @private */
+    /**
+     * @private
+     */
     setupMassActions() {
         if (this.massActionsDisabled) {
             this.massActionList = [];
@@ -2144,7 +2257,9 @@ class ListRecordView extends View {
         });
     }
 
-    /** @protected */
+    /**
+     * @protected
+     */
     setupMassActionItems() {}
 
     /**
@@ -2268,7 +2383,9 @@ class ListRecordView extends View {
         return selectProvider.getFromLayout(this.entityType, this.listLayout);
     }
 
-    /** @protected */
+    /**
+     * @protected
+     */
     _getHeaderDefs() {
         const defs = [];
 
@@ -2368,7 +2485,9 @@ class ListRecordView extends View {
         return defs;
     }
 
-    /** @protected */
+    /**
+     * @protected
+     */
     _convertLayout(listLayout, model) {
         model = model || this.collection.prepareModel();
 
@@ -2557,24 +2676,6 @@ class ListRecordView extends View {
     }
 
     /**
-     * Is all-result is checked.
-     *
-     * @return {boolean}
-     */
-    isAllResultChecked() {
-        return this.allResultIsChecked;
-    }
-
-    /**
-     * Get checked record IDs.
-     *
-     * @return {string[]}
-     */
-    getCheckedIds() {
-        return Espo.Utils.clone(this.checkedList);
-    }
-
-    /**
      * Get selected models.
      *
      * @return {module:model[]}
@@ -2592,7 +2693,9 @@ class ListRecordView extends View {
         return list;
     }
 
-    /** @protected */
+    /**
+     * @protected
+     */
     getInternalLayoutForModel(callback, model) {
         const scope = model.entityType;
 
@@ -2607,7 +2710,9 @@ class ListRecordView extends View {
         callback(this._internalLayout[scope]);
     }
 
-    /** @protected */
+    /**
+     * @protected
+     */
     getInternalLayout(callback, model) {
         if (
             (this.scope === null) &&
@@ -3289,23 +3394,18 @@ class ListRecordView extends View {
         handler.process(model, action);
     }
 
-    /** @private */
+    /**
+     * @private
+     */
     setupSettings() {
         if (!this.options.settingsEnabled || !this.collection.entityType || !this.layoutName) {
             return;
         }
 
         if (
-            (
-                !this.forceSettings &&
-                !this.getMetadata().get(`scopes.${this.entityType}.object`)
-            ) ||
+            !this.getMetadata().get(`scopes.${this.entityType}.object`) ||
             this.getConfig().get('listViewSettingsDisabled')
         ) {
-            return;
-        }
-
-        if (this.settingsDisabled) {
             return;
         }
 

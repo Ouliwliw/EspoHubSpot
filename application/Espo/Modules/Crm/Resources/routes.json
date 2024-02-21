@@ -1,10 +1,5 @@
 [
     {
-        "route": "/Activities/:parentType/:id/composeEmailAddressList",
-        "method": "get",
-        "actionClassName": "Espo\\Modules\\Crm\\Tools\\Activities\\Api\\GetComposeAddressList"
-    },
-    {
         "route": "/Activities/:parentType/:id/:type",
         "method": "get",
         "actionClassName": "Espo\\Modules\\Crm\\Tools\\Activities\\Api\\Get"

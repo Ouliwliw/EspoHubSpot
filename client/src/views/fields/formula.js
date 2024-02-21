@@ -105,7 +105,7 @@ class FormulaFieldView extends TextFieldView {
             .then(lib => {
                 ace = /** window.ace */lib;
 
-                const list = [
+                let list = [
                     Espo.loader.requirePromise('lib!ace-mode-javascript'),
                     Espo.loader.requirePromise('lib!ace-ext-language_tools'),
                 ];
@@ -121,7 +121,7 @@ class FormulaFieldView extends TextFieldView {
     }
 
     data() {
-        const data = super.data();
+        let data = super.data();
 
         data.containerId = this.containerId;
         data.targetEntityType = this.targetEntityType;
@@ -151,7 +151,7 @@ class FormulaFieldView extends TextFieldView {
                 this.$editor.css('minHeight', this.height + 'px');
             }
 
-            const editor = this.editor = ace.edit(this.containerId);
+            let editor = this.editor = ace.edit(this.containerId);
 
             editor.setOptions({
                 maxLines: this.mode === this.MODE_EDIT ?
@@ -166,7 +166,6 @@ class FormulaFieldView extends TextFieldView {
             }
 
             if (this.isEditMode()) {
-                // noinspection JSCheckFunctionSignatures
                 editor.getSession().on('change', () => {
                     this.trigger('change', {ui: true});
                 });
@@ -176,7 +175,6 @@ class FormulaFieldView extends TextFieldView {
 
             if (this.isReadMode()) {
                 editor.setReadOnly(true);
-                // noinspection JSUnresolvedReference
                 editor.renderer.$cursorLayer.element.style.display = "none";
                 editor.renderer.setShowGutter(false);
             }
@@ -186,7 +184,7 @@ class FormulaFieldView extends TextFieldView {
             editor.commands.removeCommand('find');
             editor.setHighlightActiveLine(false);
 
-            const JavaScriptMode = ace.require('ace/mode/javascript').Mode;
+            let JavaScriptMode = ace.require('ace/mode/javascript').Mode;
 
             editor.session.setMode(new JavaScriptMode());
 
@@ -197,7 +195,7 @@ class FormulaFieldView extends TextFieldView {
     }
 
     fetch() {
-        const data = {};
+        let data = {};
 
         let value = this.editor.getValue();
 
@@ -248,11 +246,11 @@ class FormulaFieldView extends TextFieldView {
             list = list.concat(this.options.additionalFunctionDataList);
         }
 
-        const allowedFunctionList = /** @type string[] */this.options.allowedFunctionList;
+        let allowedFunctionList = /** @type string[] */this.options.allowedFunctionList;
 
         if (allowedFunctionList) {
             list = list.filter(/** {name: string} */item => {
-                for (const func of allowedFunctionList) {
+                for (let func of allowedFunctionList) {
                     if (func.endsWith('\\') && item.name.startsWith(func)) {
                         return true;
                     }
@@ -280,9 +278,9 @@ class FormulaFieldView extends TextFieldView {
     }
 
     initAutocomplete() {
-        const functionItemList = this.getFunctionDataList().filter(item => item.insertText);
+        let functionItemList = this.getFunctionDataList().filter(item => item.insertText);
 
-        const attributeList = this.getFormulaAttributeList();
+        let attributeList = this.getFormulaAttributeList();
 
         ace.require('ace/ext/language_tools');
 
@@ -292,19 +290,19 @@ class FormulaFieldView extends TextFieldView {
         });
 
         // noinspection JSUnusedGlobalSymbols
-        const completer = {
+        let completer = {
             identifierRegexps: [/[\\a-zA-Z0-9{}\[\].$'"]/],
 
             getCompletions: function (editor, session, pos, prefix, callback) {
-                const matchedFunctionItemList = functionItemList
+                let matchedFunctionItemList = functionItemList
                     .filter((originalItem) => {
-                        const text = originalItem.name;
+                        let text = originalItem.name;
 
                         if (text.indexOf(prefix) === 0) {
                             return true;
                         }
 
-                        const parts = text.split('\\');
+                        let parts = text.split('\\');
 
                         if (parts[parts.length - 1].indexOf(prefix) === 0) {
                             return true;
@@ -322,7 +320,7 @@ class FormulaFieldView extends TextFieldView {
                             insertMatch: (editor, data) => {
                                 editor.completer.insertMatch({value: data.value});
 
-                                const index = data.value.indexOf('(');
+                                let index = data.value.indexOf('(');
 
                                 if (!~index) {
                                     return;
@@ -332,9 +330,8 @@ class FormulaFieldView extends TextFieldView {
                                     return;
                                 }
 
-                                const pos = editor.selection.getCursor();
+                                let pos = editor.selection.getCursor();
 
-                                // noinspection JSCheckFunctionSignatures
                                 editor.gotoLine(
                                     pos.row + 1,
                                     pos.column - data.value.length + index + 1
@@ -344,7 +341,7 @@ class FormulaFieldView extends TextFieldView {
                     };
                 });
 
-                const matchedAttributeList = attributeList
+                let matchedAttributeList = attributeList
                     .filter((item) => {
                         if (item.indexOf(prefix) === 0) {
                             return true;
@@ -353,7 +350,7 @@ class FormulaFieldView extends TextFieldView {
                         return false;
                     });
 
-                const itemAttributeList = matchedAttributeList.map((item) => {
+                let itemAttributeList = matchedAttributeList.map((item) => {
                     return {
                         name: item,
                         value: item,
@@ -375,17 +372,17 @@ class FormulaFieldView extends TextFieldView {
             return [];
         }
 
-        const attributeList = this.getFieldManager()
+        let attributeList = this.getFieldManager()
             .getEntityTypeAttributeList(this.targetEntityType)
             .concat(['id'])
             .sort();
 
-        const links = this.getMetadata().get(['entityDefs', this.targetEntityType, 'links']) || {};
+        let links = this.getMetadata().get(['entityDefs', this.targetEntityType, 'links']) || {};
 
-        const linkList = [];
+        let linkList = [];
 
         Object.keys(links).forEach((link) => {
-            const type = links[link].type;
+            let type = links[link].type;
 
             if (!type) {
                 return;
@@ -399,7 +396,7 @@ class FormulaFieldView extends TextFieldView {
         linkList.sort();
 
         linkList.forEach((link) => {
-            const scope = links[link].entity;
+            let scope = links[link].entity;
 
             if (!scope) {
                 return;
@@ -409,7 +406,7 @@ class FormulaFieldView extends TextFieldView {
                 return;
             }
 
-            const linkAttributeList = this.getFieldManager()
+            let linkAttributeList = this.getFieldManager()
                 .getEntityTypeAttributeList(scope)
                 .sort();
 
@@ -422,7 +419,7 @@ class FormulaFieldView extends TextFieldView {
     }
 
     checkSyntax() {
-        const expression = this.editor.getValue();
+        let expression = this.editor.getValue();
 
         if (!expression) {
             Espo.Ui.success(
@@ -434,7 +431,7 @@ class FormulaFieldView extends TextFieldView {
 
         Espo.Ajax
             .postRequest('Formula/action/checkSyntax', {expression: expression})
-            .then(/** Record */response => {
+            .then(response => {
                 if (response.isSuccess) {
                     Espo.Ui.success(
                         this.translate('checkSyntaxSuccess', 'messages', 'Formula')

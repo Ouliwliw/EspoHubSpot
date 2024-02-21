@@ -11,7 +11,6 @@
         "massUpdatePermission": "Mass Update Permission",
         "followerManagementPermission": "Follower Management Permission",
         "dataPrivacyPermission": "Data Privacy Permission",
-        "auditPermission": "Audit Permission",
         "data": "Data",
         "fieldData": "Field Data"
     },
@@ -28,8 +27,7 @@
         "exportPermission": "Allows to export records.",
         "massUpdatePermission": "The ability to perform mass update of records.",
         "followerManagementPermission": "Allows to manage followers of specific records.",
-        "dataPrivacyPermission": "Allows to view and erase personal data.",
-        "auditPermission": "Allows to view the audit log."
+        "dataPrivacyPermission": "Allows to view and erase personal data."
     },
     "labels": {
         "Access": "Access",

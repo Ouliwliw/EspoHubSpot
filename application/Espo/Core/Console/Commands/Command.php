@@ -33,4 +33,6 @@ namespace Espo\Core\Console\Commands;
  * @deprecated
  */
 interface Command
-{}
+{
+
+}

@@ -13,11 +13,6 @@
             "required": true
         },
         {
-            "name": "relateOnImport",
-            "type": "bool",
-            "tooltip": true
-        },
-        {
             "name": "view",
             "type": "varchar",
             "hidden": true

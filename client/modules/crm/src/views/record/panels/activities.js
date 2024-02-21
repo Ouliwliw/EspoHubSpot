@@ -39,9 +39,6 @@ class ActivitiesPanelView extends RelationshipPanelView {
     relatedListFiltersDisabled = true
     buttonMaxCount = null
 
-    /**
-     * @type {Array<module:views/record/panels-container~action|false>}
-     */
     actionList = [
         {
             action: 'composeEmail',
@@ -199,9 +196,9 @@ class ActivitiesPanelView extends RelationshipPanelView {
                 return;
             }
 
-            const label = (this.name === 'history' ? 'Log' : 'Schedule') + ' ' + scope;
+            let label = (this.name === 'history' ? 'Log' : 'Schedule') + ' ' + scope;
 
-            const o = {
+            let o = {
                 action: 'createActivity',
                 text: this.translate(label, 'labels', scope),
                 data: {},
@@ -209,7 +206,7 @@ class ActivitiesPanelView extends RelationshipPanelView {
                 aclScope: scope,
             };
 
-            const link = this.getMetadata().get(['clientDefs', scope, 'activityDefs', 'link']);
+            let link = this.getMetadata().get(['clientDefs', scope, 'activityDefs', 'link'])
 
             if (link) {
                 o.data.link = link;
@@ -235,7 +232,7 @@ class ActivitiesPanelView extends RelationshipPanelView {
             o.data = o.data || {};
 
             if (!o.data.status) {
-                const statusList = this.getMetadata().get(['scopes', scope, this.name + 'StatusList']);
+                let statusList = this.getMetadata().get(['scopes', scope, this.name + 'StatusList']);
 
                 if (statusList && statusList.length) {
                     o.data.status = statusList[0];
@@ -249,9 +246,9 @@ class ActivitiesPanelView extends RelationshipPanelView {
                 this.name === 'activities' &&
                 this.buttonList.length < this.buttonMaxCount
             ) {
-                const ob = Espo.Utils.cloneDeep(o);
+                let ob = Espo.Utils.cloneDeep(o);
 
-                const iconClass = this.getMetadata().get(['clientDefs', scope, 'iconClass']);
+                let iconClass = this.getMetadata().get(['clientDefs', scope, 'iconClass']);
 
                 if (iconClass) {
                     ob.title = label;
@@ -273,7 +270,7 @@ class ActivitiesPanelView extends RelationshipPanelView {
                 return;
             }
 
-            const o = {
+            let o = {
                 action: 'viewRelatedList',
                 html: $('<span>')
                     .append(
@@ -304,7 +301,7 @@ class ActivitiesPanelView extends RelationshipPanelView {
     }
 
     afterRender() {
-        const afterFetch = () => {
+        let afterFetch = () => {
             this.createView('list', 'views/record/list-expanded', {
                 selector: '> .list-container',
                 pagination: false,
@@ -338,25 +335,29 @@ class ActivitiesPanelView extends RelationshipPanelView {
     }
 
     fetchHistory() {
-        const parentView = this.getParentView();
+        let parentView = this.getParentView();
 
-        if (parentView && parentView.hasView('history')) {
-            const collection = parentView.getView('history').collection;
+        if (parentView) {
+            if (parentView.hasView('history')) {
+                let collection = parentView.getView('history').collection;
 
-            if (collection) {
-                collection.fetch();
+                if (collection) {
+                    collection.fetch();
+                }
             }
         }
     }
 
     fetchActivities() {
-        const parentView = this.getParentView();
+        let parentView = this.getParentView();
 
-        if (parentView && parentView.hasView('activities')) {
-            const collection = parentView.getView('activities').collection;
+        if (parentView) {
+            if (parentView.hasView('activities')) {
+                let collection = parentView.getView('activities').collection;
 
-            if (collection) {
-                collection.fetch();
+                if (collection) {
+                    collection.fetch();
+                }
             }
         }
     }
@@ -364,17 +365,17 @@ class ActivitiesPanelView extends RelationshipPanelView {
     getCreateActivityAttributes(scope, data, callback) {
         data = data || {};
 
-        const attributes = {
+        let attributes = {
             status: data.status,
         };
 
         if (this.model.entityType === 'User') {
-            const model = /** @type {module:models/user} */this.model;
+            let model = /** @type {module:models/user} */this.model;
 
             if (model.isPortal()) {
                 attributes.usersIds = [model.id];
 
-                const usersIdsNames = {};
+                let usersIdsNames = {};
                 usersIdsNames[model.id] = model.get('name')
 
                 attributes.usersIdsNames = usersIdsNames;
@@ -434,9 +435,9 @@ class ActivitiesPanelView extends RelationshipPanelView {
     }
 
     checkParentTypeAvailability(scope, parentType) {
-        return (
+        return ~(
             this.getMetadata().get(['entityDefs', scope, 'fields', 'parent', 'entityList']) || []
-        ).includes(parentType);
+        ).indexOf(parentType);
     }
 
     // noinspection JSUnusedGlobalSymbols
@@ -451,7 +452,7 @@ class ActivitiesPanelView extends RelationshipPanelView {
     }
 
     actionCreateActivity(data) {
-        const link = data.link;
+        let link = data.link;
         let foreignLink;
         let scope;
 
@@ -463,7 +464,7 @@ class ActivitiesPanelView extends RelationshipPanelView {
             scope = data.scope;
         }
 
-        const o = {
+        let o = {
             scope: scope
         };
 
@@ -476,7 +477,7 @@ class ActivitiesPanelView extends RelationshipPanelView {
 
         Espo.Ui.notify(' ... ');
 
-        const viewName = this.getMetadata().get('clientDefs.' + scope + '.modalViews.edit') ||
+        let viewName = this.getMetadata().get('clientDefs.' + scope + '.modalViews.edit') ||
             'views/modals/edit';
 
         this.getCreateActivityAttributes(scope, data, attributes => {
@@ -496,9 +497,9 @@ class ActivitiesPanelView extends RelationshipPanelView {
     }
 
     getComposeEmailAttributes(scope, data, callback) {
-        const attributes = {
+        let attributes = {
             status: 'Draft',
-            to: this.model.get('emailAddress'),
+            to: this.model.get('emailAddress')
         };
 
         if (this.model.entityType === 'Contact') {
@@ -507,10 +508,12 @@ class ActivitiesPanelView extends RelationshipPanelView {
                 attributes.parentName = this.model.get('name');
                 attributes.parentId = this.model.id;
             }
-            else if (this.model.get('accountId')) {
-                attributes.parentType = 'Account';
-                attributes.parentId = this.model.get('accountId');
-                attributes.parentName = this.model.get('accountName');
+            else {
+                if (this.model.get('accountId')) {
+                    attributes.parentType = 'Account';
+                    attributes.parentId = this.model.get('accountId');
+                    attributes.parentName = this.model.get('accountName');
+                }
             }
         }
         else if (this.model.entityType === 'Lead') {
@@ -519,10 +522,7 @@ class ActivitiesPanelView extends RelationshipPanelView {
             attributes.parentName = this.model.get('name');
         }
 
-        if (
-            ['Contact', 'Lead', 'Account'].includes(this.model.entityType) &&
-            this.model.get('emailAddress')
-        ) {
+        if (~['Contact', 'Lead', 'Account'].indexOf(this.model.entityType) && this.model.get('emailAddress')) {
             attributes.nameHash = {};
             attributes.nameHash[this.model.get('emailAddress')] = this.model.get('name');
         }
@@ -535,28 +535,30 @@ class ActivitiesPanelView extends RelationshipPanelView {
                     attributes.parentName = this.model.get('name');
                 }
             }
-            else if (attributes.parentType && !this.checkParentTypeAvailability(scope, attributes.parentType)) {
-                attributes.parentType = null;
-                attributes.parentId = null;
-                attributes.parentName = null;
+            else {
+                if (attributes.parentType && !this.checkParentTypeAvailability(scope, attributes.parentType)) {
+                    attributes.parentType = null;
+                    attributes.parentId = null;
+                    attributes.parentName = null;
+                }
             }
         }
 
-        const emailKeepParentTeamsEntityList = this.getConfig().get('emailKeepParentTeamsEntityList') || [];
+        let emailKeepParentTeamsEntityList = this.getConfig().get('emailKeepParentTeamsEntityList') || [];
 
         if (
             attributes.parentType &&
             attributes.parentType === this.model.entityType &&
-            emailKeepParentTeamsEntityList.includes(attributes.parentType) &&
+            ~emailKeepParentTeamsEntityList.indexOf(attributes.parentType) &&
             this.model.get('teamsIds') &&
             this.model.get('teamsIds').length
         ) {
             attributes.teamsIds = Espo.Utils.clone(this.model.get('teamsIds'));
             attributes.teamsNames = Espo.Utils.clone(this.model.get('teamsNames') || {});
 
-            const defaultTeamId = this.getUser().get('defaultTeamId');
+            let defaultTeamId = this.getUser().get('defaultTeamId');
 
-            if (defaultTeamId && !attributes.teamsIds.includes(defaultTeamId)) {
+            if (defaultTeamId && !~attributes.teamsIds.indexOf(defaultTeamId)) {
                 attributes.teamsIds.push(defaultTeamId);
                 attributes.teamsNames[defaultTeamId] = this.getUser().get('defaultTeamName');
             }
@@ -567,48 +569,12 @@ class ActivitiesPanelView extends RelationshipPanelView {
                 });
         }
 
-        if (
-            this.model.attributes.accountId &&
-            this.model.getFieldType('account') === 'link' &&
-            this.model.getLinkParam('account', 'entity') === 'Account'
-        ) {
-            attributes.accountId = this.model.attributes.accountId;
-            attributes.accountName = this.model.attributes.accountName;
-        }
-
-        if (!attributes.to && this.isBasePlus()) {
-            Espo.Ui.notify(' ... ');
-
-            Espo.Ajax.getRequest(`Activities/${this.model.entityType}/${this.model.id}/composeEmailAddressList`)
-                .then(/** Record[] */list => {
-                    if (!list.length) {
-                        callback.call(this, attributes);
-
-                        return;
-                    }
-
-                    attributes.to = '';
-                    attributes.nameHash = {};
-
-                    list.forEach(item => {
-                        attributes.to += item.emailAddress + ';';
-                        attributes.nameHash[item.emailAddress] = item.name;
-                    });
-
-                    Espo.Ui.notify(false);
-
-                    callback.call(this, attributes);
-                });
-
-            return;
-        }
-
         callback.call(this, attributes);
     }
 
     // noinspection JSUnusedGlobalSymbols
     actionComposeEmail(data) {
-        const scope = 'Email';
+        let scope = 'Email';
 
         let relate = null;
 
@@ -643,13 +609,13 @@ class ActivitiesPanelView extends RelationshipPanelView {
     }
 
     actionSetHeld(data) {
-        const id = data.id;
+        let id = data.id;
 
         if (!id) {
             return;
         }
 
-        const model = this.collection.get(id);
+        let model = this.collection.get(id);
 
         model.save({status: 'Held'}, {patch: true})
             .then(() => {
@@ -659,13 +625,13 @@ class ActivitiesPanelView extends RelationshipPanelView {
     }
 
     actionSetNotHeld(data) {
-        const id = data.id;
+        let id = data.id;
 
         if (!id) {
             return;
         }
 
-        const model = this.collection.get(id);
+        let model = this.collection.get(id);
 
         model.save({status: 'Not Held'}, {patch: true})
             .then(() => {
@@ -687,16 +653,6 @@ class ActivitiesPanelView extends RelationshipPanelView {
             this.model.id + '/' + data.scope;
 
         super.actionViewRelatedList(data);
-    }
-
-    /**
-     * @protected
-     * @return {boolean}
-     */
-    isBasePlus() {
-        const type = this.getMetadata().get(`scopes.${this.model.entityType}.type`);
-
-        return type === 'BasePlus';
     }
 }
 

@@ -56,7 +56,6 @@ use Espo\Core\Utils\Config;
 use Espo\Core\Utils\Log;
 use Espo\Core\Utils\TemplateFileManager;
 use Espo\Tools\UserSecurity\Password\Jobs\RemoveRecoveryRequest;
-use Espo\Tools\UserSecurity\Password\Recovery\UrlValidator;
 
 class RecoveryService
 {
@@ -76,8 +75,7 @@ class RecoveryService
         private Log $log,
         private JobSchedulerFactory $jobSchedulerFactory,
         private ApplicationState $applicationState,
-        private AuthenticationMethodProvider $authenticationMethodProvider,
-        private UrlValidator $urlValidator
+        private AuthenticationMethodProvider $authenticationMethodProvider
     ) {}
 
     /**
@@ -140,10 +138,6 @@ class RecoveryService
 
         if ($config->get('passwordRecoveryDisabled')) {
             throw new Forbidden("Password recovery: Disabled.");
-        }
-
-        if ($url) {
-            $this->urlValidator->validate($url);
         }
 
         /** @var ?User $user */

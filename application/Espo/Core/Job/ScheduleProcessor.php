@@ -29,7 +29,6 @@
 
 namespace Espo\Core\Job;
 
-use DateTimeZone;
 use Espo\Core\Job\Preparator\Data as PreparatorData;
 use Espo\Core\ORM\EntityManager;
 use Espo\Core\Utils\DateTime as DateTimeUtil;
@@ -65,8 +64,7 @@ class ScheduleProcessor
         private QueueUtil $queueUtil,
         private ScheduleUtil $scheduleUtil,
         private PreparatorFactory $preparatorFactory,
-        private MetadataProvider $metadataProvider,
-        private ConfigDataProvider $configDataProvider
+        private MetadataProvider $metadataProvider
     ) {}
 
     public function process(): void
@@ -83,7 +81,7 @@ class ScheduleProcessor
             catch (Throwable $e) {
                 $id = $scheduledJob->getId();
 
-                $this->log->error("Scheduled Job '$id': " . $e->getMessage());
+                $this->log->error("Scheduled Job '{$id}': " . $e->getMessage());
             }
         }
     }
@@ -168,24 +166,19 @@ class ScheduleProcessor
         }
         catch (Exception $e) {
             $this->log->error(
-                "Scheduled Job '$id': Scheduling expression error: " .
+                "Scheduled Job '{$id}': Scheduling expression error: " .
                 $e->getMessage() . '.');
 
             return null;
         }
 
-        $timeZone = $this->configDataProvider->getTimeZone();
-
         try {
-            $next = $cronExpression->getNextRunDate(timeZone: $timeZone)
-                ->setTimezone(new DateTimeZone('UTC'));
+            return $cronExpression->getNextRunDate()->format(DateTimeUtil::SYSTEM_DATE_TIME_FORMAT);
         }
         catch (Exception) {
-            $this->log->error("Scheduled Job '$id': Unsupported scheduling expression '$scheduling'.");
+            $this->log->error("Scheduled Job '{$id}': Unsupported scheduling expression '{$scheduling}'.");
 
             return null;
         }
-
-        return $next->format(DateTimeUtil::SYSTEM_DATE_TIME_FORMAT);
     }
 }

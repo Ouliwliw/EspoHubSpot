@@ -8,8 +8,7 @@
     "priority": "Prioritet",
     "type": "Tip",
     "description": "Opis",
-    "lead": "Izvor",
-    "attachments": "Prilozi"
+    "lead": "Izvor"
   },
   "links": {
     "account": "Pravno lice",
@@ -20,8 +19,7 @@
     "tasks": "Zadaci",
     "emails": "E-poruke",
     "articles": "Baza znanja",
-    "lead": "Izvor",
-    "attachments": "Prilozi"
+    "lead": "Izvor"
   },
   "options": {
     "status": {

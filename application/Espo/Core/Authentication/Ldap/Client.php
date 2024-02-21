@@ -29,6 +29,4 @@
 
 namespace Espo\Core\Authentication\Ldap;
 
-use Laminas\Ldap\Ldap;
-
-class Client extends Ldap {}
+class Client extends \Laminas\Ldap\Ldap {}

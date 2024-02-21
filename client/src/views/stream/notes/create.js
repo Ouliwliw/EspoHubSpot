@@ -52,10 +52,10 @@ class CreateNoteStreamView extends NoteStreamView {
     }
 
     setupData() {
-        const data = /** @type {Object.<string, *>} */this.model.get('data');
+        let data = /** @type Object.<string, *> */this.model.get('data');
 
         this.assignedUserId = data.assignedUserId || null;
-        this.assignedUserName = data.assignedUserName || data.assignedUserId || null;
+        this.assignedUserName = data.assignedUserName || null;
 
         this.messageData['assignee'] =
             $('<a>')
@@ -90,8 +90,8 @@ class CreateNoteStreamView extends NoteStreamView {
         }
 
         if (data.statusField) {
-            const statusField = this.statusField = data.statusField;
-            const statusValue = data.statusValue;
+            let statusField = this.statusField = data.statusField;
+            let statusValue = data.statusValue;
 
             this.statusStyle = data.statusStyle || 'default';
             this.statusText = this.getLanguage()

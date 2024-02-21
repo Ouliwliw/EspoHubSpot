@@ -29,29 +29,37 @@
 
 namespace Espo\Core\Select\Bool;
 
+use Espo\Core\Exceptions\Error;
+
+use Espo\Core\Select\Bool\Filter;
+
 use Espo\Core\InjectableFactory;
-use Espo\Core\Select\Helpers\FieldHelper;
 use Espo\Core\Utils\Metadata;
+
 use Espo\Core\Binding\BindingContainer;
 use Espo\Core\Binding\Binder;
 use Espo\Core\Binding\BindingData;
-use Espo\Entities\User;
 
-use RuntimeException;
+use Espo\Entities\User;
 
 class FilterFactory
 {
-    public function __construct(
-        private InjectableFactory $injectableFactory,
-        private Metadata $metadata
-    ) {}
+    private $injectableFactory;
+
+    private $metadata;
+
+    public function __construct(InjectableFactory $injectableFactory, Metadata $metadata)
+    {
+        $this->injectableFactory = $injectableFactory;
+        $this->metadata = $metadata;
+    }
 
     public function create(string $entityType, User $user, string $name): Filter
     {
         $className = $this->getClassName($entityType, $name);
 
         if (!$className) {
-            throw new RuntimeException("Bool filter '$name' for '$entityType' does not exist.");
+            throw new Error("Bool filter '{$name}' for '{$entityType}' does not exist.");
         }
 
         $bindingData = new BindingData();
@@ -61,10 +69,6 @@ class FilterFactory
         $binder
             ->bindInstance(User::class, $user)
             ->for($className)
-            ->bindValue('$entityType', $entityType);
-
-        $binder
-            ->for(FieldHelper::class)
             ->bindValue('$entityType', $entityType);
 
         $bindingContainer = new BindingContainer($bindingData);
@@ -79,11 +83,12 @@ class FilterFactory
 
     /**
      * @return ?class-string<Filter>
+     * @throws Error
      */
     protected function getClassName(string $entityType, string $name): ?string
     {
         if (!$name) {
-            throw new RuntimeException("Empty bool filter name.");
+            throw new Error("Empty bool filter name.");
         }
 
         $className = $this->metadata->get(

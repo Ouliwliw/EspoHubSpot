@@ -56,12 +56,10 @@
         "Currency": "Currency",
         "LayoutSet": "Layout Set",
         "Webhook": "Webhook",
-        "WebhookQueueItem": "Webhook Queue Item",
         "Mass Action": "Mass Action",
         "WorkingTimeCalendar": "Working Time Calendar",
         "WorkingTimeRange": "Working Time Range",
-        "AuthenticationProvider": "Authentication Provider",
-        "GlobalStream": "Global Stream"
+        "AuthenticationProvider": "Authentication Provider"
     },
     "scopeNamesPlural": {
         "Note": "Notes",
@@ -109,11 +107,9 @@
         "Currency": "Currency",
         "LayoutSet": "Layout Sets",
         "Webhook": "Webhooks",
-        "WebhookQueueItem": "Webhook Queue Items",
         "WorkingTimeCalendar": "Working Time Calendars",
         "WorkingTimeRange": "Working Time Ranges",
-        "AuthenticationProvider": "Authentication Providers",
-        "GlobalStream": "Global Stream"
+        "AuthenticationProvider": "Authentication Providers"
     },
     "labels": {
         "Sort": "Sort",
@@ -287,9 +283,7 @@
         "Show Navigation Panel": "Show Navigation Panel",
         "Hide Navigation Panel": "Hide Navigation Panel",
         "Copy to Clipboard": "Copy to Clipboard",
-        "Copied to clipboard": "Copied to clipboard",
-        "Audit Log": "Audit Log",
-        "View Audit Log": "View Audit Log"
+        "Copied to clipboard": "Copied to clipboard"
     },
     "messages": {
         "pleaseWait": "Please wait...",
@@ -382,7 +376,7 @@
         "loggedOutLeaveOut": "Logged out. The session is inactive. You may lose unsaved form data after page refresh. You may need to make a copy.",
         "noAccessToRecord": "Operation requires `{action}` access to record.",
         "noAccessToForeignRecord": "Operation requires `{action}` access to foreign record.",
-        "noLinkAccess": "Can't relate with {foreignEntityType} record through the link '{link}'. No access.",
+        "noLinkAccess": "No access to link operation for a specific record.",
         "cannotUnrelateRequiredLink": "Can't unrelate required link.",
         "cannotRelateNonExisting": "Can't relate with non-existing {foreignEntityType} record.",
         "cannotRelateForbidden": "Can't relate with forbidden {foreignEntityType} record. `{action}` access required.",
@@ -429,7 +423,6 @@
         "emailAddressIsInvalid": "Email Address is Invalid",
         "assignedUserName": "Assigned User Name",
         "teams": "Teams",
-        "users": "Users",
         "createdAt": "Created At",
         "modifiedAt": "Modified At",
         "createdBy": "Created By",
@@ -453,8 +446,7 @@
         "type": "Type",
         "names": "Names",
         "types": "Types",
-        "targetListIsOptedOut": "Is Opted Out (Target List)",
-        "childList": "Child List"
+        "targetListIsOptedOut": "Is Opted Out (Target List)"
     },
     "links": {
         "assignedUser": "Assigned User",

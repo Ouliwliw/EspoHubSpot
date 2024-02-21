@@ -181,7 +181,7 @@ class QueueCreator
                 continue;
             }
 
-            if (str_starts_with($emailAddress, self::ERASED_PREFIX)) {
+            if (strpos($emailAddress, self::ERASED_PREFIX) === 0) {
                 continue;
             }
 

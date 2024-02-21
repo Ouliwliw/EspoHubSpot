@@ -491,10 +491,6 @@ class Pusher implements WampServerInterface
     {
         $topicId = $topic->getId();
 
-        if ($topicId === '') {
-            return;
-        }
-
         $connection->close();
     }
 

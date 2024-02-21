@@ -159,7 +159,7 @@ class LinkMultipleWithRoleFieldView extends LinkMultipleFieldView {
 
             $el.append(
                 $('<span>').text(' '),
-                $('<span>').addClass('text-muted middle-dot'),
+                $('<span>').addClass('text-muted chevron-right'),
                 $('<span>').text(' '),
                 $('<span>').text(text).addClass('small').addClass(className)
             );

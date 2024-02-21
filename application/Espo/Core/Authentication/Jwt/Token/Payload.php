@@ -123,7 +123,6 @@ class Payload
         return $this->authTime;
     }
 
-    /** @noinspection PhpUnused */
     public function getSid(): ?string
     {
         return $this->sid;
@@ -144,7 +143,7 @@ class Payload
         try {
             $parsed = Json::decode($raw);
         }
-        catch (JsonException) {}
+        catch (JsonException $e) {}
 
         if (!$parsed instanceof stdClass) {
             throw new RuntimeException();

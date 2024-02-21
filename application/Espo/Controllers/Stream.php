@@ -41,18 +41,22 @@ use Espo\Core\Select\Where\Item as WhereItem;
 use Espo\Entities\User as UserEntity;
 use Espo\Tools\Stream\RecordService;
 
-use Espo\Tools\Stream\UserRecordService;
 use stdClass;
 
 class Stream
 {
     public static string $defaultAction = 'list';
 
+    private RecordService $service;
+    private SearchParamsFetcher $searchParamsFetcher;
+
     public function __construct(
-        private RecordService $service,
-        private UserRecordService $userRecordService,
-        private SearchParamsFetcher $searchParamsFetcher
-    ) {}
+        RecordService $service,
+        SearchParamsFetcher $searchParamsFetcher
+    ) {
+        $this->service = $service;
+        $this->searchParamsFetcher = $searchParamsFetcher;
+    }
 
     /**
      * @throws BadRequest
@@ -75,7 +79,7 @@ class Stream
         $searchParams = $this->fetchSearchParams($request);
 
         $result = $scope === UserEntity::ENTITY_TYPE ?
-            $this->userRecordService->find($id, $searchParams) :
+            $this->service->findUser($id, $searchParams) :
             $this->service->find($scope, $id ?? '', $searchParams);
 
         return (object) [
@@ -106,32 +110,8 @@ class Stream
             ->withPrimaryFilter('posts');
 
         $result = $scope === UserEntity::ENTITY_TYPE ?
-            $this->userRecordService->find($id, $searchParams) :
+            $this->service->findUser($id, $searchParams) :
             $this->service->find($scope, $id ?? '', $searchParams);
-
-        return (object) [
-            'total' => $result->getTotal(),
-            'list' => $result->getValueMapList(),
-        ];
-    }
-
-    /**
-     * @throws BadRequest
-     * @throws Forbidden
-     * @throws NotFound
-     */
-    public function getActionListUpdates(Request $request): stdClass
-    {
-        $id = $request->getRouteParam('id');
-        $scope = $request->getRouteParam('scope');
-
-        if ($scope === null || $id === null) {
-            throw new BadRequest();
-        }
-
-        $searchParams = $this->fetchSearchParams($request);
-
-        $result = $this->service->findUpdates($scope, $id, $searchParams);
 
         return (object) [
             'total' => $result->getTotal(),
@@ -168,20 +148,6 @@ class Stream
 
         if ($request->getQueryParam('skipOwn') === 'true') {
             $searchParams = $searchParams->withBoolFilterAdded('skipOwn');
-        }
-
-        $beforeNumber = $request->getQueryParam('beforeNumber');
-
-        if ($beforeNumber) {
-            $searchParams = $searchParams
-                ->withWhereAdded(
-                    WhereItem
-                        ::createBuilder()
-                        ->setAttribute('number')
-                        ->setType(WhereItem\Type::LESS_THAN)
-                        ->setValue($beforeNumber)
-                        ->build()
-                );
         }
 
         return $searchParams;

@@ -30,36 +30,39 @@
 namespace Espo\Modules\Crm\Tools\Case;
 
 use Espo\Core\Acl;
-use Espo\Core\Exceptions\BadRequest;
-use Espo\Core\Exceptions\Forbidden;
+use Espo\Core\Exceptions\ForbiddenSilent;
 use Espo\Core\Field\EmailAddress;
 use Espo\Core\Record\ServiceContainer;
 use Espo\Core\Select\SelectBuilderFactory;
-use Espo\Core\Templates\Entities\Company;
-use Espo\Core\Templates\Entities\Person;
-use Espo\Core\Utils\Metadata;
 use Espo\Modules\Crm\Entities\Account;
 use Espo\Modules\Crm\Entities\Contact;
 use Espo\Modules\Crm\Entities\CaseObj;
 use Espo\Modules\Crm\Entities\Lead;
 use Espo\ORM\Collection;
 use Espo\ORM\EntityManager;
-use Espo\ORM\Type\RelationType;
 use Espo\Tools\Email\EmailAddressEntityPair;
-use RuntimeException;
 
 class Service
 {
+    private ServiceContainer $serviceContainer;
+    private Acl $acl;
+    private EntityManager $entityManager;
+    private SelectBuilderFactory $selectBuilderFactory;
+
     public function __construct(
-        private ServiceContainer $serviceContainer,
-        private Acl $acl,
-        private EntityManager $entityManager,
-        private SelectBuilderFactory $selectBuilderFactory,
-        private Metadata $metadata
-    ) {}
+        ServiceContainer $serviceContainer,
+        Acl $acl,
+        EntityManager $entityManager,
+        SelectBuilderFactory $selectBuilderFactory
+    ) {
+        $this->serviceContainer = $serviceContainer;
+        $this->acl = $acl;
+        $this->entityManager = $entityManager;
+        $this->selectBuilderFactory = $selectBuilderFactory;
+    }
 
     /**
-     * @throws Forbidden
+     * @throws ForbiddenSilent
      * @return EmailAddressEntityPair[]
      */
     public function getEmailAddressList(string $id): array
@@ -69,10 +72,12 @@ class Service
             ->get(CaseObj::ENTITY_TYPE)
             ->getEntity($id);
 
+        $forbiddenFieldList = $this->acl->getScopeForbiddenFieldList(CaseObj::ENTITY_TYPE);
+
         $list = [];
 
         if (
-            $this->acl->checkField(CaseObj::ENTITY_TYPE, 'contacts') &&
+            !in_array('contacts', $forbiddenFieldList) &&
             $this->acl->checkScope(Contact::ENTITY_TYPE)
         ) {
             foreach ($this->getContactEmailAddressList($entity) as $item) {
@@ -82,7 +87,7 @@ class Service
 
         if (
             $list === [] &&
-            $this->acl->checkField(CaseObj::ENTITY_TYPE, 'account') &&
+            !in_array('account', $forbiddenFieldList) &&
             $this->acl->checkScope(Account::ENTITY_TYPE)
         ) {
             $item = $this->getAccountEmailAddress($entity, $list);
@@ -94,18 +99,10 @@ class Service
 
         if (
             $list === [] &&
-            $this->acl->checkField(CaseObj::ENTITY_TYPE, 'lead') &&
+            !in_array('lead', $forbiddenFieldList) &&
             $this->acl->checkScope(Lead::ENTITY_TYPE)
         ) {
             $item = $this->getLeadEmailAddress($entity, $list);
-
-            if ($item) {
-                $list[] = $item;
-            }
-        }
-
-        if ($list === []) {
-            $item = $this->findPersonEmailAddress($entity);
 
             if ($item) {
                 $list[] = $item;
@@ -140,10 +137,6 @@ class Service
         }
 
         if (!$this->acl->checkEntity($account)) {
-            return null;
-        }
-
-        if (!$this->acl->checkField(Account::ENTITY_TYPE, 'emailAddress')) {
             return null;
         }
 
@@ -184,10 +177,6 @@ class Service
             return null;
         }
 
-        if (!$this->acl->checkField(Lead::ENTITY_TYPE, 'emailAddress')) {
-            return null;
-        }
-
         foreach ($dataList as $item) {
             if ($item->getEmailAddress()->getAddress() === $emailAddress) {
                 return null;
@@ -210,33 +199,30 @@ class Service
             return [];
         }
 
-        if (!$this->acl->checkField(Contact::ENTITY_TYPE, 'emailAddress')) {
-            return[];
+        $contactForbiddenFieldList = $this->acl->getScopeForbiddenFieldList(Contact::ENTITY_TYPE);
+
+        if (in_array('emailAddress', $contactForbiddenFieldList)) {
+            return [];
         }
 
         $dataList = [];
 
         $emailAddressList = [];
 
-        try {
-            $query = $this->selectBuilderFactory
-                ->create()
-                ->from(Contact::ENTITY_TYPE)
-                ->withStrictAccessControl()
-                ->buildQueryBuilder()
-                ->select([
-                    'id',
-                    'emailAddress',
-                    'name',
-                ])
-                ->where([
-                    'id' => $contactIdList,
-                ])
-                ->build();
-        }
-        catch (BadRequest|Forbidden $e) {
-            throw new RuntimeException($e->getMessage());
-        }
+        $query = $this->selectBuilderFactory
+            ->create()
+            ->from(Contact::ENTITY_TYPE)
+            ->withStrictAccessControl()
+            ->buildQueryBuilder()
+            ->select([
+                'id',
+                'emailAddress',
+                'name',
+            ])
+            ->where([
+                'id' => $contactIdList,
+            ])
+            ->build();
 
         /** @var Collection<Contact> $contactCollection */
         $contactCollection = $this->entityManager
@@ -285,70 +271,5 @@ class Service
         );
 
         return $dataList;
-    }
-
-    private function findPersonEmailAddress(CaseObj $entity): ?EmailAddressEntityPair
-    {
-        $relations = $this->entityManager
-            ->getDefs()
-            ->getEntity(CaseObj::ENTITY_TYPE)
-            ->getRelationList();
-
-        foreach ($relations as $relation) {
-            if (
-                $relation->getType() !== RelationType::BELONGS_TO &&
-                $relation->getType() !== RelationType::HAS_ONE
-            ) {
-                continue;
-            }
-
-            $foreignEntityType = $relation->getForeignEntityType();
-
-            if (
-                $this->metadata->get("scopes.$foreignEntityType.type") !== Person::TEMPLATE_TYPE &&
-                $this->metadata->get("scopes.$foreignEntityType.type") !== Company::TEMPLATE_TYPE
-            ) {
-                continue;
-            }
-
-            $address = $this->getPersonEmailAddress($entity, $relation->getName());
-
-            if ($address) {
-                return $address;
-            }
-        }
-
-        return null;
-    }
-
-    private function getPersonEmailAddress(CaseObj $entity, string $link): ?EmailAddressEntityPair
-    {
-        $foreignEntity = $this->entityManager
-            ->getRDBRepositoryByClass(CaseObj::class)
-            ->getRelation($entity, $link)
-            ->findOne();
-
-        if (!$foreignEntity) {
-            return null;
-        }
-
-        if (!$this->acl->checkEntityRead($foreignEntity)) {
-            return null;
-        }
-
-        if (!$this->acl->checkField($foreignEntity->getEntityType(), 'emailAddress')) {
-            return null;
-        }
-
-        /** @var ?string $address */
-        $address = $foreignEntity->get('emailAddress');
-
-        if (!$address) {
-            return null;
-        }
-
-        $emailAddress = EmailAddress::create($address);
-
-        return new EmailAddressEntityPair($emailAddress, $foreignEntity);
     }
 }

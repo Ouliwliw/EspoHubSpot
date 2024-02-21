@@ -126,7 +126,6 @@ return [
         'jobRunInParallel',
         'jobPoolConcurrencyNumber',
         'jobPeriodForActiveProcess',
-        'jobForceUtc',
         'cronMinInterval',
         'daemonInterval',
         'daemonProcessTimeout',
@@ -205,7 +204,6 @@ return [
         'authAnotherUserDisabled',
         'emailAddressEntityLookupDefaultOrder',
         'phoneNumberEntityLookupDefaultOrder',
-        'customPrefixDisabled',
         'latestVersion',
     ],
     'superAdminItems' => [

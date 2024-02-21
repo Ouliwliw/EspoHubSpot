@@ -1,6 +1,6 @@
 {
   "fields": {
-    "name": "Ad",
+    "name": "İsim",
     "parent": "Üst Seçenek",
     "status": "Durum",
     "dateStart": "Başlangıç Tarihi",
@@ -38,9 +38,7 @@
     "Send Invitations": "Davetleri Gönder",
     "on time": "Zamanında",
     "before": "Önce",
-    "All-Day": "Tüm Gün",
-    "Send Cancellation": "İptal Gönder",
-    "Acceptance": "Onama"
+    "All-Day": "Tüm Gün"
   },
   "presetFilters": {
     "planned": "Planlandı",
@@ -49,8 +47,6 @@
   },
   "messages": {
     "nothingHasBeenSent": "Hiçbir şey gönderilmedi",
-    "selectAcceptanceStatus": "Kabul durumunuzu ayarlayın.",
-    "sendInvitationsToSelectedAttendees": "Seçilen katılımcılara davetiye emailleri gönderilecektir.",
-    "sendCancellationsToSelectedAttendees": "Seçilen katılımcılara iptal emailleri gönderilecektir."
+    "selectAcceptanceStatus": "Kabul durumunuzu ayarlayın."
   }
 }

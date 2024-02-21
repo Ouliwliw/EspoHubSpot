@@ -17,16 +17,14 @@
             "options": ["not-set", "yes", "no"],
             "default": "not-set",
             "tooltip": "Role.exportPermission",
-            "translation": "Role.options.levelList",
-            "view": "views/role/fields/permission"
+            "translation": "Role.options.levelList"
         },
         "massUpdatePermission": {
             "type": "enum",
             "options": ["not-set", "yes", "no"],
             "default": "not-set",
             "tooltip": "Role.massUpdatePermission",
-            "translation": "Role.options.levelList",
-            "view": "views/role/fields/permission"
+            "translation": "Role.options.levelList"
         },
         "createdAt": {
             "type": "datetime",

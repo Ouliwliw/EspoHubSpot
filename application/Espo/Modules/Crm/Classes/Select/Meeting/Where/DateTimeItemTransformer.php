@@ -29,37 +29,27 @@
 
 namespace Espo\Modules\Crm\Classes\Select\Meeting\Where;
 
-use Espo\Core\Select\Where\DateTimeItemTransformer as DateTimeItemTransformerInterface;
-use Espo\Core\Select\Where\DefaultDateTimeItemTransformer;
+use Espo\Core\Select\Where\DateTimeItemTransformer as DateTimeItemTransformerOriginal;
 use Espo\Core\Select\Where\Item;
 
 /**
  * Extends to take into account DateStartDate and DateEndDate fields.
- *
- * @noinspection PhpUnused
  */
-class DateTimeItemTransformer implements DateTimeItemTransformerInterface
+class DateTimeItemTransformer extends DateTimeItemTransformerOriginal
 {
-    public function __construct(
-        private DefaultDateTimeItemTransformer $defaultDateTimeItemTransformer
-    ) {}
-
     public function transform(Item $item): Item
     {
         $type = $item->getType();
         $value = $item->getValue();
         $attribute = $item->getAttribute();
 
-        $transformedItem = $this->defaultDateTimeItemTransformer->transform($item);
+        $transformedItem = parent::transform($item);
 
-        if (
-            !in_array($attribute, ['dateStart', 'dateEnd']) ||
-            in_array($type, [
-                Item\Type::IS_NULL,
-                Item\Type::EVER,
-                Item\Type::IS_NOT_NULL,
-            ])
-        ) {
+        if (!in_array($attribute, ['dateStart', 'dateEnd'])) {
+            return $transformedItem;
+        }
+
+        if (in_array($type, ['isNull', 'ever', 'isNotNull'])) {
             return $transformedItem;
         }
 
@@ -84,22 +74,16 @@ class DateTimeItemTransformer implements DateTimeItemTransformerInterface
             'value' => $value,
         ];
 
-        $data = $item->getData();
-
-        if ($data instanceof Item\Data\DateTime) {
-            $datePartRaw['timeZone'] = $data->getTimeZone();
-        }
-
         $raw = [
-            'type' => Item::TYPE_OR,
+            'type' => 'or',
             'value' => [
                 $datePartRaw,
                 [
-                    'type' => Item::TYPE_AND,
+                    'type' => 'and',
                     'value' => [
                         $transformedItem->getRaw(),
                         [
-                            'type' => Item\Type::IS_NULL,
+                            'type' => 'isNull',
                             'attribute' => $attributeDate,
                         ]
                     ]

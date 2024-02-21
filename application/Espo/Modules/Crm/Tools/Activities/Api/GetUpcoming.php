@@ -33,76 +33,51 @@ use Espo\Core\Api\Action;
 use Espo\Core\Api\Request;
 use Espo\Core\Api\Response;
 use Espo\Core\Api\ResponseComposer;
-use Espo\Core\Exceptions\BadRequest;
-use Espo\Core\Exceptions\Forbidden;
 use Espo\Core\Record\SearchParamsFetcher;
 use Espo\Entities\User;
-use Espo\Modules\Crm\Tools\Activities\Upcoming\Params;
-use Espo\Modules\Crm\Tools\Activities\UpcomingService;
+use Espo\Modules\Crm\Tools\Activities\Service as Service;
 
 /**
  * Upcoming activities.
- *
- * @noinspection PhpUnused
  */
 class GetUpcoming implements Action
 {
     public function __construct(
         private User $user,
         private SearchParamsFetcher $searchParamsFetcher,
-        private UpcomingService $service
+        private Service $service
     ) {}
 
     public function process(Request $request): Response
     {
-        $userId = $request->getQueryParam('userId') ?? $this->user->getId();
+        $userId = $request->getQueryParam('userId');
 
-        $params = $this->fetchParams($request);
+        if (!$userId) {
+            $userId = $this->user->getId();
+        }
 
-        $recordCollection = $this->service->get($userId, $params);
+        $searchParams = $this->searchParamsFetcher->fetch($request);
+
+        $offset = $searchParams->getOffset();
+        $maxSize = $searchParams->getMaxSize();
+
+        $entityTypeList = (array) ($request->getQueryParams()['entityTypeList'] ?? null);
+
+        $futureDays = intval($request->getQueryParam('futureDays'));
+
+        $recordCollection = $this->service->getUpcomingActivities(
+            $userId,
+            [
+                'offset' => $offset,
+                'maxSize' => $maxSize,
+            ],
+            $entityTypeList,
+            $futureDays
+        );
 
         return ResponseComposer::json([
             'total' => $recordCollection->getTotal(),
             'list' => $recordCollection->getValueMapList(),
         ]);
-    }
-
-    /**
-     * @throws BadRequest
-     * @throws Forbidden
-     */
-    private function fetchParams(Request $request): Params
-    {
-        $entityTypeList = $this->fetchEntityTypeList($request);
-        $futureDays = $request->hasQueryParam('futureDays') ? intval($request->getQueryParam('futureDays')) : null;
-        $searchParams = $this->searchParamsFetcher->fetch($request);
-
-        return new Params(
-            offset: $searchParams->getOffset(),
-            maxSize: $searchParams->getMaxSize(),
-            futureDays: $futureDays,
-            entityTypeList: $entityTypeList,
-        );
-    }
-
-    /**
-     * @return ?string[]
-     * @throws BadRequest
-     */
-    private function fetchEntityTypeList(Request $request): ?array
-    {
-        $entityTypeList = $request->getQueryParams()['entityTypeList'] ?? null;
-
-        if (!is_array($entityTypeList) && $entityTypeList !== null) {
-            throw new BadRequest("Bad entityTypeList.");
-        }
-
-        foreach ($entityTypeList ?? [] as $it) {
-            if (!is_string($it)) {
-                throw new BadRequest("Bad item in entityTypeList.");
-            }
-        }
-
-        return $entityTypeList;
     }
 }

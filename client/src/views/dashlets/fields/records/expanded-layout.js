@@ -100,35 +100,28 @@ class ExpandedLayoutDashletFieldView extends BaseFieldView {
             return [];
         }
 
-        const fields = this.getMetadata().get(['entityDefs', scope, 'fields']) || {};
+        let fields = this.getMetadata().get(['entityDefs', scope, 'fields']) || {};
 
-        const forbiddenFieldList = this.getAcl().getScopeForbiddenFieldList(scope);
+        let forbiddenFieldList = this.getAcl().getScopeForbiddenFieldList(scope);
 
-        const fieldList = Object.keys(fields)
+        let fieldList = Object.keys(fields)
             .sort((v1, v2) => {
                  return this.translate(v1, 'fields', scope)
                      .localeCompare(this.translate(v2, 'fields', scope));
             })
             .filter(item => {
-                const defs = /** @type {Record} */fields[item];
-
                 if (
-                    defs.disabled ||
-                    defs.listLayoutDisabled ||
-                    defs.utility
+                    fields[item].disabled ||
+                    fields[item].listLayoutDisabled ||
+                    fields[item].utility
                 ) {
                     return false;
                 }
 
-                const layoutAvailabilityList = defs.layoutAvailabilityList;
-
-                if (layoutAvailabilityList && !layoutAvailabilityList.includes('list')) {
-                    return false;
-                }
-
-                const layoutIgnoreList = defs.layoutIgnoreList || [];
-
-                if (layoutIgnoreList.includes('list')) {
+                if (
+                    fields[item].layoutAvailabilityList &&
+                    !fields[item].layoutAvailabilityList.includes('list')
+                ) {
                     return false;
                 }
 
@@ -139,7 +132,7 @@ class ExpandedLayoutDashletFieldView extends BaseFieldView {
                 return true;
             });
 
-        const dataList = [];
+        let dataList = [];
 
         fieldList.forEach(item => {
             dataList.push({

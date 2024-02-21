@@ -33,10 +33,12 @@ use Espo\Entities\User;
 use Espo\Entities\Webhook;
 use Espo\Entities\WebhookEventQueueItem;
 use Espo\Entities\WebhookQueueItem;
+
 use Espo\Core\AclManager;
 use Espo\Core\Utils\Config;
 use Espo\Core\Utils\DateTime as DateTimeUtil;
 use Espo\Core\Utils\Log;
+
 use Espo\ORM\EntityManager;
 use Espo\ORM\Query\Part\Condition as Cond;
 
@@ -133,7 +135,7 @@ class Queue
                         ->select('MIN:(number)')
                         ->from(WebhookQueueItem::ENTITY_TYPE)
                         ->where([
-                            'status' => WebhookQueueItem::STATUS_PENDING,
+                            'status' => 'Pending',
                             'OR' => [
                                 ['processAt' => null],
                                 ['processAt<=' => DateTimeUtil::getSystemNowString()],
@@ -160,7 +162,7 @@ class Queue
             ->getRDBRepository(WebhookQueueItem::ENTITY_TYPE)
             ->where([
                 'webhookId' => $webhookId,
-                'status' => WebhookQueueItem::STATUS_PENDING,
+                'status' => 'Pending',
                 'OR' => [
                     ['processAt' => null],
                     ['processAt<=' => DateTimeUtil::getSystemNowString()],
@@ -170,10 +172,9 @@ class Queue
             ->limit(0, $batchSize)
             ->find();
 
-        /** @var ?Webhook $webhook */
         $webhook = $this->entityManager->getEntityById(Webhook::ENTITY_TYPE, $webhookId);
 
-        if (!$webhook || !$webhook->isActive()) {
+        if (!$webhook || !$webhook->get('isActive')) {
             foreach ($itemList as $item) {
                 $this->deleteQueueItem($item);
             }
@@ -185,9 +186,8 @@ class Queue
 
         $user = null;
 
-        if ($webhook->getUserId()) {
-            /** @var ?User $user */
-            $user = $this->entityManager->getEntityById(User::ENTITY_TYPE, $webhook->getUserId());
+        if ($webhook->get('userId')) {
+            $user = $this->entityManager->getEntity(User::ENTITY_TYPE, $webhook->get('userId'));
 
             if (!$user) {
                 foreach ($itemList as $item) {
@@ -198,7 +198,7 @@ class Queue
             }
 
             $forbiddenAttributeList = $this->aclManager
-                ->getScopeForbiddenAttributeList($user, $webhook->getTargetEntityType());
+                ->getScopeForbiddenAttributeList($user, $webhook->get('entityType'));
         }
 
         $actualItemList = [];
@@ -265,7 +265,7 @@ class Queue
     }
 
     /**
-     * @param stdClass[] $dataList
+     * @param mixed[] $dataList
      * @param WebhookQueueItem[] $itemList
      */
     private function send(Webhook $webhook, array $dataList, array $itemList): void
@@ -276,7 +276,9 @@ class Queue
         catch (Exception $e) {
             $this->failQueueItemList($itemList, true);
 
-            $this->log->error("Webhook Queue: Webhook '{$webhook->getId()}' sending failed. Error: {$e->getMessage()}");
+            $this->log->error(
+                "Webhook Queue: Webhook '" . $webhook->getId() . "' sending failed. Error: " . $e->getMessage()
+            );
 
             return;
         }
@@ -302,7 +304,7 @@ class Queue
 
     protected function logSending(Webhook $webhook, int $code): void
     {
-        $this->log->debug("Webhook Queue: Webhook '{$webhook->getId()}' sent, response code: $code.");
+        $this->log->debug("Webhook Queue: Webhook '" . $webhook->getId()  . "' sent, response code: {$code}.");
     }
 
     /**
@@ -337,7 +339,7 @@ class Queue
         $itemList = $this->entityManager
             ->getRDBRepository(WebhookQueueItem::ENTITY_TYPE)
             ->where([
-                'status' => WebhookQueueItem::STATUS_PENDING,
+                'status' => 'Pending',
                 'webhookId' => $webhook->getId(),
             ])
             ->order('number')
@@ -353,8 +355,8 @@ class Queue
     protected function succeedQueueItem(WebhookQueueItem $item): void
     {
         $item->set([
-            'attempts' => $item->getAttempts() + 1,
-            'status' => WebhookQueueItem::STATUS_SUCCESS,
+            'attempts' => $item->get('attempts') + 1,
+            'status' => 'Success',
             'processedAt' => DateTimeUtil::getSystemNowString(),
         ]);
 
@@ -363,7 +365,7 @@ class Queue
 
     protected function failQueueItem(WebhookQueueItem $item, bool $force = false): void
     {
-        $attempts = $item->getAttempts() + 1;
+        $attempts = $item->get('attempts') + 1;
 
         $maxAttemptsNumber = $this->config->get('webhookMaxAttemptNumber', self::MAX_ATTEMPT_NUMBER);
         $period = $this->config->get('webhookFailAttemptPeriod', self::FAIL_ATTEMPT_PERIOD);
@@ -373,6 +375,7 @@ class Queue
         }
 
         $dt = new DateTime();
+
         $dt->modify($period);
 
         $item->set([
@@ -381,8 +384,7 @@ class Queue
         ]);
 
         if ($attempts >= $maxAttemptsNumber) {
-            $item->set('status', WebhookQueueItem::STATUS_FAILED);
-            /** @noinspection PhpRedundantOptionalArgumentInspection */
+            $item->set('status', 'Failed');
             $item->set('processAt', null);
         }
 

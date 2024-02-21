@@ -27,18 +27,20 @@
  * these Appropriate Legal Notices must retain the display of the "EspoCRM" word.
  ************************************************************************/
 
-use Espo\Core\Utils\File\Manager;
-use Espo\Core\Utils\File\Permission;
-use Espo\Core\Utils\System;
-
-class SystemHelper extends System
+class SystemHelper extends \Espo\Core\Utils\System
 {
     protected $config;
+
     protected $mainConfig;
+
     protected $apiPath;
+
     protected $modRewriteUrl = '/';
+
     protected $writableDir = 'data';
+
     protected $combineOperator = '&&';
+
     protected $writableMap;
 
     public function __construct()
@@ -51,8 +53,17 @@ class SystemHelper extends System
 
         $this->apiPath = $this->config['apiPath'];
 
-        $permission = new Permission(new Manager());
+        $permission = new \Espo\Core\Utils\File\Permission(new \Espo\Core\Utils\File\Manager());
         $this->writableMap = $permission->getWritableMap();
+    }
+
+    protected function getMainConfig($optionName, $returns = null)
+    {
+        if (isset($this->mainConfig[$optionName])) {
+            return $this->mainConfig[$optionName];
+        }
+
+        return $returns;
     }
 
     public function initWritable()
@@ -91,7 +102,9 @@ class SystemHelper extends System
             $pageUrl .= $_SERVER["SERVER_NAME"].":".$_SERVER["SERVER_PORT"].$_SERVER["REQUEST_URI"];
         }
 
-        return str_ireplace('/install/index.php', '', $pageUrl);
+        $baseUrl = str_ireplace('/install/index.php', '', $pageUrl);
+
+        return $baseUrl;
     }
 
     public function getApiPath()
@@ -170,15 +183,13 @@ class SystemHelper extends System
         return $isFile ? $commands[0] : $commands[1];
     }
 
-    private function getFullPath($path)
+    public function getFullPath($path)
     {
         if (is_array($path)) {
-            $pathList = [];
-
+            $pathList = array();
             foreach ($path as $pathItem) {
                 $pathList[] = $this->getFullPath($pathItem);
             }
-
             return $pathList;
         }
 
@@ -192,25 +203,18 @@ class SystemHelper extends System
     /**
      * Get permission commands
      *
-     * @param string|array $path
-     * @param string|array $permissions
-     * @param boolean $isSudo
-     * @param bool $isFile
+     * @param  string | array  $path
+     * @param  string | array  $permissions
+     * @param  boolean $isSudo
+     * @param  bool  $isFile
      * @return string
      */
-    public function getPermissionCommands(
-        $path,
-        $permissions = ['644', '755'],
-        $isSudo = false,
-        $isFile = null,
-        $changeOwner = true,
-        $isCd = true
-    ) {
+    public function getPermissionCommands($path, $permissions = ['644', '755'], $isSudo = false, $isFile = null, $changeOwner = true, $isCd = true)
+    {
         if (is_string($path)) {
             $path = array_fill(0, 2, $path);
         }
-
-        [$chmodPath, $chownPath] = $path;
+        list($chmodPath, $chownPath) = $path;
 
         $commands = array();
 
@@ -222,13 +226,11 @@ class SystemHelper extends System
 
         $pathList = [];
         $recursivePathList = [];
-
         foreach ($chmodPath as $pathItem) {
             if (isset($this->writableMap[$pathItem]) && !$this->writableMap[$pathItem]['recursive']) {
                 $pathList[] = $pathItem;
                 continue;
             }
-
             $recursivePathList[] = $pathItem;
         }
 
@@ -246,7 +248,6 @@ class SystemHelper extends System
                 $commands[] = $chown;
             }
         }
-
         return implode(' ' . $this->combineOperator . ' ', $commands).';';
     }
 

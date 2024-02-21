@@ -99,7 +99,10 @@ class AccessChecker implements AccessEntityCREDChecker
         else if ($this->aclManager->checkEntity($user, $parent)) {
             if (
                 $entity->getTargetField() &&
-                !$this->aclManager->checkField($user, $parent->getEntityType(), $entity->getTargetField())
+                in_array(
+                    $entity->getTargetField(),
+                    $this->aclManager->getScopeForbiddenFieldList($user, $parent->getEntityType())
+                )
             ) {
                 return false;
             }

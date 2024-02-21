@@ -30,6 +30,7 @@
 namespace Espo\Core\Select;
 
 use Espo\Core\Exceptions\BadRequest;
+use Espo\Core\Exceptions\Error;
 use Espo\Core\Exceptions\Forbidden;
 use Espo\Core\Select\Applier\Factory as ApplierFactory;
 use Espo\Core\Select\Where\Params as WhereParams;
@@ -113,6 +114,7 @@ class SelectBuilder
     /**
      * Build a result query.
      *
+     * @throws Error
      * @throws Forbidden
      * @throws BadRequest
      */
@@ -124,6 +126,7 @@ class SelectBuilder
     /**
      * Build an ORM query builder. Used to continue building but by means of ORM.
      *
+     * @throws Error
      * @throws Forbidden
      * @throws BadRequest
      */
@@ -332,7 +335,7 @@ class SelectBuilder
     }
 
     /**
-     * @throws BadRequest
+     * @throws Error
      */
     private function applyPrimaryFilter(): void
     {
@@ -347,7 +350,7 @@ class SelectBuilder
     }
 
     /**
-     * @throws BadRequest
+     * @throws Error
      */
     private function applyBoolFilterList(): void
     {
@@ -385,7 +388,7 @@ class SelectBuilder
 
     /**
      * @throws Forbidden
-     * @throws BadRequest
+     * @throws Error
      */
     private function applyDefaultOrder(): void
     {
@@ -408,6 +411,7 @@ class SelectBuilder
     /**
      * @throws BadRequest
      * @throws Forbidden
+     * @throws Error
      */
     private function applyWhereItemList(): void
     {
@@ -419,6 +423,7 @@ class SelectBuilder
     /**
      * @throws BadRequest
      * @throws Forbidden
+     * @throws Error
      */
     private function applyWhereItem(WhereItem $whereItem): void
     {
@@ -439,7 +444,7 @@ class SelectBuilder
 
     /**
      * @throws Forbidden
-     * @throws BadRequest
+     * @throws Error
      */
     private function applyFromSearchParams(): void
     {

@@ -49,9 +49,6 @@
     "fieldDefs": {
         "type": "varchar"
     },
-    "sanitizerClassNameList": [
-        "Espo\\Classes\\FieldSanitizers\\StringTrim"
-    ],
     "personalData": true,
     "default": null
 }

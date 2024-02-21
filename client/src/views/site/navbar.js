@@ -461,42 +461,26 @@ class NavbarSiteView extends View {
         return this.createView(key, defs.view, {selector: `[data-item="${name}"]`});
     }
 
-    /**
-     * @param {Record|string} item
-     * @return {boolean}
-     */
-    filterTabItem(item) {
-        if (typeof item === 'object' && item.type === 'url') {
-            if (item.onlyAdmin && !this.getUser().isAdmin()) {
-                return false;
-            }
-
-            if (!item.aclScope) {
-                return true;
-            }
-
-            return this.getAcl().check(item.aclScope);
-        }
-
-        if (['Home', '_delimiter_', '_delimiter-ext_'].includes(item)) {
+    filterTabItem(scope) {
+        if (~['Home', '_delimiter_', '_delimiter-ext_'].indexOf(scope)) {
             return true;
         }
 
         const scopes = this.getMetadata().get('scopes') || {};
 
-        if (!scopes[item]) {
+        if (!scopes[scope]) {
             return false;
         }
 
         const defs = /** @type {{disabled?: boolean, acl?: boolean, tabAclPermission?: string}} */
-            scopes[item] || {};
+            scopes[scope] || {};
 
         if (defs.disabled) {
-            return false;
+            return;
         }
 
         if (defs.acl) {
-            return this.getAcl().check(item);
+            return this.getAcl().check(scope);
         }
 
         if (defs.tabAclPermission) {
@@ -955,27 +939,16 @@ class NavbarSiteView extends View {
         process();
     }
 
-    /**
-     * @param {string|false} name
-     */
     selectTab(name) {
-        const $tabs = this.$el.find('ul.tabs');
+        if (this.currentTab !== name) {
+            this.$el.find('ul.tabs li.active').removeClass('active');
 
-        $tabs.find('li.active').removeClass('active');
+            if (name) {
+                this.$el.find('ul.tabs li[data-name="' + name + '"]').addClass('active');
+            }
 
-        if (name) {
-            $tabs.find(`li[data-name="${name}"]`).addClass('active');
+            this.currentTab = name;
         }
-
-        this.currentTab = name;
-
-        const url = this.getRouter().getCurrentUrl();
-
-        this.urlList
-            .filter(item => url.startsWith(item.url))
-            .forEach(item => {
-                $tabs.find(`li[data-name="${item.name}"]`).addClass('active');
-            });
     }
 
     setupTabDefsList() {
@@ -987,29 +960,18 @@ class NavbarSiteView extends View {
             return typeof item === 'object' && item.type === 'divider';
         }
 
-        function isUrl(item) {
-            return typeof item === 'object' && item.type === 'url';
-        }
-
-        /** @type {{url: string, name: string}[]} */
-        this.urlList = [];
-
         this.tabList = this.getTabList().filter(item => {
             if (!item) {
                 return false;
             }
 
             if (typeof item === 'object') {
-                if (isDivider(item)) {
+                if (item.type === 'divider') {
                     if (!this.isSide()) {
                         return false;
                     }
 
                     return true;
-                }
-
-                if (isUrl(item)) {
-                    return this.filterTabItem(item);
                 }
 
                 let itemList = (item.itemList || []).filter((item) => {
@@ -1147,7 +1109,6 @@ class NavbarSiteView extends View {
         let color = null;
         let isGroup = false;
         let isDivider = false;
-        let isUrl = false;
         let name = tab;
         let aClassName = 'nav-link';
 
@@ -1172,20 +1133,6 @@ class NavbarSiteView extends View {
             if (label) {
                 label = translateLabel(label);
             }
-        }
-        else if (typeof tab === 'object' && tab.type === 'url') {
-            isUrl = true;
-            label = tab.text || '#';
-            name = 'url-' + i;
-            link = tab.url || '#';
-            color = tab.color;
-            iconClass = tab.iconClass;
-
-            if (label) {
-                label = translateLabel(label);
-            }
-
-            this.urlList.push({name: name, url: link});
         }
         else if (typeof tab === 'object') {
             isGroup = true;
@@ -1217,7 +1164,7 @@ class NavbarSiteView extends View {
             color = this.getMetadata().get(['clientDefs', tab, 'color']);
         }
 
-        if (!params.tabIconsDisabled && !isGroup && !isDivider && !isUrl) {
+        if (!params.tabIconsDisabled && !isGroup && !isDivider) {
             iconClass = this.getMetadata().get(['clientDefs', tab, 'iconClass'])
         }
 

@@ -34,6 +34,7 @@ use Espo\Entities\AuthToken;
 use Espo\Entities\User;
 use Espo\ORM\Entity;
 use Espo\Core\Acl;
+use Espo\Core\Acl\Table;
 use Espo\Core\FieldProcessing\Loader;
 use Espo\Core\FieldProcessing\Loader\Params;
 use Espo\Core\ORM\EntityManager;
@@ -43,7 +44,6 @@ use Exception;
 
 /**
  * @implements Loader<User>
- * @noinspection PhpUnused
  */
 class LastAccessLoader implements Loader
 {
@@ -58,7 +58,10 @@ class LastAccessLoader implements Loader
 
     public function process(Entity $entity, Params $params): void
     {
-        if (!$this->acl->checkField($entity->getEntityType(), 'lastAccess')) {
+        $forbiddenFieldList = $this->acl
+            ->getScopeForbiddenFieldList($entity->getEntityType(), Table::ACTION_READ);
+
+        if (in_array('lastAccess', $forbiddenFieldList)) {
             return;
         }
 

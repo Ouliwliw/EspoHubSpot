@@ -141,8 +141,6 @@ class RecordBase extends Base implements
      * @throws NotFoundSilent
      * @throws ForbiddenSilent
      * @throws BadRequest
-     * @throws Forbidden
-     * @noinspection PhpUnusedParameterInspection
      */
     public function getActionRead(Request $request, Response $response): stdClass
     {
@@ -190,7 +188,6 @@ class RecordBase extends Base implements
      * @throws NotFound
      * @throws Forbidden
      * @throws Conflict
-     * @noinspection PhpUnused
      */
     public function patchActionUpdate(Request $request, Response $response): stdClass
     {
@@ -204,7 +201,6 @@ class RecordBase extends Base implements
      * @throws NotFound
      * @throws Forbidden
      * @throws Conflict
-     * @noinspection PhpUnusedParameterInspection
      */
     public function putActionUpdate(Request $request, Response $response): stdClass
     {
@@ -258,7 +254,6 @@ class RecordBase extends Base implements
      * @throws Forbidden
      * @throws BadRequest
      * @throws NotFound
-     * @noinspection PhpUnusedParameterInspection
      */
     public function deleteActionDelete(Request $request, Response $response): bool
     {
@@ -293,7 +288,6 @@ class RecordBase extends Base implements
      * @throws Forbidden
      * @throws NotFound
      * @throws ForbiddenSilent
-     * @noinspection PhpUnused
      */
     public function postActionGetDuplicateAttributes(Request $request): stdClass
     {
@@ -310,7 +304,6 @@ class RecordBase extends Base implements
      * @throws BadRequest
      * @throws Forbidden
      * @throws NotFound
-     * @noinspection PhpUnused
      */
     public function postActionRestoreDeleted(Request $request): bool
     {

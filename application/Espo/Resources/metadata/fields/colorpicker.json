@@ -27,8 +27,5 @@
         "type": "varchar",
         "maxLength": 7
     },
-    "sanitizerClassNameList": [
-        "Espo\\Classes\\FieldSanitizers\\StringTrim"
-    ],
     "notCreatable": true
 }

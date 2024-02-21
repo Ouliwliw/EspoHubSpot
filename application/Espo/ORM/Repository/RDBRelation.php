@@ -31,7 +31,6 @@ namespace Espo\ORM\Repository;
 
 use Espo\ORM\Collection;
 use Espo\ORM\Entity;
-use Espo\ORM\EntityCollection;
 use Espo\ORM\EntityManager;
 use Espo\ORM\BaseEntity;
 use Espo\ORM\Query\Select;
@@ -48,11 +47,12 @@ use RuntimeException;
 
 /**
  * An access point for a specific relation of a record.
- *
- * @template TEntity of Entity
  */
 class RDBRelation
 {
+    private EntityManager $entityManager;
+    private HookMediator $hookMediator;
+    private Entity $entity;
     private string $entityType;
     private ?string $foreignEntityType = null;
     private string $relationName;
@@ -60,11 +60,14 @@ class RDBRelation
     private bool $noBuilder = false;
 
     public function __construct(
-        private EntityManager $entityManager,
-        private Entity $entity,
+        EntityManager $entityManager,
+        Entity $entity,
         string $relationName,
-        private HookMediator $hookMediator
+        HookMediator $hookMediator
     ) {
+        $this->entityManager = $entityManager;
+        $this->entity = $entity;
+        $this->hookMediator = $hookMediator;
 
         if (!$entity->hasId()) {
             throw new RuntimeException("Can't use an entity w/o ID.");
@@ -96,8 +99,6 @@ class RDBRelation
 
     /**
      * Create a select builder.
-     *
-     * @return Builder<TEntity>
      */
     private function createSelectBuilder(?Select $query = null): Builder
     {
@@ -105,14 +106,11 @@ class RDBRelation
             throw new RuntimeException("Can't use query builder for the '$this->relationType' relation type.");
         }
 
-        /** @var Builder<TEntity> */
         return new Builder($this->entityManager, $this->entity, $this->relationName, $query);
     }
 
     /**
      * Clone a query.
-     *
-     * @return Builder<TEntity>
      */
     public function clone(Select $query): Builder
     {
@@ -124,7 +122,6 @@ class RDBRelation
             throw new RuntimeException("Passed query doesn't match the entity type.");
         }
 
-        /** @var Builder<TEntity> */
         return $this->createSelectBuilder($query);
     }
 
@@ -148,12 +145,11 @@ class RDBRelation
     /**
      * Find related records.
      *
-     * @return Collection<TEntity>
+     * @return Collection<Entity>
      */
     public function find(): Collection
     {
         if ($this->isBelongsToParentType()) {
-            /** @var EntityCollection<TEntity> $collection */
             $collection = $this->entityManager->getCollectionFactory()->create();
 
             $entity = $this->getMapper()->selectRelated($this->entity, $this->relationName);
@@ -172,8 +168,6 @@ class RDBRelation
 
     /**
      * Find a first record.
-     *
-     * @return TEntity
      */
     public function findOne(): ?Entity
     {
@@ -184,7 +178,6 @@ class RDBRelation
                 throw new LogicException();
             }
 
-            /** @var TEntity */
             return $entity;
         }
 
@@ -215,7 +208,6 @@ class RDBRelation
      * A relation name or table. A relation name should be in camelCase, a table in CamelCase.
      * @param string|null $alias An alias.
      * @param WhereItem|array<string|int, mixed>|null $conditions Join conditions.
-     * @return Builder<TEntity>
      */
     public function join($target, ?string $alias = null, $conditions = null): Builder
     {
@@ -229,7 +221,6 @@ class RDBRelation
      * A relation name or table. A relation name should be in camelCase, a table in CamelCase.
      * @param string|null $alias An alias.
      * @param WhereItem|array<string|int, mixed>|null $conditions Join conditions.
-     * @return Builder<TEntity>
      */
     public function leftJoin($target, ?string $alias = null, $conditions = null): Builder
     {
@@ -238,8 +229,6 @@ class RDBRelation
 
     /**
      * Set DISTINCT parameter.
-     *
-     * @return Builder<TEntity>
      */
     public function distinct(): Builder
     {
@@ -248,8 +237,6 @@ class RDBRelation
 
     /**
      * Set to return STH collection. Recommended for fetching large number of records.
-     *
-     * @return Builder<TEntity>
      */
     public function sth(): Builder
     {
@@ -266,7 +253,6 @@ class RDBRelation
      *
      * @param WhereItem|array<string|int, mixed>|string $clause A key or where clause.
      * @param array<int, mixed>|scalar|null $value A value. Should be omitted if the first argument is not string.
-     * @return Builder<TEntity>
      */
     public function where($clause = [], $value = null): Builder
     {
@@ -283,7 +269,6 @@ class RDBRelation
      *
      * @param WhereItem|array<string|int, mixed>|string $clause A key or where clause.
      * @param array<int, mixed>|string|null $value A value. Should be omitted if the first argument is not string.
-     * @return Builder<TEntity>
      */
     public function having($clause = [], $value = null): Builder
     {
@@ -303,7 +288,6 @@ class RDBRelation
      *   An attribute to order by or an array or order items.
      *   Passing an array will reset a previously set order.
      * @param (Order::ASC|Order::DESC)|bool|null $direction A direction.
-     * @return Builder<TEntity>
      */
     public function order($orderBy = 'id', $direction = null): Builder
     {
@@ -312,8 +296,6 @@ class RDBRelation
 
     /**
      * Apply OFFSET and LIMIT.
-     *
-     * @return Builder<TEntity>
      */
     public function limit(?int $offset = null, ?int $limit = null): Builder
     {
@@ -333,7 +315,6 @@ class RDBRelation
      * @param Selection|Selection[]|Expression|Expression[]|string[]|string|array<int, string[]|string> $select
      *   An array of expressions or one expression.
      * @param string|null $alias An alias. Actual if the first parameter is not an array.
-     * @return Builder<TEntity>
      */
     public function select($select = [], ?string $alias = null): Builder
     {
@@ -350,7 +331,6 @@ class RDBRelation
      * * `groupBy([$expr1, $expr2, ...])`
      *
      * @param Expression|Expression[]|string|string[] $groupBy
-     * @return Builder<TEntity>
      */
     public function group($groupBy): Builder
     {
@@ -360,7 +340,6 @@ class RDBRelation
     /**
      * @deprecated Use `group` method.
      * @param Expression|Expression[]|string|string[] $groupBy
-     * @return Builder<TEntity>
      */
     public function groupBy($groupBy): Builder
     {
@@ -374,7 +353,6 @@ class RDBRelation
      * `->columnsWhere(['column' => $value])`
      *
      * @param WhereItem|array<string|int, mixed> $clause Where clause.
-     * @return Builder<TEntity>
      */
     public function columnsWhere($clause): Builder
     {

@@ -41,11 +41,17 @@ use Espo\Core\Console\Command\Params;
  */
 class CommandManager
 {
+    private InjectableFactory $injectableFactory;
+    private Metadata $metadata;
+
     private const DEFAULT_COMMAND = 'Help';
     private const DEFAULT_COMMAND_FLAG = 'help';
 
-    public function __construct(private InjectableFactory $injectableFactory, private Metadata $metadata)
-    {}
+    public function __construct(InjectableFactory $injectableFactory, Metadata $metadata)
+    {
+        $this->injectableFactory = $injectableFactory;
+        $this->metadata = $metadata;
+    }
 
     /**
      * @param array<int, string> $argv

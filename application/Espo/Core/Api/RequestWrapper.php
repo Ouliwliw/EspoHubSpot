@@ -275,7 +275,6 @@ class RequestWrapper implements ApiRequest
         return $this->getMethod() === 'PUT';
     }
 
-    /** @noinspection PhpUnused */
     public function isUpdate(): bool
     {
         return $this->getMethod() === 'UPDATE';

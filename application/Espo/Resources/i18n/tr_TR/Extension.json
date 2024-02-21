@@ -1,6 +1,6 @@
 {
   "fields": {
-    "name": "Ad",
+    "name": "İsim",
     "version": "Sürüm",
     "description": "Açıklama",
     "isInstalled": "Yüklendi",

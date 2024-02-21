@@ -71,12 +71,11 @@ class EntityManager
 
     /**
      * @param array<string, mixed> $params
-     * @return string An actual name.
      * @throws BadRequest
      * @throws Error
      * @throws Conflict
      */
-    public function create(string $name, string $type, array $params = [], ?CreateParams $createParams = null): string
+    public function create(string $name, string $type, array $params = [], ?CreateParams $createParams = null): void
     {
         $createParams ??= new CreateParams();
 
@@ -97,8 +96,6 @@ class EntityManager
         if (!empty($templateDefs['isNotCreatable']) && !$createParams->forceCreate()) {
             throw new Error("Type '$type' is not creatable.");
         }
-
-        $name = $this->nameUtil->addCustomPrefix($name, true);
 
         if ($this->nameUtil->nameIsBad($name)) {
             throw new Error("Entity name should contain only letters and numbers, " .
@@ -288,8 +285,6 @@ class EntityManager
         }
 
         $this->dataManager->rebuild();
-
-        return $name;
     }
 
     /**

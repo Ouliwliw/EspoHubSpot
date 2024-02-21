@@ -30,6 +30,7 @@
 namespace Espo\Core\Formula\Functions\RecordGroup;
 
 use Espo\Core\Exceptions\BadRequest;
+use Espo\Core\Exceptions\Error;
 use Espo\Core\Exceptions\Forbidden;
 use Espo\Core\Formula\ArgumentList;
 use Espo\Core\Formula\Exceptions\Error as FormulaError;
@@ -90,7 +91,7 @@ class FindOneType extends BaseFunction implements
         try {
             $queryBuilder = $builder->buildQueryBuilder();
         }
-        catch (BadRequest|Forbidden $e) {
+        catch (BadRequest|Error|Forbidden $e) {
             throw new FormulaError($e->getMessage(), $e->getCode(), $e);
         }
 

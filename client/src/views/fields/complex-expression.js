@@ -96,7 +96,7 @@ class ComplexExpressionFieldView extends TextFieldView {
             .then(lib => {
                 ace = lib;
 
-                const list = [
+                let list = [
                     Espo.loader.requirePromise('lib!ace-ext-language_tools'),
                 ];
 
@@ -111,7 +111,7 @@ class ComplexExpressionFieldView extends TextFieldView {
     }
 
     data() {
-        const data = super.data();
+        let data = super.data();
 
         data.containerId = this.containerId;
         data.targetEntityType = this.targetEntityType;
@@ -152,7 +152,6 @@ class ComplexExpressionFieldView extends TextFieldView {
             }
 
             if (this.isEditMode()) {
-                // noinspection JSCheckFunctionSignatures
                 editor.getSession().on('change', () => {
                     this.trigger('change', {ui: true});
                 });
@@ -162,7 +161,6 @@ class ComplexExpressionFieldView extends TextFieldView {
 
             if (this.isReadMode()) {
                 editor.setReadOnly(true);
-                // noinspection JSUnresolvedReference
                 editor.renderer.$cursorLayer.element.style.display = 'none';
                 editor.renderer.setShowGutter(false);
             }
@@ -182,7 +180,7 @@ class ComplexExpressionFieldView extends TextFieldView {
     }
 
     fetch() {
-        const data = {};
+        let data = {};
 
         data[this.name] = this.editor.getValue();
 
@@ -194,11 +192,13 @@ class ComplexExpressionFieldView extends TextFieldView {
     }
 
     initAutocomplete() {
-        const functionItemList =
+        let functionItemList =
             this.getFunctionDataList()
-                .filter(item => item.insertText);
+                .filter(item => {
+                    return item.insertText;
+                });
 
-        const attributeList = this.getFormulaAttributeList();
+        let attributeList = this.getFormulaAttributeList();
 
         ace.require('ace/ext/language_tools');
 
@@ -212,9 +212,9 @@ class ComplexExpressionFieldView extends TextFieldView {
             identifierRegexps: [/[\\a-zA-Z0-9{}\[\].$'"]/],
 
             getCompletions: function (editor, session, pos, prefix, callback) {
-                const matchedFunctionItemList = functionItemList
+                let matchedFunctionItemList = functionItemList
                     .filter(originalItem => {
-                        const text = originalItem.name.toLowerCase();
+                        let text = originalItem.name.toLowerCase();
 
                         if (text.indexOf(prefix.toLowerCase()) === 0) {
                             return true;
@@ -231,7 +231,7 @@ class ComplexExpressionFieldView extends TextFieldView {
                     };
                 });
 
-                const matchedAttributeList = attributeList.filter(item => {
+                let matchedAttributeList = attributeList.filter(item => {
                     if (item.indexOf(prefix) === 0) {
                         return true;
                     }
@@ -239,7 +239,7 @@ class ComplexExpressionFieldView extends TextFieldView {
                     return false;
                 });
 
-                const itemAttributeList = matchedAttributeList.map(item => {
+                let itemAttributeList = matchedAttributeList.map((item) => {
                     return {
                         name: item,
                         value: item,
@@ -261,7 +261,7 @@ class ComplexExpressionFieldView extends TextFieldView {
             return [];
         }
 
-        const attributeList = this.getFieldManager()
+        let attributeList = this.getFieldManager()
             .getEntityTypeAttributeList(this.targetEntityType)
             .sort();
 
@@ -269,18 +269,18 @@ class ComplexExpressionFieldView extends TextFieldView {
 
         // @todo Skip not storable attributes.
 
-        const links = this.getMetadata().get(['entityDefs', this.targetEntityType, 'links']) || {};
+        let links = this.getMetadata().get(['entityDefs', this.targetEntityType, 'links']) || {};
 
-        const linkList = [];
+        let linkList = [];
 
         Object.keys(links).forEach(link => {
-            const type = links[link].type;
+            let type = links[link].type;
 
             if (!type) {
                 return;
             }
 
-            if (['hasMany', 'hasOne', 'belongsTo'].includes(type)) {
+            if (~['hasMany', 'hasOne', 'belongsTo'].indexOf(type)) {
                 linkList.push(link);
             }
         });
@@ -288,7 +288,7 @@ class ComplexExpressionFieldView extends TextFieldView {
         linkList.sort();
 
         linkList.forEach(link => {
-            const scope = links[link].entity;
+            let scope = links[link].entity;
 
             if (!scope) {
                 return;
@@ -298,11 +298,13 @@ class ComplexExpressionFieldView extends TextFieldView {
                 return;
             }
 
-            const linkAttributeList = this.getFieldManager()
+            let linkAttributeList = this.getFieldManager()
                 .getEntityTypeAttributeList(scope)
                 .sort();
 
-            linkAttributeList.forEach(item => attributeList.push(link + '.' + item));
+            linkAttributeList.forEach(item => {
+                attributeList.push(link + '.' + item);
+            });
         });
 
         return attributeList;

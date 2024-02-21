@@ -385,7 +385,6 @@ class RelatedListModalView extends ModalView {
                 searchManager: searchManager,
                 disableSavePreset: true,
                 filterList: filterList,
-                filtersLayoutName: this.options.filtersLayoutName,
             }, view => {
                 this.listenTo(view, 'reset', () => {});
             });

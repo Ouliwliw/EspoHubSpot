@@ -26,7 +26,7 @@
         <th style="width: 35%">{{translate 'Name' scope='FieldManager'}}</th>
         <th style="width: 35%">{{translate 'Label' scope='FieldManager'}}</th>
         <th style="width: 20%">{{translate 'Type' scope='FieldManager'}}</th>
-        <th style="width: 8%; text-align: right;"></th>
+        <th style="width: 10%; text-align: right;"></th>
     </thead>
     <tbody>
     {{#each fieldDefsArray}}
@@ -47,22 +47,7 @@
         <td>{{translate type category='fieldTypes' scope='Admin'}}</td>
         <td style="text-align: right">
             {{#if isCustom}}
-                <div class="btn-group row-dropdown-group">
-                    <button
-                        class="btn btn-link btn-sm dropdown-toggle"
-                        data-toggle="dropdown"
-                    ><span class="caret"></span></button>
-                    <ul class="dropdown-menu pull-right">
-                        <li>
-                            <a
-                                role="button"
-                                tabindex="0"
-                                data-action="removeField"
-                                data-name="{{name}}"
-                            >{{translate 'Remove'}}</a>
-                        </li>
-                    </ul>
-                </div>
+            <a role="button" tabindex="0" data-action="removeField" data-name="{{name}}">{{translate 'Remove'}}</a>
             {{/if}}
         </td>
     </tr>

@@ -159,25 +159,22 @@ class EmailHelper {
             (model.get('to') || '').split(';').forEach(item => {
                 item = item.trim();
 
-                if (item === this.getUser().get('emailAddress')) {
-                    return;
-                }
+                if (item !== this.getUser().get('emailAddress')) {
+                    if (isReplyOnSent) {
+                        if (attributes.to) {
+                            attributes.to += ';';
+                        }
 
-                if (isReplyOnSent) {
-                    if (attributes.to) {
-                        attributes.to += ';';
+                        attributes.to += item;
                     }
+                    else {
+                        if (attributes.cc) {
+                            attributes.cc += ';';
+                        }
 
-                    attributes.to += item;
-
-                    return;
+                        attributes.cc += item;
+                    }
                 }
-
-                if (attributes.cc) {
-                    attributes.cc += ';';
-                }
-
-                attributes.cc += item;
             });
 
             attributes.cc = attributes.cc.replace(/^(; )/,"");
@@ -397,17 +394,17 @@ class EmailHelper {
      * @returns {string|null}
      */
     parseNameFromStringAddress(value) {
-        if (!value.includes('<')) {
-            return null;
+        if (~value.indexOf('<')) {
+            let name = value.replace(/<(.*)>/, '').trim();
+
+            if (name.charAt(0) === '"' && name.charAt(name.length - 1) === '"') {
+                name = name.slice(1, name.length - 2);
+            }
+
+            return name;
         }
 
-        let name = value.replace(/<(.*)>/, '').trim();
-
-        if (name.charAt(0) === '"' && name.charAt(name.length - 1) === '"') {
-            name = name.slice(1, name.length - 2);
-        }
-
-        return name;
+        return null;
     }
 
     /**
@@ -487,6 +484,95 @@ class EmailHelper {
             attributes['body'] = bodyPlain;
             attributes['bodyPlain'] = bodyPlain;
         }
+    }
+
+    /**
+     * Compose a mailto link.
+     *
+     * @param {Object} attributes Attributes.
+     * @param {string} [bcc] BCC.
+     * @returns {string} A mailto link.
+     */
+    composeMailToLink(attributes, bcc) {
+        let link = 'mailto:';
+
+        link += (attributes.to || '').split(';').join(',');
+
+        const o = {};
+
+        if (attributes.cc) {
+            o.cc = attributes.cc.split(';').join(',');
+        }
+
+        if (attributes.bcc) {
+            if (!bcc) {
+                bcc = '';
+            } else {
+                bcc += ';';
+            }
+
+            bcc += attributes.bcc;
+        }
+
+        if (bcc) {
+            o.bcc = bcc.split(';').join(',');
+        }
+
+        if (attributes.name) {
+            o.subject = attributes.name;
+        }
+
+        if (attributes.body) {
+            o.body = attributes.body;
+
+            if (attributes.isHtml) {
+                o.body = this.htmlToPlain(o.body);
+            }
+        }
+
+        if (attributes.inReplyTo) {
+            o['In-Reply-To'] = attributes.inReplyTo;
+        }
+
+        let part = '';
+
+        for (const key in o) {
+            if (part !== '') {
+                part += '&';
+            }
+            else {
+                part += '?';
+            }
+
+            part += key + '=' + encodeURIComponent(o[key]);
+        }
+
+        link += part;
+
+        return link;
+    }
+
+    /**
+     * Convert an HTML to a plain text.
+     *
+     * @param {string} text A text.
+     * @returns {string}
+     */
+    htmlToPlain(text) {
+        text = text || '';
+
+        let value = text.replace(/<br\s*\/?>/mg, '\n');
+
+        value = value.replace(/<\/p\s*\/?>/mg, '\n\n');
+
+        const $div = $('<div>').html(value);
+
+        $div.find('style').remove();
+        $div.find('link[ref="stylesheet"]').remove();
+
+        value =  $div.text();
+
+        return value;
     }
 }
 

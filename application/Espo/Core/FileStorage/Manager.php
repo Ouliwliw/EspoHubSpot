@@ -42,20 +42,23 @@ use RuntimeException;
  */
 class Manager
 {
-    private const DEFAULT_STORAGE = 'EspoUploadDir';
-
     /** @var array<string, Storage> */
     private array $implHash = [];
+
+    private const DEFAULT_STORAGE = 'EspoUploadDir';
+
+    private Factory $factory;
 
     /**
      * @var array<string, resource>
      * @phpstan-ignore-next-line Used to prevent deleting from memory.
-     * @noinspection PhpPropertyOnlyWrittenInspection
      */
     private $resourceMap = [];
 
-    public function __construct(private Factory $factory)
-    {}
+    public function __construct(Factory $factory)
+    {
+        $this->factory = $factory;
+    }
 
     /**
      * Whether a file exists in a storage.

@@ -72,7 +72,7 @@ class Header
         try {
             $parsed = Json::decode($raw);
         }
-        catch (JsonException) {}
+        catch (JsonException $e) {}
 
         if (!$parsed instanceof stdClass) {
             throw new RuntimeException();
@@ -88,25 +88,23 @@ class Header
         );
     }
 
-    /** @noinspection PhpSameParameterValueInspection */
     private static function obtainFromParsedString(stdClass $parsed, string $name): string
     {
         $value = $parsed->$name ?? null;
 
         if (!is_string($value)) {
-            throw new RuntimeException("No or bad `$name` in JWT header.");
+            throw new RuntimeException("No or bad `{$name}` in JWT header.");
         }
 
         return $value;
     }
 
-    /** @noinspection PhpSameParameterValueInspection */
     private static function obtainFromParsedStringNull(stdClass $parsed, string $name): ?string
     {
         $value = $parsed->$name ?? null;
 
         if ($value !== null && !is_string($value)) {
-            throw new RuntimeException("Bad `$name` in JWT header.");
+            throw new RuntimeException("Bad `{$name}` in JWT header.");
         }
 
         return $value;

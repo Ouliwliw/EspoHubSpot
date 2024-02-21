@@ -178,6 +178,7 @@ class BaseEntity implements Entity
 
         if (is_string($p1)) {
             $name = $p1;
+            $value = $p2;
 
             if ($name == 'id') {
                 $this->id = $value;
@@ -1007,12 +1008,6 @@ class BaseEntity implements Entity
             }
 
             if (is_array($item)) {
-                if (!array_is_list($item)) {
-                    $copy[$i] = $this->cloneObject((object) $item);
-
-                    continue;
-                }
-
                 $copy[$i] = $this->cloneArray($item);
 
                 continue;

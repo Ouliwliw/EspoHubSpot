@@ -216,15 +216,9 @@ define('views/admin/layouts/default-side-panel', ['views/admin/layouts/rows'], f
                 return false;
             }
 
-            const layoutList = model.getFieldParam(name, 'layoutAvailabilityList');
+            let layoutList = model.getFieldParam(name, 'layoutAvailabilityList');
 
-            if (layoutList && !layoutList.includes(this.type)) {
-                return false;
-            }
-
-            const layoutIgnoreList = model.getFieldParam(name, 'layoutIgnoreList') || [];
-
-            if (layoutIgnoreList.includes(this.type)) {
+            if (layoutList && !~layoutList.indexOf(this.type)) {
                 return false;
             }
 

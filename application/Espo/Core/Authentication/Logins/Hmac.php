@@ -43,8 +43,14 @@ class Hmac implements Login
 {
     public const NAME = 'Hmac';
 
-    public function __construct(private UserFinder $userFinder, private ApiKey $apiKeyUtil)
-    {}
+    private UserFinder $userFinder;
+    private ApiKey $apiKeyUtil;
+
+    public function __construct(UserFinder $userFinder, ApiKey $apiKeyUtil)
+    {
+        $this->userFinder = $userFinder;
+        $this->apiKeyUtil = $apiKeyUtil;
+    }
 
     public function login(Data $data, Request $request): Result
     {

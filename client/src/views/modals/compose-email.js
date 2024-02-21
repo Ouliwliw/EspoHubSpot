@@ -27,7 +27,6 @@
  ************************************************************************/
 
 import EditModalView from 'views/modals/edit';
-import MailtoHelper from 'helpers/misc/mailto';
 
 class ComposeEmailModalView extends EditModalView {
 
@@ -107,15 +106,25 @@ class ComposeEmailModalView extends EditModalView {
 
         this.events['click a[data-action="fullFormDraft"]'] = () => this.actionFullFormDraft();
 
-        const helper = new MailtoHelper(this.getConfig(), this.getPreferences(), this.getAcl());
-
-        if (helper.toUse()) {
-            this.once('after:render', () => this.actionClose());
-            this.getRouter().confirmLeaveOut = false;
-
+        if (
+            this.getConfig().get('emailForceUseExternalClient') ||
+            this.getPreferences().get('emailUseExternalClient') ||
+            !this.getAcl().checkScope('Email', 'create')
+        ) {
             const attributes = this.options.attributes || {};
 
-            this.once('after:render', () => document.location.href = helper.composeLink(attributes));
+            Espo.loader.require('email-helper', EmailHelper => {
+                this.getRouter().confirmLeaveOut = false;
+
+                const emailHelper = new EmailHelper();
+
+                document.location.href = emailHelper
+                    .composeMailToLink(attributes, this.getConfig().get('outboundEmailBccAddress'));
+            });
+
+            this.once('after:render', () => {
+                this.actionClose();
+            });
 
             return;
         }
@@ -265,10 +274,8 @@ class ComposeEmailModalView extends EditModalView {
     }
 
     actionFullFormDraft() {
-        this.actionSaveDraft({skipNotModifiedWarning: true})
+        this.actionSaveDraft()
             .then(() => {
-                this.getRecordView().setConfirmLeaveOut(false);
-
                 this.getRouter().navigate('#Email/edit/' + this.model.id, {trigger: true});
 
                 this.close();

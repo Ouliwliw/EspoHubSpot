@@ -32,7 +32,7 @@ namespace Espo\Classes\TemplateHelpers;
 use Espo\Core\Htmlizer\Helper;
 use Espo\Core\Htmlizer\Helper\Data;
 use Espo\Core\Htmlizer\Helper\Result;
-use Michelf\MarkdownExtra as MarkdownTransformer;
+use Michelf\Markdown as MarkdownTransformer;
 
 class MarkdownText implements Helper
 {

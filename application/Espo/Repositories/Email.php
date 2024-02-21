@@ -69,12 +69,14 @@ class Email extends Database implements
 
         if (!empty($addressValue)) {
             $addressList = array_map(
-                fn ($item) => trim($item),
+                function ($item) {
+                    return trim($item);
+                },
                 explode(';', $addressValue)
             );
 
             $addressList = array_filter($addressList, function ($item) {
-                return filter_var($item, FILTER_VALIDATE_EMAIL) !== false;
+                return filter_var($item, FILTER_VALIDATE_EMAIL);
             });
 
             $idList = $eaRepository->getIdListFormAddressList($addressList);

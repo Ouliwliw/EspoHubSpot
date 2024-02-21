@@ -59,7 +59,7 @@ class ListStreamRecordView extends ListExpandedRecordView {
                 return;
             }
 
-            const lengthBeforeFetch = options.lengthBeforeFetch || 0;
+            let lengthBeforeFetch = options.lengthBeforeFetch || 0;
 
             if (lengthBeforeFetch === 0) {
                 this.buildRows(() => this.reRender());
@@ -67,9 +67,9 @@ class ListStreamRecordView extends ListExpandedRecordView {
                 return;
             }
 
-            const $list = this.$el.find(this.listContainerEl);
+            let $list = this.$el.find(this.listContainerEl);
 
-            const rowCount = this.collection.length - lengthBeforeFetch;
+            let rowCount = this.collection.length - lengthBeforeFetch;
 
             if (rowCount === 0) {
                 return;
@@ -78,7 +78,7 @@ class ListStreamRecordView extends ListExpandedRecordView {
             this.isRenderingNew = true;
 
             for (let i = rowCount - 1; i >= 0; i--) {
-                const model = this.collection.at(i);
+                let model = this.collection.at(i);
 
                 this.buildRow(i, model, view => {
                     if (i === 0) {
@@ -88,7 +88,7 @@ class ListStreamRecordView extends ListExpandedRecordView {
                     let $row = $(this.getRowContainerHtml(model.id));
 
                     // Prevent a race condition issue.
-                    const $existingRow = this.$el.find(`[data-id="${model.id}"]`);
+                    let $existingRow = this.$el.find(`[data-id="${model.id}"]`);
 
                     if ($existingRow.length) {
                         $row = $existingRow;
@@ -104,16 +104,16 @@ class ListStreamRecordView extends ListExpandedRecordView {
         });
 
         this.events['auxclick a[href][data-scope][data-id]'] = e => {
-            const isCombination = e.button === 1 && (e.ctrlKey || e.metaKey);
+            let isCombination = e.button === 1 && (e.ctrlKey || e.metaKey);
 
             if (!isCombination) {
                 return;
             }
 
-            const $target = $(e.currentTarget);
+            let $target = $(e.currentTarget);
 
-            const id = $target.attr('data-id');
-            const scope = $target.attr('data-scope');
+            let id = $target.attr('data-id');
+            let scope = $target.attr('data-scope');
 
             e.preventDefault();
             e.stopPropagation();
@@ -126,12 +126,12 @@ class ListStreamRecordView extends ListExpandedRecordView {
     }
 
     buildRow(i, model, callback) {
-        const key = model.id;
+        let key = model.id;
 
         this.rowList.push(key);
 
-        const type = model.get('type');
-        const viewName = this.itemViews[type] || 'views/stream/notes/' + Espo.Utils.camelCaseToHyphen(type);
+        let type = model.get('type');
+        let viewName = this.itemViews[type] || 'views/stream/notes/' + Espo.Utils.camelCaseToHyphen(type);
 
         this.createView(key, viewName, {
             model: model,
@@ -155,11 +155,11 @@ class ListStreamRecordView extends ListExpandedRecordView {
         if (this.collection.length > 0) {
             this.wait(true);
 
-            const count = this.collection.models.length;
+            let count = this.collection.models.length;
             let built = 0;
 
-            for (const i in this.collection.models) {
-                const model = this.collection.models[i];
+            for (let i in this.collection.models) {
+                let model = this.collection.models[i];
 
                 this.buildRow(i, model, () => {
                     built++;
@@ -186,13 +186,8 @@ class ListStreamRecordView extends ListExpandedRecordView {
         }
     }
 
-    /**
-     * Load new records.
-     *
-     * @return {Promise}
-     */
     showNewRecords() {
-        return this.collection.fetchNew();
+        this.collection.fetchNew();
     }
 }
 

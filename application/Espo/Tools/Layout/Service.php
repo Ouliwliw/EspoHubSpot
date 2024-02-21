@@ -101,7 +101,7 @@ class Service
     {
         try {
             if (!$this->acl->checkScope($scope)) {
-                throw new Forbidden("No access to scope $scope.");
+                throw new Forbidden();
             }
         }
         catch (NotImplemented) {}

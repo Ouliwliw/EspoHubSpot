@@ -242,10 +242,6 @@
             "insertText": "entity\\setAttribute(ATTRIBUTE, VALUE)"
         },
         {
-            "name": "entity\\clearAttribute",
-            "insertText": "entity\\clearAttribute(ATTRIBUTE)"
-        },
-        {
             "name": "entity\\addLinkMultipleId",
             "insertText": "entity\\addLinkMultipleId(LINK, ID)"
         },
@@ -384,7 +380,8 @@
         },
         {
             "name": "object\\set",
-            "insertText": "object\\set(OBJECT, KEY, VALUE)"
+            "insertText": "object\\set(OBJECT, KEY, VALUE)",
+            "returnType": "object"
         },
         {
             "name": "object\\clear",

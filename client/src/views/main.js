@@ -61,8 +61,7 @@ class MainView extends View {
      * @property {string} [label] A translatable label.
      * @property {string} [labelTranslation] A label translation path.
      * @property {'default'|'danger'|'success'|'warning'} [style] A style. Only for buttons.
-     * @property {boolean} [hidden] Hidden.
-     * @property {boolean} [disabled] Disabled.
+     * @property {boolean} [hidden]
      * @property {Object.<string,string|number|boolean>} [data] Data attribute values.
      * @property {string} [title] A title.
      * @property {string} [iconHtml] An icon HTML.
@@ -529,30 +528,10 @@ class MainView extends View {
      * @param {string} name A name.
      */
     disableMenuItem(name) {
-        const item = this._getHeaderActionItem(name);
-
-        if (item) {
-            item.disabled = true;
-        }
-
-        const process = () => {
-            this.$headerActionsContainer
-                .find(`[data-name="${name}"]`)
-                .addClass('disabled')
-                .attr('disabled');
-        };
-
-        if (this.isBeingRendered()) {
-            this.whenRendered().then(() => process());
-
-            return;
-        }
-
-        if (!this.isRendered()) {
-            return;
-        }
-
-        process();
+        this.$headerActionsContainer
+            .find('[data-name="' + name + '"]')
+            .addClass('disabled')
+            .attr('disabled');
     }
 
     /**
@@ -561,30 +540,10 @@ class MainView extends View {
      * @param {string} name A name.
      */
     enableMenuItem(name) {
-        const item = this._getHeaderActionItem(name);
-
-        if (item) {
-            item.disabled = false;
-        }
-
-        const process = () => {
-            this.$headerActionsContainer
-                .find(`[data-name="${name}"]`)
-                .removeClass('disabled')
-                .removeAttr('disabled');
-        };
-
-        if (this.isBeingRendered()) {
-            this.whenRendered().then(() => process());
-
-            return;
-        }
-
-        if (!this.isRendered()) {
-            return;
-        }
-
-        process();
+        this.$headerActionsContainer
+            .find('[data-name="' + name + '"]')
+            .removeClass('disabled')
+            .removeAttr('disabled');
     }
 
     // noinspection JSUnusedGlobalSymbols
@@ -598,31 +557,15 @@ class MainView extends View {
         event.stopPropagation();
 
         this.getRouter().checkConfirmLeaveOut(() => {
+            const options = {
+                isReturn: true,
+            };
+
             const rootUrl = this.options.rootUrl || this.options.params.rootUrl || '#' + this.scope;
 
-            this.getRouter().navigate(rootUrl, {trigger: true, isReturn: true});
+            this.getRouter().navigate(rootUrl, {trigger: false});
+            this.getRouter().dispatch(this.scope, null, options);
         });
-    }
-
-    /**
-     * @private
-     * @param {string} name
-     * @return {module:views/main~MenuItem|undefined}
-     */
-    _getHeaderActionItem(name) {
-        for (const type of this.headerActionItemTypeList) {
-            if (!this.menu[type]) {
-                continue;
-            }
-
-            for (const item of this.menu[type]) {
-                if (item && item.name === name) {
-                    return item;
-                }
-            }
-        }
-
-        return undefined;
     }
 
     /**
@@ -631,18 +574,22 @@ class MainView extends View {
      * @param {string} name A name.
      */
     hideHeaderActionItem(name) {
-        const item = this._getHeaderActionItem(name);
+        this.headerActionItemTypeList.forEach(t => {
+            (this.menu[t] || []).forEach(item => {
+                item = item || {};
 
-        if (item) {
-            item.hidden = true;
-        }
+                if (item.name === name) {
+                    item.hidden = true;
+                }
+            });
+        });
 
         if (!this.isRendered()) {
             return;
         }
 
-        this.$headerActionsContainer.find(`li > .action[data-name="${name}"]`).parent().addClass('hidden');
-        this.$headerActionsContainer.find(`a.action[data-name="${name}"]`).addClass('hidden');
+        this.$headerActionsContainer.find('li > .action[data-name="'+name+'"]').parent().addClass('hidden');
+        this.$headerActionsContainer.find('a.action[data-name="'+name+'"]').addClass('hidden');
 
         this.controlMenuDropdownVisibility();
         this.adjustButtons();
@@ -654,15 +601,19 @@ class MainView extends View {
      * @param {string} name A name.
      */
     showHeaderActionItem(name) {
-        const item = this._getHeaderActionItem(name);
+        this.headerActionItemTypeList.forEach(t => {
+            (this.menu[t] || []).forEach(item => {
+                item = item || {};
 
-        if (item) {
-            item.hidden = false;
-        }
+                if (item.name === name) {
+                    item.hidden = false;
+                }
+            });
+        });
 
         const processUi = () => {
-            this.$headerActionsContainer.find(`li > .action[data-name="${name}"]`).parent().removeClass('hidden');
-            this.$headerActionsContainer.find(`a.action[data-name="${name}"]`).removeClass('hidden');
+            this.$headerActionsContainer.find('li > .action[data-name="' + name + '"]').parent().removeClass('hidden');
+            this.$headerActionsContainer.find('a.action[data-name="' + name + '"]').removeClass('hidden');
 
             this.controlMenuDropdownVisibility();
             this.adjustButtons();

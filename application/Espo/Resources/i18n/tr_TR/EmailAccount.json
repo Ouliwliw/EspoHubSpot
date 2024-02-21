@@ -1,16 +1,16 @@
 {
   "fields": {
-    "name": "Ad",
+    "name": "İsim",
     "status": "Durum",
     "host": "Sunucu",
     "username": "Kullanıcı Adı",
     "password": "Şifre",
     "monitoredFolders": "İzlenen Klasörler",
     "fetchSince": "İtibaren Getir",
-    "emailAddress": "Email Adresi",
+    "emailAddress": "E-mail Adresi",
     "sentFolder": "Gönderilenler Klasörü",
-    "storeSentEmails": "Gönderilen Emailleri Sakla",
-    "keepFetchedEmailsUnread": "Getirilen Emailleri Okunmadı Olarak Tut",
+    "storeSentEmails": "Gönderilen E-mailleri Sakla",
+    "keepFetchedEmailsUnread": "Getirilen E-mailleri Okunmadı Olarak Tut",
     "emailFolder": "Klasöre Koy",
     "useSmtp": "SMTP kullan",
     "smtpHost": "SMTP Sunucusu",
@@ -28,7 +28,7 @@
   "options": {
     "status": {
       "Active": "Arşiv",
-      "Inactive": "Pasif"
+      "Inactive": "Etkin Değil"
     },
     "smtpAuthMechanism": {
       "plain": "SADE",

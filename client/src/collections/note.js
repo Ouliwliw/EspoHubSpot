@@ -32,8 +32,6 @@ import Collection from 'collection';
 
 class NoteCollection extends Collection {
 
-    paginationByNumber = false
-
     /** @inheritDoc */
     prepareAttributes(response, params) {
         const total = this.total;
@@ -73,23 +71,6 @@ class NoteCollection extends Collection {
         }
 
         return this.fetch(options);
-    }
-
-    fetch(options) {
-        options = {...options};
-
-        if (this.paginationByNumber && options.more) {
-            options.more = false;
-            options.data = options.data || {};
-
-            const lastModel = this.models.at(this.length - 1);
-
-            if (lastModel) {
-                options.data.beforeNumber = lastModel.get('number');
-            }
-        }
-
-        return super.fetch(options);
     }
 }
 

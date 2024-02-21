@@ -276,12 +276,6 @@ define('views/admin/layouts/list', ['views/admin/layouts/rows'], function (Dep) 
                 return false;
             }
 
-            const layoutIgnoreList = model.getFieldParam(name, 'layoutIgnoreList') || [];
-
-            if (layoutIgnoreList.includes(realType)) {
-                return false;
-            }
-
             return !model.getFieldParam(name, 'disabled') &&
                 !model.getFieldParam(name, 'utility') &&
                 !model.getFieldParam(name, 'layoutListDisabled');

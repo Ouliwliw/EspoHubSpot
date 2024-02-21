@@ -124,8 +124,6 @@ class LinkManager
                 $params['relationName'] :
                 lcfirst($entity) . $entityForeign;
 
-            $relationName = $this->nameUtil->addCustomPrefix($relationName);
-
             if ($this->isNameTooLong($relationName)) {
                 throw new Error("Relation name is too long.");
             }
@@ -143,14 +141,6 @@ class LinkManager
             }
         }
 
-        if (!$this->isScopeCustom($entity)) {
-            $link = $this->nameUtil->addCustomPrefix($link);
-        }
-
-        if (!$entityForeign || !$this->isScopeCustom($entityForeign)) {
-            $linkForeign = $this->nameUtil->addCustomPrefix($linkForeign);
-        }
-
         $linkParams = LinkParams::createBuilder()
             ->setType($linkType)
             ->setEntityType($entity)
@@ -160,15 +150,15 @@ class LinkManager
             ->setName($relationName)
             ->build();
 
-        if (is_numeric($link[0]) || is_numeric($linkForeign[0])) {
-            throw new Error('Bad link name.');
-        }
-
         if (
             $this->isNameTooLong($link) ||
             $this->isNameTooLong($linkForeign)
         ) {
             throw new Error("Link name is too long.");
+        }
+
+        if (is_numeric($link[0]) || is_numeric($linkForeign[0])) {
+            throw new Error('Bad link name.');
         }
 
         if (preg_match('/[^a-z]/', $link[0])) {
@@ -857,9 +847,6 @@ class LinkManager
 
             $this->metadata->save();
 
-            $this->deleteFromLanguage($entity, 'links', $link);
-            $this->saveLanguage();
-
             return;
         }
 
@@ -874,11 +861,6 @@ class LinkManager
             if ($linkForeign) {
                 $this->updateParentForeignLinks($entity, $link, $linkForeign, []);
             }
-
-            $this->deleteFromLanguage($entity, 'fields', $link);
-            $this->deleteFromLanguage($entity, 'links', $link);
-
-            $this->saveLanguage();
 
             return;
         }
@@ -925,12 +907,12 @@ class LinkManager
 
         $this->metadata->delete('entityDefs', $entity, [
             'fields.' . $link,
-            'links.' . $link,
+            'links.' . $link
         ]);
 
         $this->metadata->delete('entityDefs', $entityForeign, [
             'fields.' . $linkForeign,
-            'links.' . $linkForeign,
+            'links.' . $linkForeign
         ]);
 
         $this->metadata->delete('clientDefs', $entity, ['relationshipPanels.' . $link]);
@@ -941,14 +923,6 @@ class LinkManager
         if ($linkParams) {
             $this->linkHookProcessor->processDelete($linkParams);
         }
-
-        $this->deleteFromLanguage($entity, 'fields', $link);
-        $this->deleteFromLanguage($entity, 'links', $link);
-
-        $this->deleteFromLanguage($entityForeign, 'fields', $linkForeign);
-        $this->deleteFromLanguage($entityForeign, 'links', $linkForeign);
-
-        $this->saveLanguage();
 
         $this->dataManager->clearCache();
     }
@@ -1039,7 +1013,13 @@ class LinkManager
                             'links.' . $linkForeign,
                         ]);
 
-                        $this->deleteFromLanguage($itemEntityType, 'links', $linkForeign);
+                        $this->language->delete($itemEntityType, 'links', $linkForeign);
+
+                        if (
+                            $this->isLanguageNotBase()
+                        ) {
+                            $this->baseLanguage->delete($itemEntityType, 'links', $linkForeign);
+                        }
                     }
 
                     break;
@@ -1069,15 +1049,11 @@ class LinkManager
         }
 
         $this->metadata->save();
-        $this->saveLanguage();
-    }
 
-    private function deleteFromLanguage(string $scope, string $category, string $item): void
-    {
-        $this->language->delete($scope, $category, $item);
+        $this->language->save();
 
         if ($this->isLanguageNotBase()) {
-            $this->baseLanguage->delete($scope, $category, $item);
+            $this->baseLanguage->save();
         }
     }
 
@@ -1089,19 +1065,5 @@ class LinkManager
     private function isNameTooLong(string $name): bool
     {
         return strlen(Util::camelCaseToUnderscore($name)) > self::MAX_LINK_NAME_LENGTH;
-    }
-
-    private function saveLanguage(): void
-    {
-        $this->language->save();
-
-        if ($this->isLanguageNotBase()) {
-            $this->baseLanguage->save();
-        }
-    }
-
-    private function isScopeCustom(string $scope): bool
-    {
-        return (bool) $this->metadata->get("scopes.$scope.isCustom");
     }
 }

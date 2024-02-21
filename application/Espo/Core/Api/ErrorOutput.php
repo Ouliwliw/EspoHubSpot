@@ -90,7 +90,7 @@ class ErrorOutput
         ?string $route = null
     ): void {
 
-        $this->processInternal($request, $response, $exception, $route);
+        $this->processInternal($request, $response, $exception, $route, false);
     }
 
     public function processWithBodyPrinting(
@@ -133,7 +133,7 @@ class ErrorOutput
         $logMessageItemList = [];
 
         if ($message) {
-            $logMessageItemList[] = "$message";
+            $logMessageItemList[] = "{$message}";
         }
 
         $logMessageItemList[] = $request->getMethod() . ' ' . $request->getResourcePath();

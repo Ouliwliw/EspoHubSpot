@@ -8,7 +8,6 @@
         "Messaging": "Messaging",
         "Data": "Data",
         "Misc": "Misc",
-        "Setup": "Setup",
         "Customization": "Customization",
         "Available Fields": "Available Fields",
         "Layout": "Layout",
@@ -226,10 +225,7 @@
         "globalRestrictions": "Global Restrictions",
         "copyToClipboard": "Copy to clipboard button",
         "createButton": "Create Button",
-        "autocompleteOnEmpty": "Autocomplete on empty input",
-        "relateOnImport": "Relate on Import",
-        "aclScope": "ACL Scope",
-        "onlyAdmin": "Only for Admin"
+        "autocompleteOnEmpty": "Autocomplete on empty input"
     },
     "strings" : {
         "rebuildRequired": "Rebuild is required"

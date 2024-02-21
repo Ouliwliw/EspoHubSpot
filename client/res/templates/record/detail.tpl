@@ -57,7 +57,6 @@
                     class="btn btn-text btn-icon action {{#unless previousButtonEnabled}} disabled{{/unless}}"
                     data-action="previous"
                     title="{{translate 'Previous Entry'}}"
-                    {{#unless previousButtonEnabled}}disabled="disabled"{{/unless}}
                 >
                     <span class="fas fa-chevron-left"></span>
                 </button>
@@ -66,7 +65,6 @@
                     class="btn btn-text btn-icon action {{#unless nextButtonEnabled}} disabled{{/unless}}"
                     data-action="next"
                     title="{{translate 'Next Entry'}}"
-                    {{#unless nextButtonEnabled}}disabled="disabled"{{/unless}}
                 >
                     <span class="fas fa-chevron-right"></span>
                 </button>

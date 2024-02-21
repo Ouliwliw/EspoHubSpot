@@ -174,7 +174,7 @@ class ConfigWriter
         try {
             $this->fileManager->putPhpContents($path, $data);
         }
-        catch (Exception) {
+        catch (Exception $e) {
             throw new RuntimeException("Could not save config.");
         }
 
@@ -190,7 +190,7 @@ class ConfigWriter
         try {
             $this->fileManager->putPhpContentsNoRenaming($path, $data);
         }
-        catch (Exception) {
+        catch (Exception $e) {
             throw new RuntimeException("Could not save config.");
         }
     }

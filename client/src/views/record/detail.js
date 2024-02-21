@@ -31,7 +31,6 @@
 import BaseRecordView from 'views/record/base';
 import ViewRecordHelper from 'view-record-helper';
 import ActionItemSetup from 'helpers/action-item-setup';
-import StickyBarHelper from 'helpers/record/misc/sticky-bar';
 
 /**
  * A detail record view.
@@ -51,11 +50,11 @@ class DetailRecordView extends BaseRecordView {
      * @property {boolean} [returnAfterCreate]
      * @property {boolean} [editModeDisabled]
      * @property {boolean} [confirmLeaveDisabled]
+     * @property {boolean} [editModeDisabled]
      * @property {boolean} [isWide]
      * @property {string} [sideView]
      * @property {string} [bottomView]
      * @property {string} [inlineEditDisabled] Disable inline edit.
-     * @property {boolean} [buttonsDisabled] Disable buttons.
      * @property {string} [navigateButtonsDisabled]
      * @property {Object} [dynamicLogicDefs]
      * @property {module:view-record-helper} [recordHelper] A record helper. For a form state management.
@@ -93,14 +92,12 @@ class DetailRecordView extends BaseRecordView {
      * @property {string} [label] A translatable label.
      * @property {string} [customLabel] A custom label.
      * @property {string} [name] A name. Useful to be able to show/hide by a name.
-     * @property {'default'|'success'|'danger'|'warning'|'info'} [style] A style.
+     * @property {'default'|'success'|'danger'|'warning'} [style] A style.
      * @property {boolean} [tabBreak] Is a tab-break.
      * @property {string} [tabLabel] A tab label. If starts with `$`, a translation
      *   of the `tabs` category is used.
      * @property {module:views/record/detail~rowDefs[]} [rows] Rows.
      * @property {module:views/record/detail~rowDefs[]} [columns] Columns.
-     * @property {string} [noteText] A note text.
-     * @property {'success'|'danger'|'warning'|'info'} [noteStyle] A note style.
      */
 
     /**
@@ -1420,16 +1417,102 @@ class DetailRecordView extends BaseRecordView {
         }
     }
 
-    /** @private */
+    /**
+     * @private
+     */
     initStickableButtonsContainer() {
-        const helper = new StickyBarHelper(
-            this,
-            this.stickButtonsFormBottomSelector,
-            this.stickButtonsContainerAllTheWay,
-            this.numId
-        );
+        const $containers = this.$el.find('.detail-button-container');
+        const $container = this.$el.find('.detail-button-container.record-buttons');
 
-        helper.init();
+        if (!$container.length) {
+            return;
+        }
+
+        const navbarHeight = this.getThemeManager().getParam('navbarHeight');
+        const screenWidthXs = this.getThemeManager().getParam('screenWidthXs');
+
+        const isSmallScreen = $(window.document).width() < screenWidthXs;
+
+        const getOffsetTop = (/** JQuery */$element) => {
+            let element = /** @type {HTMLElement} */$element.get(0);
+
+            let value = 0;
+
+            while (element) {
+                value += !isNaN(element.offsetTop) ? element.offsetTop : 0;
+
+                element = element.offsetParent;
+            }
+
+            if (isSmallScreen) {
+                return value;
+            }
+
+            return value - navbarHeight;
+        };
+
+        let stickTop = getOffsetTop($container);
+        const blockHeight = $container.outerHeight();
+
+        stickTop -= 5; // padding;
+
+        const $block = $('<div>')
+            .css('height', blockHeight + 'px')
+            .html('&nbsp;')
+            .hide()
+            .insertAfter($container);
+
+        let $middle = this.getMiddleView().$el;
+        const $window = $(window);
+        const $navbarRight = $('#navbar .navbar-right');
+
+        if (this.stickButtonsFormBottomSelector) {
+            const $bottom = this.$el.find(this.stickButtonsFormBottomSelector);
+
+            if ($bottom.length) {
+                $middle = $bottom;
+            }
+        }
+
+        $window.off('scroll.detail-' + this.numId);
+
+        $window.on('scroll.detail-' + this.numId, () => {
+            const edge = $middle.position().top + $middle.outerHeight(false) - blockHeight;
+            const scrollTop = $window.scrollTop();
+
+            if (scrollTop >= edge && !this.stickButtonsContainerAllTheWay) {
+                $containers.hide();
+                $navbarRight.removeClass('has-sticked-bar');
+                $block.show();
+
+                return;
+            }
+
+            if (isSmallScreen && $('#navbar .navbar-body').hasClass('in')) {
+                return;
+            }
+
+            if (scrollTop > stickTop) {
+                if (!$containers.hasClass('stick-sub')) {
+                    $containers.addClass('stick-sub');
+                    $block.show();
+                }
+
+                $navbarRight.addClass('has-sticked-bar');
+
+                $containers.show();
+
+                return;
+            }
+
+            if ($containers.hasClass('stick-sub')) {
+                $containers.removeClass('stick-sub');
+                $navbarRight.removeClass('has-sticked-bar');
+                $block.hide();
+            }
+
+            $containers.show();
+        });
     }
 
     fetch() {
@@ -1673,17 +1756,14 @@ class DetailRecordView extends BaseRecordView {
                 previousButtonEnabled = true;
             }
 
-            const total = this.model.collection.total !== undefined ?
-                this.model.collection.total : this.model.collection.length;
-
-            if (this.indexOfRecord < total - 1) {
+            if (this.indexOfRecord < this.model.collection.total - 1) {
                 nextButtonEnabled = true;
             }
             else {
-                if (total === -1) {
+                if (this.model.collection.total === -1) {
                     nextButtonEnabled = true;
                 }
-                else if (total === -2) {
+                else if (this.model.collection.total === -2) {
                     if (this.indexOfRecord < this.model.collection.length - 1) {
                         nextButtonEnabled = true;
                     }
@@ -2972,18 +3052,6 @@ class DetailRecordView extends BaseRecordView {
             panel.style = item.style || 'default';
             panel.rows = [];
             panel.tabNumber = tabNumber;
-            panel.noteText = item.noteText;
-            panel.noteStyle = item.noteStyle || 'info';
-
-            if (panel.noteText) {
-                if (panel.noteText.startsWith('$') && !panel.noteText.includes(' ')) {
-                    const label = panel.noteText.substring(1);
-
-                    panel.noteText = this.translate(label, 'panelNotes', this.entityType);
-                }
-
-                panel.noteText = this.getHelper().transformMarkdownText(panel.noteText);
-            }
 
             this.middlePanelDefs[panel.name] = {
                 name: panel.name,
@@ -3055,10 +3123,6 @@ class DetailRecordView extends BaseRecordView {
                     if (view && typeof view === 'object') {
                         view.model = this.model;
                         view.mode = this.fieldsMode;
-
-                        if (this.readOnly) {
-                            view.setReadOnly();
-                        }
 
                         selector = `.field[data-name="${name}"]`;
                     }

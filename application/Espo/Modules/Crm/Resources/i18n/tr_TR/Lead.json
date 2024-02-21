@@ -6,10 +6,10 @@
     "convert": "Çevir"
   },
   "fields": {
-    "name": "Ad",
+    "name": "İsim",
+    "emailAddress": "Eposta",
     "title": "Başlık",
-    "website": "Web sitesi",
-    "phoneNumber": "Telefon",
+    "phoneNumber": "Telefon ",
     "accountName": "Hesap Adı",
     "doNotCall": "Arama Yapma",
     "address": "Adres",

@@ -32,9 +32,9 @@ class ComplexCreatedFieldView extends BaseFieldView {
 
     // language=Handlebars
     detailTemplateContent =
-        `{{#if hasAt}}<span data-name="{{baseName}}At" class="field">{{{atField}}}</span>{{/if}}
-        {{#if hasBoth}}<span class="text-muted middle-dot"></span>{{/if}}
-        {{#if hasBy}}<span data-name="{{baseName}}By" class="field">{{{byField}}}</span>{{/if}}`
+        `<span data-name="{{baseName}}At" class="field">{{{atField}}}</span> ` +
+        `<span class="text-muted chevron-right"</span> ` +
+        `<span data-name="{{baseName}}By" class="field">{{{byField}}}</span>`
 
     baseName = 'created'
 
@@ -57,26 +57,19 @@ class ComplexCreatedFieldView extends BaseFieldView {
         this.createField('by');
     }
 
-    // noinspection JSCheckFunctionSignatures
     data() {
-        const hasBy = this.model.has(this.fieldBy + 'Id');
-        const hasAt = this.model.has(this.fieldAt);
-
         return {
             baseName: this.baseName,
-            hasBy: hasBy,
-            hasAt: hasAt,
-            hasBoth: hasAt && hasBy,
             ...super.data(),
         };
     }
 
     createField(part) {
-        const field = this.baseName + Espo.Utils.upperCaseFirst(part);
+        let field = this.baseName + Espo.Utils.upperCaseFirst(part);
 
-        const type = this.model.getFieldType(field) || 'base';
+        let type = this.model.getFieldType(field) || 'base';
 
-        const viewName = this.model.getFieldParam(field, 'view') ||
+        let viewName = this.model.getFieldParam(field, 'view') ||
             this.getFieldManager().getViewName(type);
 
         this.createView(part + 'Field', viewName, {
@@ -94,5 +87,4 @@ class ComplexCreatedFieldView extends BaseFieldView {
     }
 }
 
-// noinspection JSUnusedGlobalSymbols
 export default ComplexCreatedFieldView;

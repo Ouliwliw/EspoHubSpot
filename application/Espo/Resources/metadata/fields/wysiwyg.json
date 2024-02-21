@@ -57,8 +57,5 @@
     "fullTextSearch": true,
     "duplicatorClassName": "Espo\\Classes\\FieldDuplicators\\Wysiwyg",
     "validatorClassName": "Espo\\Classes\\FieldValidators\\TextType",
-    "sanitizerClassNameList": [
-        "Espo\\Classes\\FieldSanitizers\\EmptyStringToNull"
-    ],
     "default": null
 }

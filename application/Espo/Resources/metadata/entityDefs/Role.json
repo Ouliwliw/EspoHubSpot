@@ -11,80 +11,63 @@
             "options": ["not-set", "all", "team", "no"],
             "default": "not-set",
             "tooltip": true,
-            "translation": "Role.options.levelList",
-            "view": "views/role/fields/permission"
+            "translation": "Role.options.levelList"
         },
         "userPermission": {
             "type": "enum",
             "options": ["not-set", "all", "team", "no"],
             "default": "not-set",
             "tooltip": true,
-            "translation": "Role.options.levelList",
-            "view": "views/role/fields/permission"
+            "translation": "Role.options.levelList"
         },
         "messagePermission": {
             "type": "enum",
             "options": ["not-set", "all", "team", "no"],
             "default": "not-set",
             "tooltip": true,
-            "translation": "Role.options.levelList",
-            "view": "views/role/fields/permission"
+            "translation": "Role.options.levelList"
         },
         "portalPermission": {
             "type": "enum",
             "options": ["not-set", "yes", "no"],
             "default": "not-set",
             "tooltip": true,
-            "translation": "Role.options.levelList",
-            "view": "views/role/fields/permission"
+            "translation": "Role.options.levelList"
         },
         "groupEmailAccountPermission": {
             "type": "enum",
             "options": ["not-set", "all", "team", "no"],
             "default": "not-set",
             "tooltip": true,
-            "translation": "Role.options.levelList",
-            "view": "views/role/fields/permission"
+            "translation": "Role.options.levelList"
         },
         "exportPermission": {
             "type": "enum",
             "options": ["not-set", "yes", "no"],
             "default": "not-set",
             "tooltip": true,
-            "translation": "Role.options.levelList",
-            "view": "views/role/fields/permission"
+            "translation": "Role.options.levelList"
         },
         "massUpdatePermission": {
             "type": "enum",
             "options": ["not-set", "yes", "no"],
             "default": "not-set",
             "tooltip": true,
-            "translation": "Role.options.levelList",
-            "view": "views/role/fields/permission"
+            "translation": "Role.options.levelList"
         },
         "dataPrivacyPermission": {
             "type": "enum",
             "options": ["not-set", "yes", "no"],
             "default": "not-set",
             "tooltip": true,
-            "translation": "Role.options.levelList",
-            "view": "views/role/fields/permission"
+            "translation": "Role.options.levelList"
         },
         "followerManagementPermission": {
             "type": "enum",
             "options": ["not-set", "all", "team", "no"],
             "default": "not-set",
             "tooltip": true,
-            "translation": "Role.options.levelList",
-            "view": "views/role/fields/permission"
-        },
-        "auditPermission": {
-            "type": "enum",
-            "options": ["not-set", "yes", "no"],
-            "default": "not-set",
-            "tooltip": true,
-            "translation": "Role.options.levelList",
-            "view": "views/role/fields/permission"
+            "translation": "Role.options.levelList"
         },
         "data": {
             "type": "jsonObject"

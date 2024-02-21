@@ -210,11 +210,6 @@
             "tooltip": true,
             "view": "views/settings/fields/email-address-lookup-entity-type-list"
         },
-        "emailAddressSelectEntityTypeList": {
-            "type": "multiEnum",
-            "tooltip": true,
-            "view": "views/settings/fields/email-address-lookup-entity-type-list"
-        },
         "smtpServer": {
             "type": "varchar",
             "tooltip": true
@@ -752,10 +747,6 @@
             "type": "int",
             "tooltip": true,
             "min": 1
-        },
-        "jobForceUtc": {
-            "type": "bool",
-            "tooltip": true
         },
         "daemonInterval": {
             "type": "int",

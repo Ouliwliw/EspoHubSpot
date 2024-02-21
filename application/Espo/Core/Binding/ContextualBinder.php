@@ -117,7 +117,6 @@ class ContextualBinder
      * @template T of object
      * @param class-string<T>|NamedClassKey<T> $key An interface or interface with a parameter name.
      * @param T $instance An instance.
-     * @noinspection PhpDocSignatureInspection
      */
     public function bindInstance(string|NamedClassKey $key, object $instance): self
     {

@@ -287,21 +287,18 @@ class ListWithCategories extends ListView {
     }
 
     navigateToCurrentCategory() {
-        let url = '#' + this.scope;
-
-        if (!this.isExpanded && this.currentCategoryId) {
-            url += '/list/categoryId=' + this.currentCategoryId;
-
-            if (this._primaryFilter) {
-                url += '&primaryFilter=' + this.getHelper().escapeString(this._primaryFilter);
+        if (!this.isExpanded) {
+            if (this.currentCategoryId) {
+                this.getRouter().navigate('#' + this.scope + '/list/categoryId=' + this.currentCategoryId);
             }
-        } else {
-            if (this._primaryFilter) {
-                url += '/list/primaryFilter=' + this.getHelper().escapeString(this._primaryFilter);
+            else {
+                this.getRouter().navigate('#' + this.scope);
             }
         }
+        else {
+            this.getRouter().navigate('#' + this.scope);
+        }
 
-        this.getRouter().navigate(url);
         this.updateLastUrl();
     }
 
@@ -471,7 +468,6 @@ class ListWithCategories extends ListView {
                 hasExpandedToggler: this.hasExpandedToggler,
                 hasNavigationPanel: this.hasNavigationPanel,
                 subjectEntityType: this.collection.entityType,
-                primaryFilter: this._primaryFilter,
             }, view => {
                 view.render();
             });
@@ -666,11 +662,7 @@ class ListWithCategories extends ListView {
             return super.getHeader();
         }
 
-        let rootUrl = '#' + this.scope;
-
-        if (this._primaryFilter) {
-            rootUrl += '/list/primaryFilter=' + this.getHelper().escapeString(this._primaryFilter);
-        }
+        const rootUrl = '#' + this.scope;
 
         const $root = $('<a>')
             .attr('href', rootUrl)
@@ -690,11 +682,7 @@ class ListWithCategories extends ListView {
         }
 
         if (upperId) {
-            let url = rootUrl + '/' + 'list/categoryId=' + this.getHelper().escapeString(upperId);
-
-            if (this._primaryFilter) {
-                url += '&primaryFilter=' + this.getHelper().escapeString(this._primaryFilter);
-            }
+            const url = rootUrl + '/' + 'list/categoryId=' + this.escapeString(upperId);
 
             const $folder = $('<a>')
                 .attr('href', url)

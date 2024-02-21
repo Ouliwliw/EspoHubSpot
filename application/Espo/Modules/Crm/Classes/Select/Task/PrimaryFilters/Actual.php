@@ -37,8 +37,6 @@ use Espo\Core\Utils\Metadata;
 
 class Actual implements Filter
 {
-    public const NAME = 'actual';
-
     public function __construct(private Metadata $metadata)
     {}
 

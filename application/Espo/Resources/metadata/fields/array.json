@@ -103,9 +103,5 @@
         "add",
         "remove"
     ],
-    "sanitizerClassNameList": [
-        "Espo\\Classes\\FieldSanitizers\\ArrayFromNull",
-        "Espo\\Classes\\FieldSanitizers\\ArrayStringTrim"
-    ],
     "default": []
 }

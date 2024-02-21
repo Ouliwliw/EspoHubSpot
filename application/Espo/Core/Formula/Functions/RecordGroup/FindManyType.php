@@ -30,6 +30,7 @@
 namespace Espo\Core\Formula\Functions\RecordGroup;
 
 use Espo\Core\Exceptions\BadRequest;
+use Espo\Core\Exceptions\Error;
 use Espo\Core\Exceptions\Forbidden;
 use Espo\Core\Formula\EvaluatedArgumentList;
 use Espo\Core\Formula\Exceptions\BadArgumentType;
@@ -116,7 +117,7 @@ class FindManyType implements Func
         try {
             $queryBuilder = $builder->buildQueryBuilder();
         }
-        catch (BadRequest|Forbidden $e) {
+        catch (BadRequest|Error|Forbidden $e) {
             throw new FormulaError($e->getMessage(), $e->getCode(), $e);
         }
 

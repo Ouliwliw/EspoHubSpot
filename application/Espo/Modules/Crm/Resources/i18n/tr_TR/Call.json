@@ -1,6 +1,6 @@
 {
   "fields": {
-    "name": "Ad",
+    "name": "İsim",
     "parent": "Üst Seçenek",
     "status": "Durum",
     "dateStart": "Başlangıç Tarihi",
@@ -40,7 +40,7 @@
     "Create Call": "Arama Oluştur",
     "Set Held": "SET HELDXXX",
     "Set Not Held": "SET NOT HELD XXXX",
-    "Send Invitations": "Davetiye Gönder"
+    "Send Invitations": "Davetleri Gönder"
   },
   "presetFilters": {
     "planned": "Planlandı",

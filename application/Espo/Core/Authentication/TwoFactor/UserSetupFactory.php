@@ -36,6 +36,7 @@ use RuntimeException;
 
 class UserSetupFactory
 {
+
     public function __construct(
         private InjectableFactory $injectableFactory,
         private Metadata $metadata

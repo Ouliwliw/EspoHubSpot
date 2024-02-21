@@ -1,8 +1,8 @@
 {
   "fields": {
     "status": "Durum",
-    "executeTime": "Burda Çalıştır",
-    "attempts": "Kalan Hak",
+    "executeTime": "Burda çalıştır",
+    "attempts": "Kalan hak",
     "failedAttempts": "Başarısız denemeler",
     "serviceName": "Servis",
     "methodName": "Metod",

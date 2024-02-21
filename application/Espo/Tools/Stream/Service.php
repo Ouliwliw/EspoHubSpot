@@ -29,15 +29,16 @@
 
 namespace Espo\Tools\Stream;
 
-use Espo\Core\Field\LinkParent;
-use Espo\Core\ORM\Repository\Option\SaveOption;
-use Espo\Core\ORM\Type\FieldType;
+use Espo\Core\Acl\Exceptions\NotAvailable;
+use Espo\Core\Record\ServiceContainer as RecordServiceContainer;
+
+use Espo\Core\Utils\SystemUser;
 use Espo\Entities\Subscription;
 use Espo\Modules\Crm\Entities\Account;
-use Espo\Repositories\EmailAddress as EmailAddressRepository;
-
 use Espo\ORM\Query\Part\Expression as Expr;
 use Espo\ORM\Query\Part\Order;
+use Espo\Repositories\EmailAddress as EmailAddressRepository;
+
 use Espo\ORM\Entity;
 use Espo\ORM\EntityCollection;
 use Espo\ORM\Collection;
@@ -48,11 +49,6 @@ use Espo\Entities\Note;
 use Espo\Entities\Email;
 use Espo\Entities\EmailAddress;
 
-use Espo\Core\Acl\Exceptions\NotAvailable;
-use Espo\Core\Exceptions\BadRequest;
-use Espo\Core\Exceptions\Forbidden;
-use Espo\Core\Record\ServiceContainer as RecordServiceContainer;
-use Espo\Core\Utils\SystemUser;
 use Espo\Core\ORM\Entity as CoreEntity;
 use Espo\Core\Utils\Config;
 use Espo\Core\Utils\Metadata;
@@ -67,7 +63,6 @@ use Espo\Core\Utils\Acl\UserAclManagerProvider;
 
 use stdClass;
 use DateTime;
-use DateTimeInterface;
 use LogicException;
 
 class Service
@@ -118,18 +113,38 @@ class Service
      */
     private const NOTE_NOTIFICATION_PERIOD = '1 hour';
 
+    private EntityManager $entityManager;
+    private Config $config;
+    private User $user;
+    private Metadata $metadata;
+    private AclManager $aclManager;
+    private FieldUtil $fieldUtil;
+    private SelectBuilderFactory $selectBuilderFactory;
+    private UserAclManagerProvider $userAclManagerProvider;
+    private RecordServiceContainer $recordServiceContainer;
+
     public function __construct(
-        private EntityManager $entityManager,
-        private Config $config,
-        private User $user,
-        private Metadata $metadata,
-        private AclManager $aclManager,
-        private FieldUtil $fieldUtil,
-        private SelectBuilderFactory $selectBuilderFactory,
-        private UserAclManagerProvider $userAclManagerProvider,
-        private RecordServiceContainer $recordServiceContainer,
+        EntityManager $entityManager,
+        Config $config,
+        User $user,
+        Metadata $metadata,
+        AclManager $aclManager,
+        FieldUtil $fieldUtil,
+        SelectBuilderFactory $selectBuilderFactory,
+        UserAclManagerProvider $userAclManagerProvider,
+        RecordServiceContainer $recordServiceContainer,
         private SystemUser $systemUser
-    ) {}
+    ) {
+        $this->entityManager = $entityManager;
+        $this->config = $config;
+        $this->user = $user;
+        $this->metadata = $metadata;
+        $this->aclManager = $aclManager;
+        $this->fieldUtil = $fieldUtil;
+        $this->selectBuilderFactory = $selectBuilderFactory;
+        $this->userAclManagerProvider = $userAclManagerProvider;
+        $this->recordServiceContainer = $recordServiceContainer;
+    }
 
     /**
      * @return array<string, string>
@@ -143,17 +158,12 @@ class Service
         return $this->statusStyles;
     }
 
-    private function getStatusField(string $entityType): ?string
-    {
-        return $this->getStatusFields()[$entityType] ?? null;
-    }
-
     /**
      * @return array<string, string>
      */
     private function getStatusFields(): array
     {
-        if ($this->statusFields === null) {
+        if (is_null($this->statusFields)) {
             $this->statusFields = [];
 
             /** @var array<string, array<string, mixed>> $scopes */
@@ -238,7 +248,7 @@ class Service
                 try {
                     $hasAccess = $this->aclManager->checkEntityStream($user, $entity);
                 }
-                catch (AclNotImplemented) {
+                catch (AclNotImplemented $e) {
                     $hasAccess = false;
                 }
 
@@ -403,10 +413,12 @@ class Service
         $note->set('teamsIds', []);
         $note->set('usersIds', []);
 
-        if ($entity->hasLinkMultipleField('teams')) {
-            $teamIdList = $entity->getLinkMultipleIdList('teams');
+        if ($entity->hasLinkMultipleField('teams') && $entity->has('teamsIds')) {
+            $teamIdList = $entity->get('teamsIds');
 
-            $note->set('teamsIds', $teamIdList);
+            if (!empty($teamIdList)) {
+                $note->set('teamsIds', $teamIdList);
+            }
         }
 
         $ownerUserField = $this->aclManager->getReadOwnerUserField($entity->getEntityType());
@@ -423,10 +435,10 @@ class Service
 
         $fieldDefs = $defs->getField($ownerUserField);
 
-        if ($fieldDefs->getType() === FieldType::LINK_MULTIPLE) {
+        if ($fieldDefs->getType() === 'linkMultiple') {
             $ownerUserIdAttribute = $ownerUserField . 'Ids';
         }
-        else if ($fieldDefs->getType() === FieldType::LINK) {
+        else if ($fieldDefs->getType() === 'link') {
             $ownerUserIdAttribute = $ownerUserField . 'Id';
         }
         else {
@@ -437,7 +449,7 @@ class Service
             return;
         }
 
-        if ($fieldDefs->getType() === FieldType::LINK_MULTIPLE) {
+        if ($fieldDefs->getType() === 'linkMultiple') {
             $userIdList = $entity->getLinkMultipleIdList($ownerUserField);
         }
         else {
@@ -472,22 +484,26 @@ class Service
             return;
         }
 
-        $note = $this->getNewNote();
+        /** @var Note $note */
+        $note = $this->entityManager->getNewEntity(Note::ENTITY_TYPE);
 
-        $note->setType(Note::TYPE_EMAIL_RECEIVED);
-        $note->setParent(LinkParent::createFromEntity($entity));
-        $note->setRelated(LinkParent::create(Email::ENTITY_TYPE, $email->getId()));
+        $note->set('type', Note::TYPE_EMAIL_RECEIVED);
+        $note->set('parentId', $entity->getId());
+        $note->set('parentType', $entityType);
+        $note->set('relatedId', $email->getId());
+        $note->set('relatedType', Email::ENTITY_TYPE);
 
         $this->processNoteTeamsUsers($note, $email);
 
-        if ($email->getAccount()) {
-            $note->setSuperParent(LinkParent::create(Account::ENTITY_TYPE, $email->getAccount()->getId()));
+        if ($email->get('accountId')) {
+            $note->set('superParentId', $email->get('accountId'));
+            $note->set('superParentType', Account::ENTITY_TYPE);
         }
 
         $withContent = in_array($entityType, $this->config->get('streamEmailWithContentEntityTypeList', []));
 
         if ($withContent) {
-            $note->setPost($email->getBodyPlain());
+            $note->set('post', $email->getBodyPlain());
         }
 
         $data = [];
@@ -521,22 +537,28 @@ class Service
     {
         $entityType = $entity->getEntityType();
 
-        $note = $this->getNewNote();
+        /** @var Note $note */
+        $note = $this->entityManager->getNewEntity(Note::ENTITY_TYPE);
 
-        $note->setType(Note::TYPE_EMAIL_SENT);
-        $note->setParent(LinkParent::createFromEntity($entity));
-        $note->setRelated(LinkParent::create(Email::ENTITY_TYPE, $email->getId()));
+        $note->set('type', Note::TYPE_EMAIL_SENT);
+        $note->set('parentId', $entity->getId());
+        $note->set('parentType', $entityType);
+        $note->set('relatedId', $email->getId());
+        $note->set('relatedType', Email::ENTITY_TYPE);
 
         $this->processNoteTeamsUsers($note, $email);
 
-        if ($email->getAccount()) {
-            $note->setSuperParent(LinkParent::create(Account::ENTITY_TYPE, $email->getAccount()->getId()));
+        $accountLink = $email->getAccount();
+
+        if ($accountLink) {
+            $note->set('superParentId', $accountLink->getId());
+            $note->set('superParentType', Account::ENTITY_TYPE);
         }
 
         $withContent = in_array($entityType, $this->config->get('streamEmailWithContentEntityTypeList', []));
 
         if ($withContent) {
-            $note->setPost($email->getBodyPlain());
+            $note->set('post', $email->getBodyPlain());
         }
 
         $data = [];
@@ -581,12 +603,20 @@ class Service
     {
         $entityType = $entity->getEntityType();
 
-        $note = $this->getNewNote();
+        /** @var Note $note */
+        $note = $this->entityManager->getNewEntity(Note::ENTITY_TYPE);
 
-        $note->setType(Note::TYPE_CREATE);
-        $note->setParent(LinkParent::createFromEntity($entity));
+        $note->set('type', Note::TYPE_CREATE);
+        $note->set('parentId', $entity->getId());
+        $note->set('parentType', $entityType);
 
-        $this->setSuperParent($entity, $note, true);
+        if ($entity->has('accountId') && $entity->get('accountId')) {
+            $note->set('superParentId', $entity->get('accountId'));
+            $note->set('superParentType', Account::ENTITY_TYPE);
+
+            // only if has super parent
+            $this->processNoteTeamsUsers($note, $entity);
+        }
 
         $data = [];
 
@@ -599,12 +629,13 @@ class Service
             $data['assignedUserName'] = $entity->get('assignedUserName');
         }
 
-        $field = $this->getStatusField($entityType);
+        $statusFields = $this->getStatusFields();
 
-        if ($field) {
+        if (!empty($statusFields[$entityType])) {
+            $field = $statusFields[$entityType];
             $value = $entity->get($field);
 
-            if ($value) {
+            if (!empty($value)) {
                 $data['statusValue'] = $value;
                 $data['statusField'] = $field;
                 $data['statusStyle'] = $this->getStatusStyle($entityType, $field, $value);
@@ -613,13 +644,13 @@ class Service
 
         $note->set('data', (object) $data);
 
-        $noteOptions = [];
+        $o = [];
 
-        if (!empty($options[SaveOption::CREATED_BY_ID])) {
-            $noteOptions[SaveOption::CREATED_BY_ID] = $options[SaveOption::CREATED_BY_ID];
+        if (!empty($options['createdById'])) {
+            $o['createdById'] = $options['createdById'];
         }
 
-        $this->entityManager->saveEntity($note, $noteOptions);
+        $this->entityManager->saveEntity($note, $o);
     }
 
     /**
@@ -635,8 +666,8 @@ class Service
 
         $statusStyles = $this->getStatusStyles();
 
-        if (isset($statusStyles[$entityType][$value])) {
-            return $statusStyles[$entityType][$value];
+        if (isset($statusStyles[$entityType]) && isset($statusStyles[$entityType][$value])) {
+            return (string) $statusStyles[$entityType][$value];
         }
 
         if (in_array($value, $this->successDefaultStyleList)) {
@@ -660,23 +691,33 @@ class Service
         array $options = []
     ): void {
 
-        $note = $this->getNewNote();
+        /** @var Note $note */
+        $note = $this->entityManager->getNewEntity(Note::ENTITY_TYPE);
 
-        $note->setType(Note::TYPE_CREATE_RELATED);
-        $note->setParent(LinkParent::create($parentType, $parentId));
-        $note->setRelated(LinkParent::createFromEntity($entity));
+        $entityType = $entity->getEntityType();
+
+        $note->set('type', Note::TYPE_CREATE_RELATED);
+        $note->set('parentId', $parentId);
+        $note->set('parentType', $parentType);
+        $note->set([
+            'relatedType' => $entityType,
+            'relatedId' => $entity->getId(),
+        ]);
 
         $this->processNoteTeamsUsers($note, $entity);
 
-        $this->setSuperParent($entity, $note, false);
-
-        $noteOptions = [];
-
-        if (!empty($options[SaveOption::CREATED_BY_ID])) {
-            $noteOptions[SaveOption::CREATED_BY_ID] = $options[SaveOption::CREATED_BY_ID];
+        if ($entity->has('accountId') && $entity->get('accountId')) {
+            $note->set('superParentId', $entity->get('accountId'));
+            $note->set('superParentType', Account::ENTITY_TYPE);
         }
 
-        $this->entityManager->saveEntity($note, $noteOptions);
+        $o = [];
+
+        if (!empty($options['createdById'])) {
+            $o['createdById'] = $options['createdById'];
+        }
+
+        $this->entityManager->saveEntity($note, $o);
     }
 
     /**
@@ -702,21 +743,26 @@ class Service
             return;
         }
 
-        $note = $this->getNewNote();
+        /** @var Note $note */
+        $note = $this->entityManager->getNewEntity(Note::ENTITY_TYPE);
 
-        $note->setType(Note::TYPE_RELATE);
-        $note->setParent(LinkParent::create($parentType, $parentId));
-        $note->setRelated(LinkParent::createFromEntity($entity));
+        $note->set([
+            'type' => Note::TYPE_RELATE,
+            'parentId' => $parentId,
+            'parentType' => $parentType,
+            'relatedType' => $entityType,
+            'relatedId' => $entity->getId(),
+        ]);
 
         $this->processNoteTeamsUsers($note, $entity);
 
-        $noteOptions = [];
+        $o = [];
 
-        if (!empty($options[SaveOption::CREATED_BY_ID])) {
-            $noteOptions[SaveOption::CREATED_BY_ID] = $options[SaveOption::CREATED_BY_ID];
+        if (!empty($options['createdById'])) {
+            $o['createdById'] = $options['createdById'];
         }
 
-        $this->entityManager->saveEntity($note, $noteOptions);
+        $this->entityManager->saveEntity($note, $o);
     }
 
     /**
@@ -742,21 +788,26 @@ class Service
             return;
         }
 
-        $note = $this->getNewNote();
+        /** @var Note $note */
+        $note = $this->entityManager->getNewEntity(Note::ENTITY_TYPE);
 
-        $note->setType(Note::TYPE_UNRELATE);
-        $note->setParent(LinkParent::create($parentType, $parentId));
-        $note->setRelated(LinkParent::createFromEntity($entity));
+        $note->set([
+            'type' => Note::TYPE_UNRELATE,
+            'parentId' => $parentId,
+            'parentType' => $parentType,
+            'relatedType' => $entityType,
+            'relatedId' => $entity->getId(),
+        ]);
 
         $this->processNoteTeamsUsers($note, $entity);
 
-        $noteOptions = [];
+        $o = [];
 
-        if (!empty($options[SaveOption::MODIFIED_BY_ID])) {
-            $noteOptions[SaveOption::CREATED_BY_ID] = $options[SaveOption::MODIFIED_BY_ID];
+        if (!empty($options['modifiedById'])) {
+            $o['createdById'] = $options['modifiedById'];
         }
 
-        $this->entityManager->saveEntity($note, $noteOptions);
+        $this->entityManager->saveEntity($note, $o);
     }
 
     /**
@@ -764,12 +815,20 @@ class Service
      */
     public function noteAssign(Entity $entity, array $options = []): void
     {
-        $note = $this->getNewNote();
+        /** @var Note $note */
+        $note = $this->entityManager->getNewEntity(Note::ENTITY_TYPE);
 
-        $note->setType(Note::TYPE_ASSIGN);
-        $note->setParent(LinkParent::createFromEntity($entity));
+        $note->set('type', Note::TYPE_ASSIGN);
+        $note->set('parentId', $entity->getId());
+        $note->set('parentType', $entity->getEntityType());
 
-        $this->setSuperParent($entity, $note, true);
+        if ($entity->has('accountId') && $entity->get('accountId')) {
+            $note->set('superParentId', $entity->get('accountId'));
+            $note->set('superParentType', Account::ENTITY_TYPE);
+
+            // only if has super parent
+            $this->processNoteTeamsUsers($note, $entity);
+        }
 
         if ($entity->get('assignedUserId')) {
             if (!$entity->has('assignedUserName')) {
@@ -786,17 +845,17 @@ class Service
             ]);
         }
 
-        $noteOptions = [];
+        $o = [];
 
-        if (!empty($options[SaveOption::CREATED_BY_ID])) {
-            $noteOptions[SaveOption::CREATED_BY_ID] = $options[SaveOption::CREATED_BY_ID];
+        if (!empty($options['createdById'])) {
+            $o['createdById'] = $options['createdById'];
         }
 
-        if (!empty($options[SaveOption::MODIFIED_BY_ID])) {
-            $noteOptions[SaveOption::CREATED_BY_ID] = SaveOption::MODIFIED_BY_ID;
+        if (!empty($options['modifiedById'])) {
+            $o['createdById'] = $options['modifiedById'];
         }
 
-        $this->entityManager->saveEntity($note, $noteOptions);
+        $this->entityManager->saveEntity($note, $o);
     }
 
     /**
@@ -804,12 +863,19 @@ class Service
      */
     public function noteStatus(Entity $entity, string $field, array $options = []): void
     {
-        $note = $this->getNewNote();
+        /** @var Note $note */
+        $note = $this->entityManager->getNewEntity(Note::ENTITY_TYPE);
 
-        $note->setType(Note::TYPE_STATUS);
-        $note->setParent(LinkParent::createFromEntity($entity));
+        $note->set('type', Note::TYPE_STATUS);
+        $note->set('parentId', $entity->getId());
+        $note->set('parentType', $entity->getEntityType());
 
-        $this->setSuperParent($entity, $note, true);
+        if ($entity->has('accountId') && $entity->get('accountId')) {
+            $note->set('superParentId', $entity->get('accountId'));
+            $note->set('superParentType', Account::ENTITY_TYPE);
+
+            $this->processNoteTeamsUsers($note, $entity);
+        }
 
         $entityType = $entity->getEntityType();
 
@@ -823,17 +889,17 @@ class Service
             'style' => $style,
         ]);
 
-        $noteOptions = [];
+        $o = [];
 
-        if (!empty($options[SaveOption::CREATED_BY_ID])) {
-            $noteOptions[SaveOption::CREATED_BY_ID] = $options[SaveOption::CREATED_BY_ID];
+        if (!empty($options['createdById'])) {
+            $o['createdById'] = $options['createdById'];
         }
 
-        if (!empty($options[SaveOption::MODIFIED_BY_ID])) {
-            $noteOptions[SaveOption::CREATED_BY_ID] = SaveOption::MODIFIED_BY_ID;
+        if (!empty($options['modifiedById'])) {
+            $o['createdById'] = $options['modifiedById'];
         }
 
-        $this->entityManager->saveEntity($note, $noteOptions);
+        $this->entityManager->saveEntity($note, $o);
     }
 
     /**
@@ -850,14 +916,14 @@ class Service
     {
         $entityType = $entity->getEntityType();
 
+        $statusFields = $this->getStatusFields();
+
         if (array_key_exists($entityType, $this->auditedFieldsCache)) {
             return $this->auditedFieldsCache[$entityType];
         }
 
         /** @var array<string, array<string, mixed>> $fields */
         $fields = $this->metadata->get(['entityDefs', $entityType, 'fields']);
-
-        $hasStream = (bool) $this->metadata->get("scopes.$entityType.stream");
 
         $auditedFields = [];
 
@@ -866,7 +932,7 @@ class Service
                 continue;
             }
 
-            if ($hasStream && $this->getStatusField($entityType) === $field) {
+            if (!empty($statusFields[$entityType]) && $statusFields[$entityType] === $field) {
                 continue;
             }
 
@@ -877,11 +943,15 @@ class Service
                 continue;
             }
 
-            $auditedFields[$field] = [
-                'actualList' => $this->fieldUtil->getActualAttributeList($entityType, $field),
-                'notActualList' => $this->fieldUtil->getNotActualAttributeList($entityType, $field),
-                'fieldType' => $type,
-            ];
+            $auditedFields[$field] = [];
+
+            $auditedFields[$field]['actualList'] =
+                $this->fieldUtil->getActualAttributeList($entityType, $field);
+
+            $auditedFields[$field]['notActualList'] =
+                $this->fieldUtil->getNotActualAttributeList($entityType, $field);
+
+            $auditedFields[$field]['fieldType'] = $type;
         }
 
         $this->auditedFieldsCache[$entityType] = $auditedFields;
@@ -926,7 +996,7 @@ class Service
 
             if (
                 $fieldDefs &&
-                $fieldDefs->getType() == FieldType::WYSIWYG
+                in_array($fieldDefs->getType(), ['text', 'wysiwyg'])
             ) {
                 continue;
             }
@@ -941,16 +1011,12 @@ class Service
                 $became[$attribute] = $entity->get($attribute);
             }
 
-            if ($item['fieldType'] === FieldType::LINK_PARENT) {
+            if ($item['fieldType'] === 'linkParent') {
                 $wasParentType = $was[$field . 'Type'];
                 $wasParentId = $was[$field . 'Id'];
 
-                if (
-                    $wasParentType &&
-                    $wasParentId &&
-                    $this->entityManager->hasRepository($wasParentType)
-                ) {
-                    $wasParent = $this->entityManager->getEntityById($wasParentType, $wasParentId);
+                if ($wasParentType && $wasParentId && $this->entityManager->hasRepository($wasParentType)) {
+                    $wasParent = $this->entityManager->getEntity($wasParentType, $wasParentId);
 
                     if ($wasParent) {
                         $was[$field . 'Name'] = $wasParent->get('name');
@@ -963,10 +1029,12 @@ class Service
             return;
         }
 
-        $note = $this->getNewNote();
+        /** @var Note $note */
+        $note = $this->entityManager->getNewEntity(Note::ENTITY_TYPE);
 
-        $note->setType(Note::TYPE_UPDATE);
-        $note->setParent(LinkParent::createFromEntity($entity));
+        $note->set('type', Note::TYPE_UPDATE);
+        $note->set('parentId', $entity->getId());
+        $note->set('parentType', $entity->getEntityType());
 
         $note->set('data', [
             'fields' => $updatedFieldList,
@@ -1026,8 +1094,6 @@ class Service
 
     /**
      * @return RecordCollection<User>
-     * @throws Forbidden
-     * @throws BadRequest
      */
     public function findEntityFollowers(Entity $entity, SearchParams $searchParams): RecordCollection
     {
@@ -1058,7 +1124,7 @@ class Service
 
         $query = $builder->build();
 
-        /** @var Collection<User> $collection */
+        /** @var \Espo\ORM\Collection<User> $collection */
         $collection = $this->entityManager
             ->getRDBRepositoryByClass(User::class)
             ->clone($query)
@@ -1146,7 +1212,7 @@ class Service
     {
         if (!$this->metadata->get(['scopes', $parentType, 'stream'])) {
             /** @var Collection<User> */
-            return $this->entityManager->getCollectionFactory()->create(User::ENTITY_TYPE);
+            return $this->entityManager->getCollectionFactory()->create(User::ENTITY_TYPE, []);
         }
 
         $builder = $this->entityManager
@@ -1188,8 +1254,6 @@ class Service
      *
      * When users or teams of `related` or `parent` record are changed
      * the note record will be changed too.
-     *
-     * @todo Job to process the rest, after the last ID.
      */
     public function processNoteAcl(Entity $entity, bool $forceProcessNoteNotifications = false): void
     {
@@ -1216,6 +1280,7 @@ class Service
 
         $ownerUserField = $this->aclManager->getReadOwnerUserField($entityType);
 
+        /* @var \Espo\ORM\Defs\EntityDefs $defs */
         $defs = $this->entityManager->getDefs()->getEntity($entity->getEntityType());
 
         $userIdList = [];
@@ -1327,8 +1392,8 @@ class Service
      *   forceProcessNoteNotifications: bool,
      *   teamIdList: string[],
      *   userIdList: string[],
-     *   notificationThreshold: DateTimeInterface,
-     *   aclThreshold: DateTimeInterface,
+     *   notificationThreshold: \DateTimeInterface,
+     *   aclThreshold: \DateTimeInterface,
      * } $params
      * @return void
      */
@@ -1377,37 +1442,5 @@ class Service
     {
         /** @var EmailAddressRepository */
         return $this->entityManager->getRepository(EmailAddress::ENTITY_TYPE);
-    }
-
-    private function setSuperParent(Entity $entity, Note $note, bool $processTeamsUsers): void
-    {
-        $accountId = $entity->get('accountId');
-
-        if (!$accountId) {
-            return;
-        }
-
-        $entityDefs = $this->entityManager
-            ->getDefs()
-            ->getEntity($entity->getEntityType());
-
-        $foreignEntityType = $entityDefs->tryGetRelation('account')?->tryGetForeignEntityType();
-
-        if ($foreignEntityType !== Account::ENTITY_TYPE) {
-            return;
-        }
-
-        $note->setSuperParent(LinkParent::create(Account::ENTITY_TYPE, $accountId));
-
-        if ($processTeamsUsers) {
-            // only if it has super parent
-            $this->processNoteTeamsUsers($note, $entity);
-        }
-    }
-
-    private function getNewNote(): Note
-    {
-        /** @var Note */
-        return $this->entityManager->getNewEntity(Note::ENTITY_TYPE);
     }
 }

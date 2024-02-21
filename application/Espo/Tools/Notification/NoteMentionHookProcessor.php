@@ -31,7 +31,9 @@ namespace Espo\Tools\Notification;
 
 use Espo\Core\Acl;
 use Espo\Core\AclManager;
+
 use Espo\ORM\EntityManager;
+
 use Espo\Entities\User;
 use Espo\Entities\Note;
 
@@ -39,13 +41,29 @@ use stdClass;
 
 class NoteMentionHookProcessor
 {
+    private $service;
+
+    private $entityManager;
+
+    private $user;
+
+    private $acl;
+
+    private $aclManager;
+
     public function __construct(
-        private Service $service,
-        private EntityManager $entityManager,
-        private User $user,
-        private Acl $acl,
-        private AclManager $aclManager
-    ) {}
+        Service $service,
+        EntityManager $entityManager,
+        User $user,
+        Acl $acl,
+        AclManager $aclManager
+    ) {
+        $this->service = $service;
+        $this->entityManager = $entityManager;
+        $this->user = $user;
+        $this->acl = $acl;
+        $this->aclManager = $aclManager;
+    }
 
     public function beforeSave(Note $note): void
     {

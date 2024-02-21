@@ -71,6 +71,4 @@ interface Template
     public function hasTitle(): bool;
 
     public function getTitle(): string;
-
-    public function getStyle(): ?string;
 }

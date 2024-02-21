@@ -58,8 +58,5 @@
     "personalData": true,
     "valueFactoryClassName": "Espo\\Core\\Field\\EmailAddress\\EmailAddressGroupFactory",
     "attributeExtractorClassName": "Espo\\Core\\Field\\EmailAddress\\EmailAddressGroupAttributeExtractor",
-    "sanitizerClassNameList": [
-        "Espo\\Classes\\FieldSanitizers\\StringTrim"
-    ],
     "default": null
 }

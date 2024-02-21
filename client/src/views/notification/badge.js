@@ -34,7 +34,6 @@ class NotificationBadgeView extends View {
 
     notificationsCheckInterval = 10
     groupedCheckInterval = 15
-    waitInterval = 2
 
     /** @private */
     useWebSocket = false
@@ -250,7 +249,9 @@ class NotificationBadgeView extends View {
         this.checkUpdates(isFirstCheck);
 
         if (this.useWebSocket) {
-            this.initWebSocketCheckUpdates();
+            this.getHelper().webSocketManager.subscribe('newNotification', () => {
+                this.checkUpdates();
+            });
 
             return;
         }
@@ -259,40 +260,6 @@ class NotificationBadgeView extends View {
             () => this.runCheckUpdates(),
             this.notificationsCheckInterval * 1000
         );
-    }
-
-    /**
-     * @private
-     */
-    initWebSocketCheckUpdates() {
-        let isBlocked = false;
-        let hasBeenBlocked = false;
-
-        const onWebSocketNewNotification = () => {
-            if (isBlocked) {
-                hasBeenBlocked = true;
-
-                return;
-            }
-
-            this.checkUpdates();
-
-            isBlocked = true;
-
-            setTimeout(() => {
-                const reRun = hasBeenBlocked;
-
-                isBlocked = false;
-                hasBeenBlocked = false;
-
-                if (reRun) {
-                    onWebSocketNewNotification();
-                }
-
-            }, this.waitInterval * 1000);
-        };
-
-        this.getHelper().webSocketManager.subscribe('newNotification', () => onWebSocketNewNotification());
     }
 
     /**

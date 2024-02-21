@@ -66,14 +66,14 @@
         },
         "authenticationMethod": {
             "type": "enum",
-            "view": "views/admin/auth-log-record/fields/authentication-method",
-            "translation": "Settings.options.authenticationMethod"
+            "options": ["Espo", "LDAP", "ApiKey", "Hmac"]
         }
     },
     "links": {
         "user": {
             "type": "belongsTo",
-            "entity": "User"
+            "entity": "User",
+            "noJoin": true
         },
         "portal": {
             "type": "belongsTo",

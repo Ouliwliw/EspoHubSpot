@@ -31,7 +31,9 @@ namespace Espo\Core;
 
 use Espo\ORM\Entity;
 use Espo\ORM\EntityManager;
+
 use Espo\Entities\User;
+
 use Espo\Core\Acl\AccessChecker;
 use Espo\Core\Acl\AccessChecker\AccessCheckerFactory;
 use Espo\Core\Acl\AccessCreateChecker;
@@ -182,7 +184,6 @@ class AclManager
      * Get an access level for a specific scope and action.
      *
      * @param Table::ACTION_* $action
-     * @noinspection PhpDocSignatureInspection
      */
     public function getLevel(User $user, string $scope, string $action): string
     {
@@ -200,7 +201,7 @@ class AclManager
      */
     public function getPermissionLevel(User $user, string $permission): string
     {
-        if (str_ends_with($permission, 'Permission')) {
+        if (substr($permission, -10) === 'Permission') {
             $permission = substr($permission, 0, -10);
         }
 
@@ -279,7 +280,7 @@ class AclManager
         try {
             return $this->check($user, $subject, $action);
         }
-        catch (NotImplemented) {
+        catch (NotImplemented $e) {
             return false;
         }
     }
@@ -323,7 +324,7 @@ class AclManager
             return $checker->checkEntity($user, $entity, $data, $action);
         }
 
-        throw new NotImplemented("No entity access checker for '$scope' action '$action'.");
+        throw new NotImplemented("No entity access checker for '{$scope}' action '{$action}'.");
     }
 
     /**
@@ -333,7 +334,6 @@ class AclManager
      */
     public function checkEntityRead(User $user, Entity $entity): bool
     {
-        /** @noinspection PhpRedundantOptionalArgumentInspection */
         return $this->checkEntity($user, $entity, Table::ACTION_READ);
     }
 
@@ -436,7 +436,7 @@ class AclManager
         $methodName = 'checkScope';
 
         if (!method_exists($checker, $methodName)) {
-            throw new NotImplemented("No access checker for '$scope' action '$action'.");
+            throw new NotImplemented("No access checker for '{$scope}' action '{$action}'.");
         }
 
         return $checker->$methodName($user, $data, $action);
@@ -476,7 +476,6 @@ class AclManager
      * @param Table::ACTION_READ|Table::ACTION_EDIT $action An action.
      * @param string $thresholdLevel Should not be used. Stands for possible future enhancements.
      * @return string[]
-     * @noinspection PhpDocSignatureInspection
      */
     public function getScopeForbiddenAttributeList(
         User $user,
@@ -506,7 +505,6 @@ class AclManager
      * @param Table::ACTION_READ|Table::ACTION_EDIT $action An action.
      * @param string $thresholdLevel Should not be used. Stands for possible future enhancements.
      * @return string[]
-     * @noinspection PhpDocSignatureInspection
      */
     public function getScopeForbiddenFieldList(
         User $user,
@@ -536,8 +534,6 @@ class AclManager
      * @param Table::ACTION_READ|Table::ACTION_EDIT $action An action.
      * @param string $thresholdLevel Should not be used. Stands for possible future enhancements.
      * @return string[]
-     * @noinspection PhpUnusedParameterInspection
-     * @noinspection PhpDocSignatureInspection
      */
     public function getScopeForbiddenLinkList(
         User $user,
@@ -560,7 +556,6 @@ class AclManager
      * @param string $field A field to check.
      * @param Table::ACTION_READ|Table::ACTION_EDIT $action An action.
      * @return bool
-     * @noinspection PhpDocSignatureInspection
      */
     public function checkField(User $user, string $scope, string $field, string $action = Table::ACTION_READ): bool
     {
@@ -596,6 +591,7 @@ class AclManager
         }
 
         if ($permission === Table::LEVEL_TEAM) {
+            /** @var string[] $teamIdList */
             $teamIdList = $user->getLinkMultipleIdList('teams');
 
             /** @var \Espo\Repositories\User $userRepository */
@@ -626,8 +622,10 @@ class AclManager
     {
         $className = $this->userAclClassName;
 
+        $acl = new $className($this, $user);
+
         /** @var Acl */
-        return new $className($this, $user);
+        return $acl;
     }
 
     /**
@@ -638,40 +636,48 @@ class AclManager
      */
     public function getScopeRestrictedFieldList(string $scope, $type): array
     {
-        $typeList = !is_array($type) ? [$type] : $type;
+        if (is_array($type)) {
+            $typeList = $type;
 
-        $list = [];
+            $list = [];
 
-        foreach ($typeList as $type) {
-            $list = array_merge(
-                $list,
-                $this->globalRestriction->getScopeRestrictedFieldList($scope, $type)
-            );
+            foreach ($typeList as $type) {
+                $list = array_merge(
+                    $list,
+                    $this->globalRestriction->getScopeRestrictedFieldList($scope, $type)
+                );
+            }
+
+            return array_unique($list);
         }
 
-        return array_unique($list);
+        return $this->globalRestriction->getScopeRestrictedFieldList($scope, $type);
     }
 
     /**
      * Get a restricted attribute list for a specific scope by a restriction type.
      *
-     * @param GlobalRestriction::TYPE_*|array<int, GlobalRestriction::TYPE_*> $type
+     * @param GlobalRestriction::TYPE_*|array<int,GlobalRestriction::TYPE_*> $type
      * @return string[]
      */
     public function getScopeRestrictedAttributeList(string $scope, $type): array
     {
-        $typeList = !is_array($type) ? [$type] : $type;
+        if (is_array($type)) {
+            $typeList = $type;
 
-        $list = [];
+            $list = [];
 
-        foreach ($typeList as $type) {
-            $list = array_merge(
-                $list,
-                $this->globalRestriction->getScopeRestrictedAttributeList($scope, $type)
-            );
+            foreach ($typeList as $type) {
+                $list = array_merge(
+                    $list,
+                    $this->globalRestriction->getScopeRestrictedAttributeList($scope, $type)
+                );
+            }
+
+            return array_unique($list);
         }
 
-        return array_unique($list);
+        return $this->globalRestriction->getScopeRestrictedAttributeList($scope, $type);
     }
 
     /**
@@ -682,18 +688,22 @@ class AclManager
      */
     public function getScopeRestrictedLinkList(string $scope, $type): array
     {
-        $typeList = !is_array($type) ? [$type] : $type;
+        if (is_array($type)) {
+            $typeList = $type;
 
-        $list = [];
+            $list = [];
 
-        foreach ($typeList as $type) {
-            $list = array_merge(
-                $list,
-                $this->globalRestriction->getScopeRestrictedLinkList($scope, $type)
-            );
+            foreach ($typeList as $type) {
+                $list = array_merge(
+                    $list,
+                    $this->globalRestriction->getScopeRestrictedLinkList($scope, $type)
+                );
+            }
+
+            return array_unique($list);
         }
 
-        return array_unique($list);
+        return $this->globalRestriction->getScopeRestrictedLinkList($scope, $type);
     }
 
     /**
@@ -723,7 +733,6 @@ class AclManager
 
     /**
      * @deprecated As of v7.0. Access checkers not to be exposed.
-     * @noinspection PhpUnused
      */
     public function getImplementation(string $scope): object
     {
@@ -755,7 +764,7 @@ class AclManager
             return false;
         }
 
-        if ($this->getPermissionLevel($user, $permission) === Table::LEVEL_TEAM) {
+        if ($this->get($user, $permission) === Table::LEVEL_TEAM) {
             if ($target->getId() === $user->getId()) {
                 return true;
             }

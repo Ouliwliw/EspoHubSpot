@@ -26,17 +26,16 @@
  * these Appropriate Legal Notices must retain the display of the "EspoCRM" word.
  ************************************************************************/
 
-import View from 'view';
+import Dep from 'view';
 import SelectProvider from 'helpers/list/select-provider';
 
-class IndexExtensionsView extends View {
+export default Dep.extend({
 
-    template = 'admin/extensions/index'
+    template: 'admin/extensions/index',
 
-    packageContents = null
+    packageContents: null,
 
-    events = {
-        /** @this IndexExtensionsView */
+    events: {
         'change input[name="package"]': function (e) {
             this.$el.find('button[data-action="upload"]')
                 .addClass('disabled')
@@ -50,11 +49,9 @@ class IndexExtensionsView extends View {
                 this.selectFile(files[0]);
             }
         },
-        /** @this IndexExtensionsView */
         'click button[data-action="upload"]': function () {
             this.upload();
         },
-        /** @this IndexExtensionsView */
         'click [data-action="install"]': function (e) {
             const id = $(e.currentTarget).data('id');
 
@@ -64,7 +61,6 @@ class IndexExtensionsView extends View {
             this.run(id, name, version);
 
         },
-        /** @this IndexExtensionsView */
         'click [data-action="uninstall"]': function (e) {
             const id = $(e.currentTarget).data('id');
 
@@ -85,9 +81,9 @@ class IndexExtensionsView extends View {
                     });
             });
         }
-    }
+    },
 
-    setup() {
+    setup: function () {
         const selectProvider = new SelectProvider(
             this.getHelper().layoutManager,
             this.getHelper().metadata,
@@ -119,9 +115,9 @@ class IndexExtensionsView extends View {
                     }
                 })
         );
-    }
+    },
 
-    selectFile(file) {
+    selectFile: function (file) {
         const fileReader = new FileReader();
 
         fileReader.onload = (e) => {
@@ -130,36 +126,18 @@ class IndexExtensionsView extends View {
             this.$el.find('button[data-action="upload"]')
                 .removeClass('disabled')
                 .removeAttr('disabled');
-
-            const maxSize = this.getHelper().getAppParam('maxUploadSize') || 0;
-
-            if (file.size > maxSize * 1024 * 1024) {
-                const body = this.translate('fileExceedsMaxUploadSize', 'messages', 'Extension')
-                    .replace('{maxSize}', maxSize + 'MB');
-
-                Espo.Ui.dialog({
-                    body: this.getHelper().transformMarkdownText(body).toString(),
-                    buttonList: [
-                        {
-                            name: 'close',
-                            text: this.translate('Close'),
-                            onClick: dialog => dialog.close(),
-                        },
-                    ],
-                }).show();
-            }
         };
 
         fileReader.readAsDataURL(file);
-    }
+    },
 
-    showError(msg) {
+    showError: function (msg) {
         msg = this.translate(msg, 'errors', 'Admin');
 
         this.$el.find('.message-container').html(msg);
-    }
+    },
 
-    showErrorNotification(msg) {
+    showErrorNotification: function (msg) {
         if (!msg) {
             this.$el.find('.notify-text').addClass('hidden');
 
@@ -170,12 +148,12 @@ class IndexExtensionsView extends View {
 
         this.$el.find('.notify-text').html(msg);
         this.$el.find('.notify-text').removeClass('hidden');
-    }
+    },
 
-    upload() {
+    upload: function () {
         this.$el.find('button[data-action="upload"]').addClass('disabled').attr('disabled', 'disabled');
 
-        Espo.Ui.notify(this.translate('Uploading...'));
+        this.notify('Uploading...');
 
         Espo.Ajax
             .postRequest('Extension/action/upload', this.packageContents, {
@@ -214,9 +192,9 @@ class IndexExtensionsView extends View {
 
                 Espo.Ui.notify(false);
             });
-    }
+    },
 
-    run(id, version, name) {
+    run: function (id, version, name) {
         Espo.Ui.notify(this.translate('pleaseWait', 'messages'));
 
         this.showError(false);
@@ -254,7 +232,5 @@ class IndexExtensionsView extends View {
 
                 this.showErrorNotification(this.translate('Error') + ': ' + msg);
             });
-    }
-}
-
-export default IndexExtensionsView;
+    },
+});

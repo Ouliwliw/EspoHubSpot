@@ -37,9 +37,6 @@ use Espo\Core\Upgrades\UpgradeManager;
 
 use Exception;
 
-/**
- * @noinspection PhpUnused
- */
 class UpgradeStep implements Command
 {
     public function __construct() {}

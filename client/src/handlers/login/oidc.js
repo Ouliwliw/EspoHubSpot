@@ -33,12 +33,6 @@ class OidcLoginHandler extends LoginHandler {
 
     /** @inheritDoc */
     process() {
-        const proxy = window.open(
-            'about:blank',
-            'ConnectWithOAuth',
-            'location=0,status=0,width=800,height=800'
-        );
-
         Espo.Ui.notify(' ... ');
 
         return new Promise((resolve, reject) => {
@@ -46,7 +40,7 @@ class OidcLoginHandler extends LoginHandler {
                 .then(data => {
                     Espo.Ui.notify(false);
 
-                    this.processWithData(data, proxy)
+                    this.processWithData(data)
                         .then(info => {
                             const code = info.code;
                             const nonce = info.nonce;
@@ -62,14 +56,12 @@ class OidcLoginHandler extends LoginHandler {
                             resolve(headers);
                         })
                         .catch(() => {
-                            proxy.close();
                             reject();
                         });
                 })
                 .catch(() => {
                     Espo.Ui.notify(false)
 
-                    proxy.close();
                     reject();
                 });
         });
@@ -86,12 +78,11 @@ class OidcLoginHandler extends LoginHandler {
      *  prompt: 'login'|'consent'|'select_account',
      *  maxAge: ?Number,
      * }} data
-     * @param {WindowProxy} proxy
      * @return {Promise<{code: string, nonce: string}>}
      */
-    processWithData(data, proxy) {
-        const state = (Math.random() + 1).toString(36).substring(4);
-        const nonce = (Math.random() + 1).toString(36).substring(4);
+    processWithData(data) {
+        const state = (Math.random() + 1).toString(36).substring(7);
+        const nonce = (Math.random() + 1).toString(36).substring(7);
 
         const params = {
             client_id: data.clientId,
@@ -118,7 +109,7 @@ class OidcLoginHandler extends LoginHandler {
 
         const url = data.endpoint + '?' + partList.join('&');
 
-        return this.processWindow(url, state, nonce, proxy);
+        return this.processWindow(url, state, nonce);
     }
 
     /**
@@ -126,11 +117,10 @@ class OidcLoginHandler extends LoginHandler {
      * @param {string} url
      * @param {string} state
      * @param {string} nonce
-     * @param {WindowProxy} proxy
      * @return {Promise<{code: string, nonce: string}>}
      */
-    processWindow(url, state, nonce, proxy) {
-        proxy.location.href = url;
+    processWindow(url, state, nonce) {
+        const proxy = window.open(url, 'ConnectWithOAuth', 'location=0,status=0,width=800,height=800');
 
         return new Promise((resolve, reject) => {
             const fail = () => {

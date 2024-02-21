@@ -2,10 +2,8 @@
     "entity": true,
     "layouts": false,
     "tab": false,
-    "acl": true,
-    "aclLevelList": ["all", "team", "no"],
-    "aclFieldLevelDisabled": true,
-    "customizable": false,
+    "acl": "recordAllTeamNo",
+    "customizable": true,
     "importable": false,
     "type": "CategoryTree",
     "notifications": false

@@ -30,7 +30,6 @@
 namespace Espo\Modules\Crm\Tools\Activities;
 
 use Espo\Core\Acl;
-use Espo\Core\Exceptions\BadRequest;
 use Espo\Core\Exceptions\Error;
 use Espo\Core\Exceptions\NotFound;
 use Espo\Core\Exceptions\Forbidden;
@@ -39,8 +38,10 @@ use Espo\Core\ServiceFactory;
 use Espo\Core\Templates\Entities\Company;
 use Espo\Core\Templates\Entities\Person;
 use Espo\Core\Utils\Config;
+use Espo\Core\Utils\DateTime as DateTimeUtil;
 use Espo\Core\Utils\Metadata;
 use Espo\Entities\Email;
+use Espo\Entities\Preferences;
 use Espo\Entities\User;
 use Espo\Modules\Crm\Entities\Account;
 use Espo\Modules\Crm\Entities\Call;
@@ -48,6 +49,7 @@ use Espo\Modules\Crm\Entities\Contact;
 use Espo\Modules\Crm\Entities\Lead;
 use Espo\Modules\Crm\Entities\Meeting;
 use Espo\Modules\Crm\Entities\Reminder;
+use Espo\Modules\Crm\Entities\Task;
 use Espo\ORM\EntityCollection;
 use Espo\ORM\EntityManager;
 use Espo\ORM\Query\UnionBuilder;
@@ -56,9 +58,12 @@ use Espo\ORM\Query\SelectBuilder;
 use Espo\ORM\Entity;
 use Espo\ORM\Query\Select;
 use Espo\ORM\Query\Part\Order;
+
 use Espo\Core\Acl\Table;
 use Espo\Core\Record\Collection as RecordCollection;
 use Espo\Core\Select\SearchParams;
+use Espo\Core\Select\Where\Item as WhereItem;
+use Espo\Core\Select\Where\ConverterFactory as WhereConverterFactory;
 use Espo\Core\Select\SelectBuilderFactory;
 use Espo\Core\FieldProcessing\ListLoadProcessor;
 use Espo\Core\FieldProcessing\Loader\Params as FieldLoaderParams;
@@ -66,27 +71,54 @@ use Espo\Core\Record\ServiceContainer as RecordServiceContainer;
 
 use LogicException;
 use PDO;
-use RuntimeException;
+use DateTime;
 
 class Service
 {
+    private const UPCOMING_ACTIVITIES_FUTURE_DAYS = 1;
+    private const UPCOMING_ACTIVITIES_TASK_FUTURE_DAYS = 7;
+
     /** @var array<string, array<string, string>> */
     private array $attributeMap = [
         Email::ENTITY_TYPE => [
             'dateSent' => 'dateStart',
         ],
     ];
+
+    private WhereConverterFactory $whereConverterFactory;
+    private ListLoadProcessor $listLoadProcessor;
+    private RecordServiceContainer $recordServiceContainer;
+    private SelectBuilderFactory $selectBuilderFactory;
+    private Config $config;
+    private Metadata $metadata;
+    private Acl $acl;
+    private ServiceFactory $serviceFactory;
+    private EntityManager $entityManager;
+    private User $user;
+
     public function __construct(
-        private ListLoadProcessor $listLoadProcessor,
-        private RecordServiceContainer $recordServiceContainer,
-        private SelectBuilderFactory $selectBuilderFactory,
-        private Config $config,
-        private Metadata $metadata,
-        private Acl $acl,
-        private ServiceFactory $serviceFactory,
-        private EntityManager $entityManager,
-        private User $user
-    ) {}
+        WhereConverterFactory $whereConverterFactory,
+        ListLoadProcessor $listLoadProcessor,
+        RecordServiceContainer $recordServiceContainer,
+        SelectBuilderFactory $selectBuilderFactory,
+        Config $config,
+        Metadata $metadata,
+        Acl $acl,
+        ServiceFactory $serviceFactory,
+        EntityManager $entityManager,
+        User $user
+    ) {
+        $this->whereConverterFactory = $whereConverterFactory;
+        $this->listLoadProcessor = $listLoadProcessor;
+        $this->recordServiceContainer = $recordServiceContainer;
+        $this->selectBuilderFactory = $selectBuilderFactory;
+        $this->config = $config;
+        $this->metadata = $metadata;
+        $this->acl = $acl;
+        $this->serviceFactory = $serviceFactory;
+        $this->entityManager = $entityManager;
+        $this->user = $user;
+    }
 
     protected function isPerson(string $scope): bool
     {
@@ -110,39 +142,34 @@ class Service
      */
     protected function getActivitiesUserMeetingQuery(User $entity, array $statusList = []): Select
     {
-        try {
-            $builder = $this->selectBuilderFactory
-                ->create()
-                ->from(Meeting::ENTITY_TYPE)
-                ->withStrictAccessControl()
-                ->buildQueryBuilder()
-                ->select([
-                    'id',
-                    'name',
-                    ['dateStart', 'dateStart'],
-                    ['dateEnd', 'dateEnd'],
-                    ['dateStartDate', 'dateStartDate'],
-                    ['dateEndDate', 'dateEndDate'],
-                    ['"Meeting"', '_scope'],
-                    'assignedUserId',
-                    'assignedUserName',
-                    'parentType',
-                    'parentId',
-                    'status',
-                    'createdAt',
-                    ['null', 'hasAttachment'],
-                ])
-                ->leftJoin(
-                    'MeetingUser',
-                    'usersLeftMiddle',
-                    [
-                        'usersLeftMiddle.meetingId:' => 'meeting.id',
-                    ]
-                );
-        }
-        catch (BadRequest|Forbidden $e) {
-            throw new RuntimeException($e->getMessage());
-        }
+        $builder = $this->selectBuilderFactory
+            ->create()
+            ->from(Meeting::ENTITY_TYPE)
+            ->withStrictAccessControl()
+            ->buildQueryBuilder()
+            ->select([
+                'id',
+                'name',
+                ['dateStart', 'dateStart'],
+                ['dateEnd', 'dateEnd'],
+                ['dateStartDate', 'dateStartDate'],
+                ['dateEndDate', 'dateEndDate'],
+                ['"Meeting"', '_scope'],
+                'assignedUserId',
+                'assignedUserName',
+                'parentType',
+                'parentId',
+                'status',
+                'createdAt',
+                ['null', 'hasAttachment'],
+            ])
+            ->leftJoin(
+                'MeetingUser',
+                'usersLeftMiddle',
+                [
+                    'usersLeftMiddle.meetingId:' => 'meeting.id',
+                ]
+            );
 
         $where = [
             'usersLeftMiddle.userId' => $entity->getId(),
@@ -178,45 +205,40 @@ class Service
     {
         $seed = $this->entityManager->getNewEntity(Call::ENTITY_TYPE);
 
-        try {
-            $builder = $this->selectBuilderFactory
-                ->create()
-                ->from(Call::ENTITY_TYPE)
-                ->withStrictAccessControl()
-                ->buildQueryBuilder()
-                ->select([
-                    'id',
-                    'name',
-                    ['dateStart', 'dateStart'],
-                    ['dateEnd', 'dateEnd'],
-                    (
+        $builder = $this->selectBuilderFactory
+            ->create()
+            ->from(Call::ENTITY_TYPE)
+            ->withStrictAccessControl()
+            ->buildQueryBuilder()
+            ->select([
+                'id',
+                'name',
+                ['dateStart', 'dateStart'],
+                ['dateEnd', 'dateEnd'],
+                (
                     $seed->hasAttribute('dateStartDate') ?
                         ['dateStartDate', 'dateStartDate'] : ['null', 'dateStartDate']
-                    ),
-                    (
+                ),
+                (
                     $seed->hasAttribute('dateEndDate') ?
                         ['dateEndDate', 'dateEndDate'] : ['null', 'dateEndDate']
-                    ),
-                    ['"Call"', '_scope'],
-                    'assignedUserId',
-                    'assignedUserName',
-                    'parentType',
-                    'parentId',
-                    'status',
-                    'createdAt',
-                    ['null', 'hasAttachment'],
-                ])
-                ->leftJoin(
-                    'CallUser',
-                    'usersLeftMiddle',
-                    [
-                        'usersLeftMiddle.callId:' => 'call.id',
-                    ]
-                );
-        }
-        catch (BadRequest|Forbidden $e) {
-            throw new RuntimeException($e->getMessage());
-        }
+                ),
+                ['"Call"', '_scope'],
+                'assignedUserId',
+                'assignedUserName',
+                'parentType',
+                'parentId',
+                'status',
+                'createdAt',
+                ['null', 'hasAttachment'],
+            ])
+            ->leftJoin(
+                'CallUser',
+                'usersLeftMiddle',
+                [
+                    'usersLeftMiddle.callId:' => 'call.id',
+                ]
+            );
 
         $where = [
             'usersLeftMiddle.userId' => $entity->getId(),
@@ -259,42 +281,37 @@ class Service
             }
         }
 
-        try {
-            $builder = $this->selectBuilderFactory
-                ->create()
-                ->from(Email::ENTITY_TYPE)
-                ->withStrictAccessControl()
-                ->buildQueryBuilder()
-                ->select([
-                    'id',
-                    'name',
-                    ['dateSent', 'dateStart'],
-                    ['null', 'dateEnd'],
-                    ['null', 'dateStartDate'],
-                    ['null', 'dateEndDate'],
-                    ['"Email"', '_scope'],
-                    'assignedUserId',
-                    'assignedUserName',
-                    'parentType',
-                    'parentId',
-                    'status',
-                    'createdAt',
-                    'hasAttachment',
-                ])
-                ->leftJoin(
-                    'EmailUser',
-                    'usersLeftMiddle',
-                    [
-                        'usersLeftMiddle.emailId:' => 'email.id',
-                    ]
-                )
-                ->where([
-                    'usersLeftMiddle.userId' => $entity->getId(),
-                ]);
-        }
-        catch (BadRequest|Forbidden $e) {
-            throw new RuntimeException($e->getMessage());
-        }
+        $builder = $this->selectBuilderFactory
+            ->create()
+            ->from(Email::ENTITY_TYPE)
+            ->withStrictAccessControl()
+            ->buildQueryBuilder()
+            ->select([
+                'id',
+                'name',
+                ['dateSent', 'dateStart'],
+                ['null', 'dateEnd'],
+                ['null', 'dateStartDate'],
+                ['null', 'dateEndDate'],
+                ['"Email"', '_scope'],
+                'assignedUserId',
+                'assignedUserName',
+                'parentType',
+                'parentId',
+                'status',
+                'createdAt',
+                'hasAttachment',
+            ])
+            ->leftJoin(
+                'EmailUser',
+                'usersLeftMiddle',
+                [
+                    'usersLeftMiddle.emailId:' => 'email.id',
+                ]
+            )
+            ->where([
+                'usersLeftMiddle.userId' => $entity->getId(),
+            ]);
 
         if (!empty($statusList)) {
             $builder->where([
@@ -327,38 +344,33 @@ class Service
 
         $seed = $this->entityManager->getNewEntity($targetEntityType);
 
-        try {
-            $baseBuilder = $this->selectBuilderFactory
-                ->create()
-                ->from($targetEntityType)
-                ->withStrictAccessControl()
-                ->buildQueryBuilder()
-                ->select([
-                    'id',
-                    'name',
-                    ['dateStart', 'dateStart'],
-                    ['dateEnd', 'dateEnd'],
-                    (
+        $baseBuilder = $this->selectBuilderFactory
+            ->create()
+            ->from($targetEntityType)
+            ->withStrictAccessControl()
+            ->buildQueryBuilder()
+            ->select([
+                'id',
+                'name',
+                ['dateStart', 'dateStart'],
+                ['dateEnd', 'dateEnd'],
+                (
                     $seed->hasAttribute('dateStartDate') ?
                         ['dateStartDate', 'dateStartDate'] : ['null', 'dateStartDate']
-                    ),
-                    (
+                ),
+                (
                     $seed->hasAttribute('dateEndDate') ?
                         ['dateEndDate', 'dateEndDate'] : ['null', 'dateEndDate']
-                    ),
-                    ['"' . $targetEntityType . '"', '_scope'],
-                    'assignedUserId',
-                    'assignedUserName',
-                    'parentType',
-                    'parentId',
-                    'status',
-                    'createdAt',
-                    ['false', 'hasAttachment'],
-                ]);
-        }
-        catch (BadRequest|Forbidden $e) {
-            throw new RuntimeException($e->getMessage());
-        }
+                ),
+                ['"' . $targetEntityType . '"', '_scope'],
+                'assignedUserId',
+                'assignedUserName',
+                'parentType',
+                'parentId',
+                'status',
+                'createdAt',
+                ['false', 'hasAttachment'],
+            ]);
 
         if (!empty($statusList)) {
             $baseBuilder->where([
@@ -480,32 +492,27 @@ class Service
         $entityType = $entity->getEntityType();
         $id = $entity->getId();
 
-        try {
-            $baseBuilder = $this->selectBuilderFactory
-                ->create()
-                ->from('Email')
-                ->withStrictAccessControl()
-                ->buildQueryBuilder()
-                ->select([
-                    'id',
-                    'name',
-                    ['dateSent', 'dateStart'],
-                    ['null', 'dateEnd'],
-                    ['null', 'dateStartDate'],
-                    ['null', 'dateEndDate'],
-                    ['"Email"', '_scope'],
-                    'assignedUserId',
-                    'assignedUserName',
-                    'parentType',
-                    'parentId',
-                    'status',
-                    'createdAt',
-                    'hasAttachment',
-                ]);
-        }
-        catch (BadRequest|Forbidden $e) {
-            throw new RuntimeException($e->getMessage());
-        }
+        $baseBuilder = $this->selectBuilderFactory
+            ->create()
+            ->from('Email')
+            ->withStrictAccessControl()
+            ->buildQueryBuilder()
+            ->select([
+                'id',
+                'name',
+                ['dateSent', 'dateStart'],
+                ['null', 'dateEnd'],
+                ['null', 'dateStartDate'],
+                ['null', 'dateEndDate'],
+                ['"Email"', '_scope'],
+                'assignedUserId',
+                'assignedUserName',
+                'parentType',
+                'parentId',
+                'status',
+                'createdAt',
+                'hasAttachment',
+            ]);
 
         if (!empty($statusList)) {
             $baseBuilder->where([
@@ -764,7 +771,7 @@ class Service
     protected function accessCheck(Entity $entity): void
     {
         if ($entity instanceof User) {
-            if (!$this->acl->checkUserPermission($entity)) {
+            if (!$this->acl->checkUserPermission($entity, 'user')) {
                 throw new Forbidden();
             }
 
@@ -781,7 +788,6 @@ class Service
      * @throws Forbidden
      * @throws NotFound
      * @throws Error
-     * @throws BadRequest
      */
     public function findActivitiesEntityType(
         string $scope,
@@ -804,7 +810,7 @@ class Service
         $this->accessCheck($entity);
 
         if (!$this->metadata->get(['scopes', $entityType, 'activity'])) {
-            throw new Error("Entity '$entityType' is not an activity.");
+            throw new Error("Entity '{$entityType}' is not an activity.");
         }
 
         if (!$isHistory) {
@@ -850,7 +856,6 @@ class Service
                 $order = $itemBuilder->build()->getOrder();
             }
 
-            /** @noinspection PhpRedundantOptionalArgumentInspection */
             $itemBuilder
                 ->limit(null, null)
                 ->order([]);
@@ -1078,36 +1083,31 @@ class Service
     {
         $seed = $this->entityManager->getNewEntity($scope);
 
-        try {
-            $builder = $this->selectBuilderFactory
-                ->create()
-                ->from($scope)
-                ->withStrictAccessControl()
-                ->buildQueryBuilder()
-                ->select([
-                    'id',
-                    'name',
-                    ($seed->hasAttribute('dateStart') ? ['dateStart', 'dateStart'] : ['null', 'dateStart']),
-                    ($seed->hasAttribute('dateEnd') ? ['dateEnd', 'dateEnd'] : ['null', 'dateEnd']),
-                    ($seed->hasAttribute('dateStartDate') ?
-                        ['dateStartDate', 'dateStartDate'] : ['null', 'dateStartDate']),
-                    ($seed->hasAttribute('dateEndDate') ?
-                        ['dateEndDate', 'dateEndDate'] : ['null', 'dateEndDate']),
-                    ['"' . $scope . '"', '_scope'],
-                    ($seed->hasAttribute('assignedUserId') ?
-                        ['assignedUserId', 'assignedUserId'] : ['null', 'assignedUserId']),
-                    ($seed->hasAttribute('assignedUserName') ? ['assignedUserName', 'assignedUserName'] :
-                        ['null', 'assignedUserName']),
-                    ($seed->hasAttribute('parentType') ? ['parentType', 'parentType'] : ['null', 'parentType']),
-                    ($seed->hasAttribute('parentId') ? ['parentId', 'parentId'] : ['null', 'parentId']),
-                    'status',
-                    'createdAt',
-                    ['false', 'hasAttachment'],
-                ]);
-        }
-        catch (BadRequest|Forbidden $e) {
-            throw new RuntimeException($e->getMessage());
-        }
+        $builder = $this->selectBuilderFactory
+            ->create()
+            ->from($scope)
+            ->withStrictAccessControl()
+            ->buildQueryBuilder()
+            ->select([
+                'id',
+                'name',
+                ($seed->hasAttribute('dateStart') ? ['dateStart', 'dateStart'] : ['null', 'dateStart']),
+                ($seed->hasAttribute('dateEnd') ? ['dateEnd', 'dateEnd'] : ['null', 'dateEnd']),
+                ($seed->hasAttribute('dateStartDate') ?
+                    ['dateStartDate', 'dateStartDate'] : ['null', 'dateStartDate']),
+                ($seed->hasAttribute('dateEndDate') ?
+                    ['dateEndDate', 'dateEndDate'] : ['null', 'dateEndDate']),
+                ['"' . $scope . '"', '_scope'],
+                ($seed->hasAttribute('assignedUserId') ?
+                    ['assignedUserId', 'assignedUserId'] : ['null', 'assignedUserId']),
+                ($seed->hasAttribute('assignedUserName') ? ['assignedUserName', 'assignedUserName'] :
+                    ['null', 'assignedUserName']),
+                ($seed->hasAttribute('parentType') ? ['parentType', 'parentType'] : ['null', 'parentType']),
+                ($seed->hasAttribute('parentId') ? ['parentId', 'parentId'] : ['null', 'parentId']),
+                'status',
+                'createdAt',
+                ['false', 'hasAttachment'],
+            ]);
 
         if ($entity->getEntityType() === User::ENTITY_TYPE) {
             $builder->where([
@@ -1147,5 +1147,290 @@ class Service
         $deleteQuery = $builder->build();
 
         $this->entityManager->getQueryExecutor()->execute($deleteQuery);
+    }
+
+    /**
+     * @param array{
+     *   offset?: ?int,
+     *   maxSize?: ?int,
+     * } $params
+     * @param ?string[] $entityTypeList
+     * @return RecordCollection<Entity>
+     * @throws Forbidden
+     * @throws NotFound
+     */
+    public function getUpcomingActivities(
+        string $userId,
+        array $params = [],
+        ?array $entityTypeList = null,
+        ?int $futureDays = null
+    ): RecordCollection {
+
+        /** @var ?User $user */
+        $user = $this->entityManager->getEntityById(User::ENTITY_TYPE, $userId);
+
+        if (!$user) {
+            throw new NotFound();
+        }
+
+        $this->accessCheck($user);
+
+        if (!$entityTypeList) {
+            $entityTypeList = $this->config->get('activitiesEntityList', []);
+        }
+
+        if (is_null($futureDays)) {
+            $futureDays = $this->config->get(
+                'activitiesUpcomingFutureDays',
+                self::UPCOMING_ACTIVITIES_FUTURE_DAYS
+            );
+        }
+
+        $queryList = [];
+
+        foreach ($entityTypeList as $entityType) {
+            if (
+                !$this->metadata->get(['scopes', $entityType, 'activity']) &&
+                $entityType !== Task::ENTITY_TYPE
+            ) {
+                continue;
+            }
+
+            if (!$this->acl->checkScope($entityType, 'read')) {
+                continue;
+            }
+
+            if (!$this->metadata->get(['entityDefs', $entityType, 'fields', 'dateStart'])) {
+                continue;
+            }
+
+            if (!$this->metadata->get(['entityDefs', $entityType, 'fields', 'dateEnd'])) {
+                continue;
+            }
+
+            $queryList[] = $this->getUpcomingActivitiesEntityTypeQuery($entityType, $params, $user, $futureDays);
+        }
+
+        if ($queryList === []) {
+            return RecordCollection::create(new EntityCollection(), 0);
+        }
+
+        $builder = $this->entityManager
+            ->getQueryBuilder()
+            ->union();
+
+        foreach ($queryList as $query) {
+            $builder->query($query);
+        }
+
+        $unionCountQuery = $builder->build();
+
+        $countQuery = $this->entityManager->getQueryBuilder()
+            ->select()
+            ->fromQuery($unionCountQuery, 'c')
+            ->select('COUNT:(c.id)', 'count')
+            ->build();
+
+        $countSth = $this->entityManager->getQueryExecutor()->execute($countQuery);
+
+        $row = $countSth->fetch(PDO::FETCH_ASSOC);
+
+        $totalCount = $row['count'];
+
+        $offset = intval($params['offset'] ?? 0);
+        $maxSize = intval($params['maxSize'] ?? 0);
+
+        $unionQuery = $builder
+            ->order('dateStart')
+            ->order('dateEnd')
+            ->order('name')
+            ->limit($offset, $maxSize)
+            ->build();
+
+        $sth = $this->entityManager->getQueryExecutor()->execute($unionQuery);
+
+        $rows = $sth->fetchAll(PDO::FETCH_ASSOC) ?: [];
+
+        $collection = new EntityCollection();
+
+        foreach ($rows as $row) {
+            /** @var string $itemEntityType */
+            $itemEntityType = $row['entityType'];
+            /** @var string $itemId */
+            $itemId = $row['id'];
+
+            $entity = $this->entityManager->getEntityById($itemEntityType, $itemId);
+
+            if (!$entity) {
+                // @todo Revise.
+                $entity = $this->entityManager->getNewEntity($itemEntityType);
+
+                $entity->set('id', $itemId);
+            }
+
+            $collection->append($entity);;
+        }
+
+        /** @var RecordCollection<Entity> */
+        return RecordCollection::create($collection, $totalCount);
+    }
+
+    /**
+     * @param array<string, mixed> $params
+     */
+    protected function getUpcomingActivitiesEntityTypeQuery(
+        string $entityType,
+        array $params,
+        User $user,
+        int $futureDays
+    ): Select {
+
+        $beforeString = (new DateTime())
+            ->modify('+' . $futureDays . ' days')
+            ->format(DateTimeUtil::SYSTEM_DATE_TIME_FORMAT);
+
+        $builder = $this->selectBuilderFactory
+            ->create()
+            ->from($entityType)
+            ->forUser($user)
+            ->withBoolFilter('onlyMy')
+            ->withStrictAccessControl();
+
+        $primaryFilter = 'planned';
+
+        if ($entityType === Task::ENTITY_TYPE) {
+            $primaryFilter = 'actual';
+        }
+
+        $builder->withPrimaryFilter($primaryFilter);
+
+        if (!empty($params['textFilter'])) {
+            $builder->withTextFilter($params['textFilter']);
+        }
+
+        $queryBuilder = $builder->buildQueryBuilder();
+
+        $converter = $this->whereConverterFactory->create($entityType, $user);
+
+        $timeZone = $this->getUserTimeZone($user);
+
+        if ($entityType === Task::ENTITY_TYPE) {
+            $upcomingTaskFutureDays = $this->config->get(
+                'activitiesUpcomingTaskFutureDays',
+                self::UPCOMING_ACTIVITIES_TASK_FUTURE_DAYS
+            );
+
+            $taskBeforeString = (new DateTime())
+                ->modify('+' . $upcomingTaskFutureDays . ' days')
+                ->format(DateTimeUtil::SYSTEM_DATE_TIME_FORMAT);
+
+            $queryBuilder->where([
+                'OR' => [
+                    [
+                        'dateStart' => null,
+                        'OR' => [
+                            'dateEnd' => null,
+                            $converter->convert(
+                                $queryBuilder,
+                                WhereItem::fromRaw([
+                                    'type' => 'before',
+                                    'attribute' => 'dateEnd',
+                                    'value' => $taskBeforeString,
+                                    'timeZone' => $timeZone,
+                                ])
+                            )->getRaw()
+                        ]
+                    ],
+                    [
+                        'dateStart!=' => null,
+                        'OR' => [
+                            $converter->convert(
+                                $queryBuilder,
+                                WhereItem::fromRaw([
+                                    'type' => 'past',
+                                    'attribute' => 'dateStart',
+                                    'timeZone' => $timeZone,
+                                ])
+                            )->getRaw(),
+                            $converter->convert(
+                                $queryBuilder,
+                                WhereItem::fromRaw([
+                                    'type' => 'today',
+                                    'attribute' => 'dateStart',
+                                    'timeZone' => $timeZone,
+                                ])
+                            )->getRaw(),
+                            $converter->convert(
+                                $queryBuilder,
+                                WhereItem::fromRaw([
+                                    'type' => 'before',
+                                    'attribute' => 'dateStart',
+                                    'value' => $beforeString,
+                                    'timeZone' => $timeZone,
+                                ])
+                            )->getRaw(),
+                        ]
+                    ],
+                ],
+            ]);
+        }
+        else {
+            $queryBuilder->where([
+                'OR' => [
+                    $converter->convert(
+                        $queryBuilder,
+                        WhereItem::fromRaw([
+                            'type' => 'today',
+                            'attribute' => 'dateStart',
+                            'timeZone' => $timeZone,
+                        ])
+                    )->getRaw(),
+                    [
+                        $converter->convert(
+                            $queryBuilder,
+                            WhereItem::fromRaw([
+                                'type' => 'future',
+                                'attribute' => 'dateEnd',
+                                'timeZone' => $timeZone,
+                            ])
+                        )->getRaw(),
+                        $converter->convert(
+                            $queryBuilder,
+                            WhereItem::fromRaw([
+                                'type' => 'before',
+                                'attribute' => 'dateStart',
+                                'value' => $beforeString,
+                                'timeZone' => $timeZone,
+                            ])
+                        )->getRaw(),
+                    ],
+                ],
+            ]);
+        }
+
+        $queryBuilder->select([
+            'id',
+            'name',
+            'dateStart',
+            'dateEnd',
+            ['"' . $entityType . '"', 'entityType'],
+        ]);
+
+        return $queryBuilder->build();
+    }
+
+    protected function getUserTimeZone(User $user): string
+    {
+        $preferences = $this->entityManager->getEntityById(Preferences::ENTITY_TYPE, $user->getId());
+
+        if ($preferences) {
+            $timeZone = $preferences->get('timeZone');
+
+            if ($timeZone) {
+                return $timeZone;
+            }
+        }
+
+        return $this->config->get('timeZone') ?? 'UTC';
     }
 }

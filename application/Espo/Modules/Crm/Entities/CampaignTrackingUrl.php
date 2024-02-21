@@ -30,7 +30,6 @@
 namespace Espo\Modules\Crm\Entities;
 
 use Espo\Core\ORM\Entity;
-use LogicException;
 
 class CampaignTrackingUrl extends Entity
 {
@@ -56,15 +55,6 @@ class CampaignTrackingUrl extends Entity
     public function getUrl(): ?string
     {
         return $this->get('url');
-    }
-
-    public function getUrlToUse(): string
-    {
-        if (!$this->id) {
-            throw new LogicException();
-        }
-
-        return $this->get('urlToUse');
     }
 
     protected function _getUrlToUse(): string

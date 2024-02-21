@@ -10,10 +10,5 @@
             [{"name": "daemonInterval"}, {"name": "daemonMaxProcessNumber"}],
             [{"name": "daemonProcessTimeout"}, false]
         ]
-    },
-    {
-        "rows": [
-            [{"name": "jobForceUtc"}, false]
-        ]
     }
 ]

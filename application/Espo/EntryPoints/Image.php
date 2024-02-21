@@ -45,10 +45,8 @@ use Espo\Core\ORM\EntityManager;
 use Espo\Core\Utils\Config;
 use Espo\Core\Utils\File\Manager as FileManager;
 use Espo\Core\Utils\Metadata;
-use Espo\Entities\Attachment;
 
-use GdImage;
-use Throwable;
+use Espo\Entities\Attachment;
 
 class Image implements EntryPoint
 {
@@ -57,14 +55,28 @@ class Image implements EntryPoint
     /** @var ?string[] */
     protected $allowedFieldList = null;
 
+    private FileStorageManager $fileStorageManager;
+    private FileManager $fileManager;
+    protected Acl $acl;
+    protected EntityManager $entityManager;
+    protected Config $config;
+    protected Metadata $metadata;
+
     public function __construct(
-        private FileStorageManager $fileStorageManager,
-        private FileManager $fileManager,
-        protected Acl $acl,
-        protected EntityManager $entityManager,
-        protected Config $config,
-        protected Metadata $metadata
-    ) {}
+        FileStorageManager $fileStorageManager,
+        FileManager $fileManager,
+        Acl $acl,
+        EntityManager $entityManager,
+        Config $config,
+        Metadata $metadata
+    ) {
+        $this->fileStorageManager = $fileStorageManager;
+        $this->fileManager = $fileManager;
+        $this->acl = $acl;
+        $this->entityManager = $entityManager;
+        $this->config = $config;
+        $this->metadata = $metadata;
+    }
 
     public function run(Request $request, Response $response): void
     {
@@ -75,7 +87,7 @@ class Image implements EntryPoint
             throw new BadRequest();
         }
 
-        $this->show($response, $id, $size);
+        $this->show($response, $id, $size, false);
     }
 
     /**
@@ -100,7 +112,7 @@ class Image implements EntryPoint
         $fileType = $attachment->getType();
 
         if (!in_array($fileType, $this->getAllowedFileTypeList())) {
-            throw new ForbiddenSilent("Not allowed file type '$fileType'.");
+            throw new ForbiddenSilent("Not allowed file type '{$fileType}'.");
         }
 
         if ($this->allowedRelatedTypeList) {
@@ -115,26 +127,22 @@ class Image implements EntryPoint
             }
         }
 
-        $fileSize = 0;
-        $fileName = $attachment->getName();
-
         $toResize = $size && in_array($fileType, $this->getResizableFileTypeList());
 
         if ($toResize) {
+            $fileName = $size . '-' . $attachment->getName();
+
             $contents = $this->getThumbContents($attachment, $size);
 
-            if ($contents) {
-                $fileName = $size . '-' . $attachment->getName();
-                $fileSize = strlen($contents);
+            $fileSize = strlen($contents);
 
-                $response->writeBody($contents);
-            } else {
-                $toResize = false;
-            }
+            $response->writeBody($contents);
         }
+        else {
+            $fileName = $attachment->getName();
 
-        if (!$toResize) {
             $stream = $this->fileStorageManager->getStream($attachment);
+
             $fileSize = $stream->getSize() ?? $this->fileStorageManager->getSize($attachment);
 
             $response->setBody($stream);
@@ -156,7 +164,7 @@ class Image implements EntryPoint
      * @throws Error
      * @throws NotFound
      */
-    private function getThumbContents(Attachment $attachment, string $size): ?string
+    private function getThumbContents(Attachment $attachment, string $size): string
     {
         if (!array_key_exists($size, $this->getSizes())) {
             throw new Error("Bad size.");
@@ -166,7 +174,7 @@ class Image implements EntryPoint
 
         $sourceId = $attachment->getSourceId();
 
-        $cacheFilePath = "data/upload/thumbs/{$sourceId}_$size";
+        $cacheFilePath = "data/upload/thumbs/{$sourceId}_{$size}";
 
         if ($useCache && $this->fileManager->isFile($cacheFilePath)) {
             return $this->fileManager->getContents($cacheFilePath);
@@ -182,30 +190,26 @@ class Image implements EntryPoint
 
         $targetImage = $this->createThumbImage($filePath, $fileType, $size);
 
-        if (!$targetImage) {
-            return null;
-        }
-
         ob_start();
 
         switch ($fileType) {
             case 'image/jpeg':
-                imagejpeg($targetImage);
+                imagejpeg($targetImage); /** @phpstan-ignore-line */
 
                 break;
 
             case 'image/png':
-                imagepng($targetImage);
+                imagepng($targetImage); /** @phpstan-ignore-line */
 
                 break;
 
             case 'image/gif':
-                imagegif($targetImage);
+                imagegif($targetImage); /** @phpstan-ignore-line */
 
                 break;
 
             case 'image/webp':
-                imagewebp($targetImage);
+                imagewebp($targetImage); /** @phpstan-ignore-line */
 
                 break;
         }
@@ -214,7 +218,7 @@ class Image implements EntryPoint
 
         ob_end_clean();
 
-        imagedestroy($targetImage);
+        imagedestroy($targetImage); /** @phpstan-ignore-line */
 
         if ($useCache) {
             $this->fileManager->putContents($cacheFilePath, $contents);
@@ -224,17 +228,19 @@ class Image implements EntryPoint
     }
 
     /**
+     * @return \GdImage
+     * @phpstan-ignore-next-line
      * @throws Error
      */
-    private function createThumbImage(string $filePath, string $fileType, string $size): ?GdImage
+    private function createThumbImage(string $filePath, string $fileType, string $size)
     {
         if (!is_array(getimagesize($filePath))) {
             throw new Error();
         }
 
-        [$originalWidth, $originalHeight] = getimagesize($filePath);
+        list($originalWidth, $originalHeight) = getimagesize($filePath);
 
-        [$width, $height] = $this->getSizes()[$size];
+        list($width, $height) = $this->getSizes()[$size];
 
         if ($originalWidth <= $width && $originalHeight <= $height) {
             $targetWidth = $originalWidth;
@@ -243,71 +249,49 @@ class Image implements EntryPoint
         else {
             if ($originalWidth > $originalHeight) {
                 $targetWidth = $width;
-                $targetHeight = (int) ($originalHeight / ($originalWidth / $width));
+                $targetHeight = $originalHeight / ($originalWidth / $width);
 
                 if ($targetHeight > $height) {
                     $targetHeight = $height;
-                    $targetWidth = (int) ($originalWidth / ($originalHeight / $height));
+                    $targetWidth = $originalWidth / ($originalHeight / $height);
                 }
             } else {
                 $targetHeight = $height;
-                $targetWidth = (int) ($originalWidth / ($originalHeight / $height));
+                $targetWidth = $originalWidth / ($originalHeight / $height);
 
                 if ($targetWidth > $width) {
                     $targetWidth = $width;
-                    $targetHeight = (int) ($originalHeight / ($originalWidth / $width));
+                    $targetHeight = $originalHeight / ($originalWidth / $width);
                 }
             }
         }
 
         $targetImage = imagecreatetruecolor($targetWidth, $targetHeight);
 
-        if ($targetImage === false) {
-            return null;
-        }
-
         switch ($fileType) {
             case 'image/jpeg':
                 $sourceImage = imagecreatefromjpeg($filePath);
 
-                if ($sourceImage === false) {
-                    return null;
-                }
-
-                $this->resample(
-                    $targetImage,
-                    $sourceImage,
-                    $targetWidth,
-                    $targetHeight,
-                    $originalWidth,
-                    $originalHeight
+                imagecopyresampled(
+                    $targetImage, $sourceImage, 0, 0, 0, 0, /** @phpstan-ignore-line */
+                    $targetWidth, $targetHeight, $originalWidth, $originalHeight
                 );
-
                 break;
 
             case 'image/png':
                 $sourceImage = imagecreatefrompng($filePath);
 
-                if ($sourceImage === false) {
-                    return null;
-                }
+                imagealphablending($targetImage, false); /** @phpstan-ignore-line */
+                imagesavealpha($targetImage, true); /** @phpstan-ignore-line */
 
-                imagealphablending($targetImage, false);
-                imagesavealpha($targetImage, true);
+                $transparent = imagecolorallocatealpha($targetImage, 255, 255, 255, 127); /** @phpstan-ignore-line */
 
-                $transparent = imagecolorallocatealpha($targetImage, 255, 255, 255, 127);
+                /** @phpstan-ignore-next-line */
+                imagefilledrectangle($targetImage, 0, 0, $targetWidth, $targetHeight, $transparent);
 
-                if ($transparent !== false) {
-                    imagefilledrectangle($targetImage, 0, 0, $targetWidth, $targetHeight, $transparent);
-                }
-
-                $this->resample(
-                    $targetImage,
-                    $sourceImage,
-                    $targetWidth,
-                    $targetHeight,
-                    $originalWidth,
-                    $originalHeight
+                imagecopyresampled(
+                    $targetImage, $sourceImage, 0, 0, 0, 0, /** @phpstan-ignore-line */
+                    $targetWidth, $targetHeight, $originalWidth, $originalHeight
                 );
 
                 break;
@@ -315,50 +299,29 @@ class Image implements EntryPoint
             case 'image/gif':
                 $sourceImage = imagecreatefromgif($filePath);
 
-                if ($sourceImage === false) {
-                    return null;
-                }
-
-                $this->resample(
-                    $targetImage,
-                    $sourceImage,
-                    $targetWidth,
-                    $targetHeight,
-                    $originalWidth,
-                    $originalHeight
+                imagecopyresampled(
+                    $targetImage, $sourceImage, 0, 0, 0, 0, /** @phpstan-ignore-line */
+                    $targetWidth, $targetHeight, $originalWidth, $originalHeight
                 );
 
                 break;
 
             case 'image/webp':
-                try {
-                    $sourceImage = imagecreatefromwebp($filePath);
-                }
-                catch (Throwable) {
-                    return null;
-                }
+                $sourceImage = imagecreatefromwebp($filePath);
 
-                if ($sourceImage === false) {
-                    return null;
-                }
-
-                $this->resample(
-                    $targetImage,
-                    $sourceImage,
-                    $targetWidth,
-                    $targetHeight,
-                    $originalWidth,
-                    $originalHeight
+                imagecopyresampled(
+                    $targetImage, $sourceImage, 0, 0, 0, 0, /** @phpstan-ignore-line */
+                    $targetWidth, $targetHeight, $originalWidth, $originalHeight
                 );
 
                 break;
         }
 
         if (in_array($fileType, $this->getFixOrientationFileTypeList())) {
-            $targetImage = $this->fixOrientation($targetImage, $filePath);
+            $targetImage = $this->fixOrientation($targetImage, $filePath); /** @phpstan-ignore-line */
         }
 
-        return $targetImage;
+        return $targetImage; /** @phpstan-ignore-line */
     }
 
     /**
@@ -376,16 +339,22 @@ class Image implements EntryPoint
         return $data['Orientation'] ?? null;
     }
 
-    private function fixOrientation(GdImage $targetImage, string $filePath): GdImage
+    /**
+     * @param \GdImage $targetImage
+     * @return \GdImage
+     * @phpstan-ignore-next-line
+     */
+    private function fixOrientation($targetImage, string $filePath)
     {
         $orientation = $this->getOrientation($filePath);
 
         if ($orientation) {
             $angle = array_values([0, 0, 0, 180, 0, 0, -90, 0, 90])[$orientation];
 
-            $targetImage = imagerotate($targetImage, $angle, 0) ?: $targetImage;
+            $targetImage = imagerotate($targetImage, $angle, 0) ?: $targetImage; /** @phpstan-ignore-line */
         }
 
+        /** @phpstan-ignore-next-line */
         return $targetImage;
     }
 
@@ -425,22 +394,5 @@ class Image implements EntryPoint
     {
         /** @var AttachmentRepository */
         return $this->entityManager->getRepository(Attachment::ENTITY_TYPE);
-    }
-
-    private function resample(
-        GdImage $targetImage,
-        GdImage $sourceImage,
-        int $targetWidth,
-        int $targetHeight,
-        int $originalWidth,
-        int $originalHeight
-    ): void {
-
-        imagecopyresampled(
-            $targetImage,
-            $sourceImage,
-            0, 0, 0, 0,
-            $targetWidth, $targetHeight, $originalWidth, $originalHeight
-        );
     }
 }

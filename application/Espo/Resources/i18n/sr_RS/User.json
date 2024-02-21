@@ -25,8 +25,7 @@
     "gender": "pol",
     "position": "Pozicija u timu",
     "ipAddress": "IP adresa",
-    "passwordPreview": "Pregled lozinke",
-    "isSuperAdmin": "Je Super Admin"
+    "passwordPreview": "Pregled lozinke"
   },
   "links": {
     "teams": "Timovi",

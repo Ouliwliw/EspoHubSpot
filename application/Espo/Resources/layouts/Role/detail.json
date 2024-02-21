@@ -24,11 +24,6 @@
                 {"name": "massUpdatePermission"},
                 {"name": "followerManagementPermission"},
                 {"name": "messagePermission"}
-            ],
-            [
-                {"name": "auditPermission"},
-                false,
-                false
             ]
         ]
     }

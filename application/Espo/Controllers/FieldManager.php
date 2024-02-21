@@ -38,9 +38,6 @@ use Espo\Core\Exceptions\Conflict;
 use Espo\Core\Exceptions\Error;
 use Espo\Core\Exceptions\Forbidden;
 
-/**
- * @noinspection PhpUnused
- */
 class FieldManager
 {
     /**
@@ -100,18 +97,18 @@ class FieldManager
 
         $fieldManagerTool = $this->fieldManagerTool;
 
-        $name = $fieldManagerTool->create($scope, $name, get_object_vars($data));
+        $fieldManagerTool->create($scope, $name, get_object_vars($data));
 
         try {
             $this->dataManager->rebuild([$scope]);
         }
         catch (Error $e) {
-            $fieldManagerTool->delete($scope, $name);
+            $fieldManagerTool->delete($scope, $data->name);
 
             throw new Error($e->getMessage());
         }
 
-        return $fieldManagerTool->read($scope, $name);
+        return $fieldManagerTool->read($scope, $data->name);
     }
 
     /**
@@ -166,12 +163,12 @@ class FieldManager
             throw new BadRequest();
         }
 
-        $this->fieldManagerTool->delete($scope, $name);
+        $result = $this->fieldManagerTool->delete($scope, $name);
 
         $this->dataManager->clearCache();
         $this->dataManager->rebuildMetadata();
 
-        return true;
+        return $result;
     }
 
     /**

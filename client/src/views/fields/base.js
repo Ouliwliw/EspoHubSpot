@@ -36,7 +36,6 @@ import $ from 'jquery';
  * A base field view. Can be in different modes. Each mode uses a separate template.
  *
  * @todo Document events.
- * @template TParams
  */
 class BaseFieldView extends View {
 
@@ -185,7 +184,7 @@ class BaseFieldView extends View {
     /**
      * Field params.
      *
-     * @type {TParams & module:views/fields/base~params & Object.<string, *>}
+     * @type {Object.<string,*>}
      */
     params = null
 
@@ -202,6 +201,11 @@ class BaseFieldView extends View {
      * @type {Object.<string,*>|null}
      */
     searchParams = null
+
+    /**
+     * @private
+     */
+    _timeout = null
 
     /**
      * Inline edit disabled.
@@ -329,16 +333,16 @@ class BaseFieldView extends View {
     /**
      * Get a cell element. Available only after the view is  rendered.
      *
-     * @private
      * @returns {JQuery}
      */
     get$cell() {
         return this.$el.parent();
     }
 
-    // noinspection JSUnusedGlobalSymbols
     /**
-     * @deprecated
+     * Get a cell element. Available only after the view is  rendered.
+     *
+     * @deprecated Use `get$cell`.
      * @returns {JQuery}
      */
     getCellElement() {
@@ -477,7 +481,7 @@ class BaseFieldView extends View {
      */
     hide() {
         this.$el.addClass('hidden');
-        const $cell = this.get$cell();
+        let $cell = this.get$cell();
 
         $cell.children('label').addClass('hidden');
         $cell.addClass('hidden-cell');
@@ -489,7 +493,7 @@ class BaseFieldView extends View {
     show() {
         this.$el.removeClass('hidden');
 
-        const $cell = this.get$cell();
+        let $cell = this.get$cell();
 
         $cell.children('label').removeClass('hidden');
         $cell.removeClass('hidden-cell');
@@ -497,7 +501,7 @@ class BaseFieldView extends View {
 
     /** @inheritDoc */
     data() {
-        const data = {
+        let data = {
             scope: this.model.entityType || this.model.name,
             name: this.name,
             defs: this.defs,
@@ -597,12 +601,12 @@ class BaseFieldView extends View {
      * @returns {Promise}
      */
     setMode(mode) {
-        const modeIsChanged = this.mode !== mode && this.mode;
-        const modeBefore = this.mode;
+        let modeIsChanged = this.mode !== mode && this.mode;
+        let modeBefore = this.mode;
 
         this.mode = mode;
 
-        const property = mode + 'Template';
+        let property = mode + 'Template';
 
         if (!(property in this)) {
             this[property] = 'fields/' + Espo.Utils.camelCaseToHyphen(this.type) + '/' + this.mode;
@@ -612,7 +616,7 @@ class BaseFieldView extends View {
             this.setTemplate(this[property]);
         }
 
-        const contentProperty = mode + 'TemplateContent';
+        let contentProperty = mode + 'TemplateContent';
 
         if (!this._hasTemplateContent) {
             if (contentProperty in this && this[contentProperty] != null) {
@@ -713,7 +717,7 @@ class BaseFieldView extends View {
         }
 
         this.getFieldManager().getParamList(this.type).forEach(d => {
-            const name = d.name;
+            let name = d.name;
 
             if (!(name in this.params)) {
                 this.params[name] = this.model.getFieldParam(this.name, name);
@@ -724,7 +728,7 @@ class BaseFieldView extends View {
             }
         });
 
-        const additionalParamList = ['inlineEditDisabled'];
+        let additionalParamList = ['inlineEditDisabled'];
 
         additionalParamList.forEach((item) => {
             this.params[item] = this.model.getFieldParam(this.name, item) || null;
@@ -783,7 +787,7 @@ class BaseFieldView extends View {
         }
 
         this.on('highlight', () => {
-            const $cell = this.get$cell();
+            let $cell = this.get$cell();
 
             $cell.addClass('highlighted');
             $cell.addClass('transition');
@@ -798,7 +802,7 @@ class BaseFieldView extends View {
         });
 
         this.on('invalid', () => {
-            const $cell = this.get$cell();
+            let $cell = this.get$cell();
 
             $cell.addClass('has-error');
 
@@ -829,7 +833,7 @@ class BaseFieldView extends View {
             }
 
             if (this.isSearchMode()) {
-                const $searchType = this.$el.find('select.search-type');
+                let $searchType = this.$el.find('select.search-type');
 
                 if ($searchType.length) {
                     Select.init($searchType, {matchAnyWord: true});
@@ -857,7 +861,7 @@ class BaseFieldView extends View {
 
                 let changed = false;
 
-                for (const attribute of this.getAttributeList()) {
+                for (let attribute of this.getAttributeList()) {
                     if (model.hasChanged(attribute)) {
                         changed = true;
 
@@ -877,7 +881,7 @@ class BaseFieldView extends View {
                     return;
                 }
 
-                const reRender = () => {
+                let reRender = () => {
                     if (!this.isRendered() && !this.isBeingRendered()) {
                         return;
                     }
@@ -901,7 +905,7 @@ class BaseFieldView extends View {
                     return;
                 }
 
-                const promise = this.prepare();
+                let promise = this.prepare();
 
                 if (promise) {
                     promise.then(() => reRender());
@@ -913,7 +917,7 @@ class BaseFieldView extends View {
             });
 
             this.listenTo(this, 'change', () => {
-                const attributes = this.fetch();
+                let attributes = this.fetch();
 
                 this.model.set(attributes, {ui: true});
             });
@@ -943,7 +947,7 @@ class BaseFieldView extends View {
                     $('<span>').addClass('fas fa-info-circle')
                 );
 
-            const $label = this.getLabelElement();
+            let $label = this.getLabelElement();
 
             $label.append(' ');
 
@@ -952,7 +956,7 @@ class BaseFieldView extends View {
             let tooltipText = this.options.tooltipText || this.tooltipText;
 
             if (!tooltipText && typeof this.tooltip === 'string') {
-                const [scope, field] = this.tooltip.includes('.') ?
+                let [scope, field] = this.tooltip.includes('.') ?
                     this.tooltip.split('.') :
                     [this.entityType, this.tooltip];
 
@@ -977,11 +981,11 @@ class BaseFieldView extends View {
      * @private
      */
     showRequiredSign() {
-        const $label = this.getLabelElement();
+        let $label = this.getLabelElement();
         let $sign = $label.find('span.required-sign');
 
         if ($label.length && !$sign.length) {
-            const $text = $label.find('span.label-text');
+            let $text = $label.find('span.label-text');
 
             $('<span class="required-sign"> *</span>').insertAfter($text);
             $sign = $label.find('span.required-sign');
@@ -996,8 +1000,8 @@ class BaseFieldView extends View {
      * @private
      */
     hideRequiredSign() {
-        const $label = this.getLabelElement();
-        const $sign = $label.find('span.required-sign');
+        let $label = this.getLabelElement();
+        let $sign = $label.find('span.required-sign');
 
         $sign.hide();
     }
@@ -1047,9 +1051,9 @@ class BaseFieldView extends View {
      * @internal
      */
     initInlineEdit() {
-        const $cell = this.get$cell();
+        let $cell = this.get$cell();
 
-        const $editLink = $('<a>')
+        let $editLink = $('<a>')
             .attr('role', 'button')
             .addClass('pull-right inline-edit-link hidden')
             .append(
@@ -1218,15 +1222,15 @@ class BaseFieldView extends View {
 
         let data = this.fetch();
 
-        const model = this.model;
-        const prev = this.initialAttributes;
+        let model = this.model;
+        let prev = this.initialAttributes;
 
         model.set(data, {silent: true});
         data = model.attributes;
 
         let attrs = false;
 
-        for (const attr in data) {
+        for (let attr in data) {
             if (_.isEqual(prev[attr], data[attr])) {
                 continue;
             }
@@ -1238,7 +1242,7 @@ class BaseFieldView extends View {
             this.inlineEditClose();
         }
 
-        const isInvalid = this.validateCallback ? this.validateCallback() : this.validate();
+        let isInvalid = this.validateCallback ? this.validateCallback() : this.validate();
 
         if (isInvalid) {
             Espo.Ui.error(this.translate('Not valid'));
@@ -1277,7 +1281,7 @@ class BaseFieldView extends View {
      * @public
      */
     removeInlineEditLinks() {
-        const $cell = this.get$cell();
+        let $cell = this.get$cell();
 
         $cell.find('.inline-save-link').remove();
         $cell.find('.inline-cancel-link').remove();
@@ -1288,16 +1292,16 @@ class BaseFieldView extends View {
      * @private
      */
     addInlineEditLinks() {
-        const $cell = this.get$cell();
+        let $cell = this.get$cell();
 
-        const $saveLink = $('<a>')
+        let $saveLink = $('<a>')
             .attr('role', 'button')
             .attr('tabindex', '-1')
             .addClass('pull-right inline-save-link')
             .attr('title', 'Ctrl+Enter')
             .text(this.translate('Update'));
 
-        const $cancelLink = $('<a>')
+        let $cancelLink = $('<a>')
             .attr('role', 'button')
             .attr('tabindex', '-1')
             .addClass('pull-right inline-cancel-link')
@@ -1348,7 +1352,7 @@ class BaseFieldView extends View {
             this.model.set(this.initialAttributes, {skipReRenderInEditMode: true});
         }
 
-        const promise = this.setDetailMode()
+        let promise = this.setDetailMode()
             .then(() => this.reRender(true))
             .then(() => this.removeInlineEditLinks());
 
@@ -1369,12 +1373,12 @@ class BaseFieldView extends View {
 
         this._isInlineEditMode = true;
 
-        const promise = this.setEditMode()
+        let promise = this.setEditMode()
             .then(() => this.reRender(true))
             .then(() => this.addInlineEditLinks())
             .then(() => {
                 this.$el.on('keydown.inline-edit', e => {
-                    const key = Espo.Utils.getKeyFromKeyEvent(e);
+                    let key = Espo.Utils.getKeyFromKeyEvent(e);
 
                     if (key === 'Control+Enter') {
                         e.stopPropagation();
@@ -1419,7 +1423,7 @@ class BaseFieldView extends View {
      * @protected
      */
     focusOnInlineEdit() {
-        const $element = this.$element && this.$element.length ?
+        let $element = this.$element && this.$element.length ?
             this.$element :
             this.$el.find('.form-control').first();
 
@@ -1490,9 +1494,9 @@ class BaseFieldView extends View {
             return;
         }
 
-        if (this._popoverMap.has(element)) {
+        if (this._popoverMap[element]) {
             try {
-                this._popoverMap.get(element).detach();
+                this._popoverMap[element].detach();
             }
             catch (e) {}
         }
@@ -1508,23 +1512,17 @@ class BaseFieldView extends View {
 
         popover.show();
 
-        this._popoverMap.set(element, popover);
+        this._popoverMap[element] = popover;
 
         $el.closest('.field').one('mousedown click', () => popover.destroy());
 
         this.once('render remove', () => popover.destroy());
 
-        this._timeoutMap = this._timeoutMap || new WeakMap();
-
-        if (this._timeoutMap.has(element)) {
-            clearTimeout(this._timeoutMap.get(element));
+        if (this._timeout) {
+            clearTimeout(this._timeout);
         }
 
-        const timeout = setTimeout(() => {
-            popover.destroy();
-        }, this.VALIDATION_POPOVER_TIMEOUT);
-
-        this._timeoutMap.set(element, timeout);
+        this._timeout = setTimeout(() => popover.destroy(), this.VALIDATION_POPOVER_TIMEOUT);
     }
 
     /**
@@ -1535,8 +1533,8 @@ class BaseFieldView extends View {
     validate() {
         this.lastValidationMessage = null;
 
-        for (const i in this.validations) {
-            const method = 'validate' + Espo.Utils.upperCaseFirst(this.validations[i]);
+        for (let i in this.validations) {
+            let method = 'validate' + Espo.Utils.upperCaseFirst(this.validations[i]);
 
             if (this[method].call(this)) {
                 this.trigger('invalid');
@@ -1565,7 +1563,7 @@ class BaseFieldView extends View {
     validateRequired() {
         if (this.isRequired()) {
             if (this.model.get(this.name) === '' || this.model.get(this.name) === null) {
-                const msg = this.translate('fieldIsRequired', 'messages')
+                let msg = this.translate('fieldIsRequired', 'messages')
                     .replace('{field}', this.getLabelText());
 
                 this.showValidationMessage(msg);
@@ -1602,7 +1600,7 @@ class BaseFieldView extends View {
             return {};
         }
 
-        const data = {};
+        let data = {};
 
         data[this.name] = this.$element.val().trim();
 
@@ -1615,7 +1613,7 @@ class BaseFieldView extends View {
      * @return {Object.<string, *>|null}
      */
     fetchSearch() {
-        const value = this.$element.val().toString().trim();
+        let value = this.$element.val().toString().trim();
 
         if (value) {
             return {

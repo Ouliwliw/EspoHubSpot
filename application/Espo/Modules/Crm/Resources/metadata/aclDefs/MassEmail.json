@@ -1,6 +1,3 @@
 {
-    "ownershipCheckerClassName": "Espo\\Modules\\Crm\\Classes\\Acl\\MassEmail\\OwnershipChecker",
-    "linkCheckerClassNameMap": {
-        "inboundEmail": "Espo\\Modules\\Crm\\Classes\\Acl\\MassEmail\\LinkCheckers\\InboundEmailLinkChecker"
-    }
+    "ownershipCheckerClassName": "Espo\\Modules\\Crm\\Classes\\Acl\\MassEmail\\OwnershipChecker"
 }

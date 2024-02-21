@@ -47,7 +47,7 @@ class TabListFieldView extends ArrayFieldView {
         });
 
         this.events['click [data-action="editGroup"]'] = e => {
-            const id = $(e.currentTarget).parent().data('value').toString();
+            let id = $(e.currentTarget).parent().data('value').toString();
 
             this.editGroup(id);
         };
@@ -96,7 +96,7 @@ class TabListFieldView extends ArrayFieldView {
                 value.id = this.generateItemId();
             }
 
-            const html = this.getItemHtml(value);
+            let html = this.getItemHtml(value);
 
             this.$list.append(html);
             this.selected.push(value);
@@ -110,7 +110,7 @@ class TabListFieldView extends ArrayFieldView {
     }
 
     removeValue(value) {
-        const index = this.getGroupIndexById(value);
+        let index = this.getGroupIndexById(value);
 
         if (~index) {
             this.$list.children('[data-value="' + value + '"]').remove();
@@ -133,9 +133,9 @@ class TabListFieldView extends ArrayFieldView {
     }
 
     getGroupItemHtml(item) {
-        const label = item.text || '';
+        let label = item.text || '';
 
-        const $label = $('<span>').text(label);
+        let $label = $('<span>').text(label);
 
         let $icon = null;
 
@@ -145,18 +145,12 @@ class TabListFieldView extends ArrayFieldView {
                 .addClass('text-muted')
         }
 
-        if (item.type === 'url') {
-            $icon = $('<span>')
-                .addClass('fas fa-link fa-sm')
-                .addClass('text-muted')
-        }
-
         if (item.type === 'divider') {
             $label.addClass('text-soft')
                 .addClass('text-italic');
         }
 
-        const $item = $('<span>').append($label);
+        let $item = $('<span>').append($label);
 
         if ($icon) {
             $item.prepend(
@@ -195,11 +189,11 @@ class TabListFieldView extends ArrayFieldView {
     }
 
     fetchFromDom() {
-        const selected = [];
+        let selected = [];
 
         this.$el.find('.list-group .list-group-item').each((i, el) => {
-            const value = $(el).data('value').toString();
-            const groupItem = this.getGroupValueById(value);
+            let value = $(el).data('value').toString();
+            let groupItem = this.getGroupValueById(value);
 
             if (groupItem) {
                 selected.push(groupItem);
@@ -215,7 +209,7 @@ class TabListFieldView extends ArrayFieldView {
 
     getGroupIndexById(id) {
         for (let i = 0; i < this.selected.length; i++) {
-            const item = this.selected[i];
+            let item = this.selected[i];
 
             if (item && typeof item === 'object') {
                 if (item.id === id) {
@@ -228,7 +222,7 @@ class TabListFieldView extends ArrayFieldView {
     }
 
     getGroupValueById(id) {
-        for (const item of this.selected) {
+        for (let item of this.selected) {
             if (item && typeof item === 'object') {
                 if (item.id === id) {
                     return item;
@@ -240,24 +234,20 @@ class TabListFieldView extends ArrayFieldView {
     }
 
     editGroup(id) {
-        const item = Espo.Utils.cloneDeep(this.getGroupValueById(id) || {});
+        let item = Espo.Utils.cloneDeep(this.getGroupValueById(id) || {});
 
-        const index = this.getGroupIndexById(id);
-        const tabList = Espo.Utils.cloneDeep(this.selected);
+        let index = this.getGroupIndexById(id);
+        let tabList = Espo.Utils.cloneDeep(this.selected);
 
-        const view = {
-            divider: 'views/settings/modals/edit-tab-divider',
-            url: 'views/settings/modals/edit-tab-url'
-        }[item.type] ||  'views/settings/modals/edit-tab-group';
+        let view = item.type === 'divider' ?
+            'views/settings/modals/edit-tab-divider' :
+            'views/settings/modals/edit-tab-group';
 
-        this.createView('dialog', view, {
-            itemData: item,
-            parentType: this.model.entityType,
-        }, view => {
+        this.createView('dialog', view, {itemData: item}, view => {
             view.render();
 
             this.listenToOnce(view, 'apply', itemData => {
-                for (const a in itemData) {
+                for (let a in itemData) {
                     tabList[index][a] = itemData[a];
                 }
 

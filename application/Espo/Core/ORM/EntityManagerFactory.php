@@ -115,18 +115,12 @@ class EntityManagerFactory
             BindingContainerBuilder::create()
                 ->bindInstance(PDOProvider::class, $pdoProvider)
                 ->bindInstance(Metadata::class, $metadata)
-                ->bindInstance(EventDispatcher::class, $this->eventDispatcher)
                 ->bindInstance(EntityFactoryInterface::class, $entityFactory)
                 ->bindInstance(FunctionConverterFactoryInterface::class, $functionConverterFactory)
                 ->build()
         );
 
-        $sqlExecutor = new DefaultSqlExecutor(
-            $pdoProvider,
-            $this->log,
-            $this->configDataProvider->logSql(),
-            $this->configDataProvider->logSql()
-        );
+        $sqlExecutor = new DefaultSqlExecutor($pdoProvider, $this->log, $this->configDataProvider->logSql());
 
         $binding = BindingContainerBuilder::create()
             ->bindInstance(DatabaseParams::class, $databaseParams)

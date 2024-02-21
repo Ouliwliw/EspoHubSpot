@@ -75,17 +75,10 @@ class RecordController extends Controller {
         this.handleCheckAccess('read');
     }
 
-    /**
-     * @param {Record} options
-     */
     actionList(options) {
         const isReturn = options.isReturn || this.getRouter().backProcessed;
 
-        let key = this.name + 'List';
-
-        if (options.primaryFilter) {
-            key += 'Filter' + Espo.Utils.upperCaseFirst(options.primaryFilter);
-        }
+        const key = this.name + 'List';
 
         if (!isReturn && this.getStoredMainView(key)) {
             this.clearStoredMainView(key);

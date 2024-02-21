@@ -26,180 +26,177 @@
  * these Appropriate Legal Notices must retain the display of the "EspoCRM" word.
  ************************************************************************/
 
-import View from 'view';
+define('views/admin/field-manager/list', ['view'], function (Dep) {
 
-class FieldManagerListView extends View {
+    return Dep.extend({
 
-    template = 'admin/field-manager/list'
+        template: 'admin/field-manager/list',
 
-    data() {
-        return {
-            scope: this.scope,
-            fieldDefsArray: this.fieldDefsArray,
-            typeList: this.typeList,
-            hasAddField: this.hasAddField,
-        };
-    }
-
-    events = {
-        /** @this FieldManagerListView */
-        'click [data-action="removeField"]': function (e) {
-            const field = $(e.currentTarget).data('name');
-
-            this.removeField(field);
+        data: function () {
+            return {
+                scope: this.scope,
+                fieldDefsArray: this.fieldDefsArray,
+                typeList: this.typeList,
+                hasAddField: this.hasAddField,
+            };
         },
-        /** @this FieldManagerListView */
-        'keyup input[data-name="quick-search"]': function (e) {
-            this.processQuickSearch(e.currentTarget.value);
+
+        events: {
+            'click [data-action="removeField"]': function (e) {
+                var field = $(e.currentTarget).data('name');
+
+                this.removeField(field);
+            },
+            'keyup input[data-name="quick-search"]': function (e) {
+                this.processQuickSearch(e.currentTarget.value);
+            },
         },
-    }
 
-    setup() {
-        this.scope = this.options.scope;
+        setup: function () {
+            this.scope = this.options.scope;
 
-        this.isCustomizable =
-            !!this.getMetadata().get(`scopes.${this.scope}.customizable`) &&
-            this.getMetadata().get(`scopes.${this.scope}.entityManager.fields`) !== false;
+            this.isCustomizable =
+                !!this.getMetadata().get(`scopes.${this.scope}.customizable`) &&
+                this.getMetadata().get(`scopes.${this.scope}.entityManager.fields`) !== false;
 
-        this.hasAddField = true;
+            this.hasAddField = true;
 
-        const entityManagerData = this.getMetadata().get(['scopes', this.scope, 'entityManager']) || {};
+            let entityManagerData = this.getMetadata().get(['scopes', this.scope, 'entityManager']) || {};
 
-        if ('addField' in entityManagerData) {
-            this.hasAddField = entityManagerData.addField;
-        }
+            if ('addField' in entityManagerData) {
+                this.hasAddField = entityManagerData.addField;
+            }
 
-        this.wait(
-            this.buildFieldDefs()
-        );
-    }
+            this.wait(
+                this.buildFieldDefs()
+            );
+        },
 
-    afterRender() {
-        this.$noData = this.$el.find('.no-data');
+        afterRender: function () {
+            this.$noData = this.$el.find('.no-data');
 
-        this.$el.find('input[data-name="quick-search"]').focus();
-    }
+            this.$el.find('input[data-name="quick-search"]').focus();
+        },
 
-    buildFieldDefs() {
-        return this.getModelFactory().create(this.scope).then(model => {
-            this.fields = model.defs.fields;
+        buildFieldDefs: function () {
+            return this.getModelFactory().create(this.scope).then(model => {
+                this.fields = model.defs.fields;
 
-            this.fieldList = Object.keys(this.fields).sort();
-            this.fieldDefsArray = [];
+                this.fieldList = Object.keys(this.fields).sort();
+                this.fieldDefsArray = [];
 
-            this.fieldList.forEach(field => {
-                const defs = /** @type {Record} */this.fields[field];
+                this.fieldList.forEach(field => {
+                    let defs = this.fields[field];
 
-                this.fieldDefsArray.push({
-                    name: field,
-                    isCustom: defs.isCustom || false,
-                    type: defs.type,
-                    label: this.translate(field, 'fields', this.scope),
-                    isEditable: !defs.customizationDisabled && this.isCustomizable,
+                    this.fieldDefsArray.push({
+                        name: field,
+                        isCustom: defs.isCustom || false,
+                        type: defs.type,
+                        label: this.translate(field, 'fields', this.scope),
+                        isEditable: !defs.customizationDisabled && this.isCustomizable,
+                    });
                 });
             });
-        });
-    }
+        },
 
-    removeField(field) {
-        const msg = this.translate('confirmRemove', 'messages', 'FieldManager')
-            .replace('{field}', field);
+        removeField: function (field) {
+            this.confirm(this.translate('confirmation', 'messages'), () => {
+                Espo.Ui.notify(' ... ');
 
-        this.confirm(msg, () => {
-            Espo.Ui.notify(' ... ');
+                Espo.Ajax.request('Admin/fieldManager/' + this.scope + '/' + field, 'delete').then(() => {
+                    Espo.Ui.success(this.translate('Removed'));
 
-            Espo.Ajax.deleteRequest('Admin/fieldManager/' + this.scope + '/' + field).then(() => {
-                Espo.Ui.success(this.translate('Removed'));
+                    this.$el.find('tr[data-name="'+field+'"]').remove();
+                    var data = this.getMetadata().data;
 
-                this.$el.find(`tr[data-name="${field}"]`).remove();
+                    delete data['entityDefs'][this.scope]['fields'][field];
 
-                this.getMetadata()
-                    .loadSkipCache()
-                    .then(() => {
+                    this.getMetadata().loadSkipCache().then(() =>
                         this.buildFieldDefs()
                             .then(() => {
                                 this.broadcastUpdate();
 
                                 return this.reRender();
                             })
-                            .then(() => Espo.Ui.success(this.translate('Removed')))
-                    });
-            });
-        });
-    }
-
-    broadcastUpdate() {
-        this.getHelper().broadcastChannel.postMessage('update:metadata');
-        this.getHelper().broadcastChannel.postMessage('update:language');
-    }
-
-    processQuickSearch(text) {
-        text = text.trim();
-
-        const $noData = this.$noData;
-
-        $noData.addClass('hidden');
-
-        if (!text) {
-            this.$el.find('table tr.field-row').removeClass('hidden');
-
-            return;
-        }
-
-        const matchedList = [];
-
-        const lowerCaseText = text.toLowerCase();
-
-        this.fieldDefsArray.forEach(item => {
-            let matched = false;
-
-            if (
-                item.label.toLowerCase().indexOf(lowerCaseText) === 0 ||
-                item.name.toLowerCase().indexOf(lowerCaseText) === 0
-            ) {
-                matched = true;
-            }
-
-            if (!matched) {
-                const wordList = item.label.split(' ')
-                    .concat(
-                        item.label.split(' ')
+                            .then(() =>
+                                Espo.Ui.success(this.translate('Removed'))
+                            )
                     );
-
-                wordList.forEach((word) => {
-                    if (word.toLowerCase().indexOf(lowerCaseText) === 0) {
-                        matched = true;
-                    }
                 });
+            });
+        },
+
+        broadcastUpdate: function () {
+            this.getHelper().broadcastChannel.postMessage('update:metadata');
+            this.getHelper().broadcastChannel.postMessage('update:language');
+        },
+
+        processQuickSearch: function (text) {
+            text = text.trim();
+
+            let $noData = this.$noData;
+
+            $noData.addClass('hidden');
+
+            if (!text) {
+                this.$el.find('table tr.field-row').removeClass('hidden');
+
+                return;
             }
 
-            if (matched) {
-                matchedList.push(item.name);
-            }
-        });
+            let matchedList = [];
 
-        if (matchedList.length === 0) {
-            this.$el.find('table tr.field-row').addClass('hidden');
+            let lowerCaseText = text.toLowerCase();
 
-            $noData.removeClass('hidden');
+            this.fieldDefsArray.forEach(item => {
+                let matched = false;
 
-            return;
-        }
-
-        this.fieldDefsArray
-            .map(item => item.name)
-            .forEach(field => {
-                const $row = this.$el.find(`table tr.field-row[data-name="${field}"]`);
-
-                if (!~matchedList.indexOf(field)) {
-                    $row.addClass('hidden');
-
-                    return;
+                if (
+                    item.label.toLowerCase().indexOf(lowerCaseText) === 0 ||
+                    item.name.toLowerCase().indexOf(lowerCaseText) === 0
+                ) {
+                    matched = true;
                 }
 
-                $row.removeClass('hidden');
-            });
-    }
-}
+                if (!matched) {
+                    let wordList = item.label.split(' ')
+                        .concat(
+                            item.label.split(' ')
+                        );
 
-export default FieldManagerListView;
+                    wordList.forEach((word) => {
+                        if (word.toLowerCase().indexOf(lowerCaseText) === 0) {
+                            matched = true;
+                        }
+                    });
+                }
+
+                if (matched) {
+                    matchedList.push(item.name);
+                }
+            });
+
+            if (matchedList.length === 0) {
+                this.$el.find('table tr.field-row').addClass('hidden');
+
+                $noData.removeClass('hidden');
+
+                return;
+            }
+
+            this.fieldDefsArray
+                .map(item => item.name)
+                .forEach(field => {
+                    let $row = this.$el.find(`table tr.field-row[data-name="${field}"]`);
+
+                    if (!~matchedList.indexOf(field)) {
+                        $row.addClass('hidden');
+
+                        return;
+                    }
+
+                    $row.removeClass('hidden');
+                });
+        },
+    });
+});

@@ -42,14 +42,28 @@ use stdClass;
 
 class SalesPipeline
 {
+    private Acl $acl;
+    private Config $config;
+    private Metadata $metadata;
+    private EntityManager $entityManager;
+    private SelectBuilderFactory $selectBuilderFactory;
+    private Util $util;
+
     public function __construct(
-        private Acl $acl,
-        private Config $config,
-        private Metadata $metadata,
-        private EntityManager $entityManager,
-        private SelectBuilderFactory $selectBuilderFactory,
-        private Util $util
-    ) {}
+        Acl $acl,
+        Config $config,
+        Metadata $metadata,
+        EntityManager $entityManager,
+        SelectBuilderFactory $selectBuilderFactory,
+        Util $util
+    ) {
+        $this->acl = $acl;
+        $this->config = $config;
+        $this->metadata = $metadata;
+        $this->entityManager = $entityManager;
+        $this->selectBuilderFactory = $selectBuilderFactory;
+        $this->util = $util;
+    }
 
     /**
      * @throws Forbidden
@@ -64,8 +78,8 @@ class SalesPipeline
             throw new Forbidden();
         }
 
-        if (!$this->acl->checkField(Opportunity::ENTITY_TYPE, 'amount')) {
-            throw new Forbidden("No access to 'amount' field.");
+        if (in_array('amount', $this->acl->getScopeForbiddenAttributeList(Opportunity::ENTITY_TYPE))) {
+            throw new Forbidden();
         }
 
         [$from, $to] = $range->getRange();

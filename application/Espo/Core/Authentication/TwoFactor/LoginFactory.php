@@ -36,8 +36,14 @@ use LogicException;
 
 class LoginFactory
 {
-    public function __construct(private InjectableFactory $injectableFactory, private Metadata $metadata)
-    {}
+    private InjectableFactory $injectableFactory;
+    private Metadata $metadata;
+
+    public function __construct(InjectableFactory $injectableFactory, Metadata $metadata)
+    {
+        $this->injectableFactory = $injectableFactory;
+        $this->metadata = $metadata;
+    }
 
     public function create(string $method): Login
     {
@@ -45,7 +51,7 @@ class LoginFactory
         $className = $this->metadata->get(['app', 'authentication2FAMethods', $method, 'loginClassName']);
 
         if (!$className) {
-            throw new LogicException("No login-class class for '$method'.");
+            throw new LogicException("No login-class class for '{$method}'.");
         }
 
         return $this->injectableFactory->create($className);

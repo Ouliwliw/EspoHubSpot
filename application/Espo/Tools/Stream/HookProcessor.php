@@ -53,8 +53,6 @@ use Espo\Tools\Stream\Jobs\ControlFollowers as ControlFollowersJob;
  */
 class HookProcessor
 {
-    private const OPTION_NO_STREAM = 'noStream';
-
     /** @var array<string, bool> */
     private $hasStreamCache = [];
     /** @var array<string, bool> */
@@ -76,19 +74,13 @@ class HookProcessor
      */
     public function afterSave(Entity $entity, array $options): void
     {
-        $hasStream = $this->checkHasStream($entity->getEntityType());
-
-        if ($hasStream) {
+        if ($this->checkHasStream($entity->getEntityType())) {
             $this->afterSaveStream($entity, $options);
-        }
-
-        if (!$hasStream) {
-            $this->afterSaveNoStream($entity, $options);
         }
 
         if (
             $entity->isNew() &&
-            empty($options[self::OPTION_NO_STREAM]) &&
+            empty($options['noStream']) &&
             empty($options[SaveOption::SILENT]) &&
             $this->metadata->get(['scopes', $entity->getEntityType(), 'object'])
         ) {
@@ -96,7 +88,6 @@ class HookProcessor
         }
     }
 
-    /** @noinspection PhpUnusedParameterInspection */
     public function afterRemove(Entity $entity, RemoveOptions $options): void
     {
         if ($this->checkHasStream($entity->getEntityType())) {
@@ -119,8 +110,8 @@ class HookProcessor
 
         if (!array_key_exists($key, $this->isLinkObservableInStreamCache)) {
             $this->isLinkObservableInStreamCache[$key] =
-                $this->metadata->get(['scopes', $entityType, 'stream']) &&
-                $this->metadata->get(['entityDefs', $entityType, 'links', $link, 'audited']);
+                (bool) $this->metadata->get(['scopes', $entityType, 'stream']) &&
+                (bool) $this->metadata->get(['entityDefs', $entityType, 'links', $link, 'audited']);
         }
 
         return $this->isLinkObservableInStreamCache[$key];
@@ -156,7 +147,6 @@ class HookProcessor
             if ($type === Entity::HAS_MANY) {
                 $this->handleCreateRelatedHasMany($entity, $relation, $notifiedEntityTypeList, $options);
 
-                /** @noinspection PhpUnnecessaryStopStatementInspection */
                 continue;
             }
         }
@@ -381,7 +371,7 @@ class HookProcessor
             $this->service->followEntityMass($entity, $userIdList);
         }
 
-        if (empty($options[self::OPTION_NO_STREAM]) && empty($options[SaveOption::SILENT])) {
+        if (empty($options['noStream']) && empty($options[SaveOption::SILENT])) {
             $this->service->noteCreate($entity, $options);
         }
 
@@ -419,7 +409,7 @@ class HookProcessor
      */
     private function afterSaveStreamNotNew1(CoreEntity $entity, array $options): void
     {
-        if (!empty($options[self::OPTION_NO_STREAM]) || !empty($options[SaveOption::SILENT])) {
+        if (!empty($options['noStream']) || !empty($options[SaveOption::SILENT])) {
             return;
         }
 
@@ -446,6 +436,7 @@ class HookProcessor
             return;
         }
 
+        /** @var string[] $assignedUserIdList */
         $assignedUserIdList = $entity->getLinkMultipleIdList($multipleField);
         $fetchedAssignedUserIdList = $entity->getFetched($multipleField . 'Ids') ?? [];
 
@@ -557,7 +548,7 @@ class HookProcessor
         $foreignLink = $entity->getRelationParam($link, 'foreign');
 
         if (
-            !empty($options[self::OPTION_NO_STREAM]) ||
+            !empty($options['noStream']) ||
             !empty($options[SaveOption::SILENT]) ||
             !$this->metadata->get(['scopes', $entityType, 'object'])
         ) {
@@ -590,7 +581,7 @@ class HookProcessor
         $foreignLink = $entity->getRelationParam($link, 'foreign');
 
         if (
-            !empty($options[self::OPTION_NO_STREAM]) ||
+            !empty($options['noStream']) ||
             !empty($options[SaveOption::SILENT]) ||
             !$this->metadata->get(['scopes', $entityType, 'object'])
         ) {
@@ -612,24 +603,6 @@ class HookProcessor
 
             // @todo
             // Add time period (a few minutes). If before, remove RELATE note, don't create 'unrelate' if before.
-        }
-    }
-
-    /**
-     * @param array<string, mixed> $options
-     */
-    private function afterSaveNoStream(Entity $entity, array $options): void
-    {
-        if (!$entity instanceof CoreEntity) {
-            return;
-        }
-
-        if (!empty($options[self::OPTION_NO_STREAM]) || !empty($options[SaveOption::SILENT])) {
-            return;
-        }
-
-        if (!$entity->isNew()) {
-            $this->service->handleAudited($entity, $options);
         }
     }
 }

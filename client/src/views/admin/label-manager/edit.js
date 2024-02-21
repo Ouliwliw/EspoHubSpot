@@ -26,72 +26,49 @@
  * these Appropriate Legal Notices must retain the display of the "EspoCRM" word.
  ************************************************************************/
 
-import View from 'view';
+define('views/admin/label-manager/edit', ['view'], function (Dep) {
 
-class LabelManagerEditView extends View {
+    return Dep.extend({
 
-    template = 'admin/label-manager/edit'
+        template: 'admin/label-manager/edit',
 
-    /**
-     * @type {Object.<string, Object.<string, string>>}
-     */
-    scopeData
-
-    events = {
-        /** @this LabelManagerEditView */
-        'click [data-action="toggleCategory"]': function (e) {
-            const name = $(e.currentTarget).data('name');
-
-            this.toggleCategory(name);
+        data: function () {
+            return {
+                categoryList: this.getCategoryList(),
+                scope: this.scope
+            };
         },
-        /** @this LabelManagerEditView */
-        'keyup input[data-name="quick-search"]': function (e) {
-            this.processQuickSearch(e.currentTarget.value);
+
+        events: {
+            'click [data-action="showCategory"]': function (e) {
+                var name = $(e.currentTarget).data('name');
+                this.showCategory(name);
+            },
+            'click [data-action="hideCategory"]': function (e) {
+                var name = $(e.currentTarget).data('name');
+                this.hideCategory(name);
+            },
+            'click [data-action="cancel"]': function (e) {
+                this.actionCancel();
+            },
+            'click [data-action="save"]': function (e) {
+                this.actionSave();
+            },
+            'change input.label-value': function (e) {
+                var name = $(e.currentTarget).data('name');
+                var value = $(e.currentTarget).val();
+                this.setLabelValue(name, value);
+            }
         },
-        /** @this LabelManagerEditView */
-        'click [data-action="showCategory"]': function (e) {
-            const name = $(e.currentTarget).data('name');
 
-            this.showCategory(name);
-        },
-        /** @this LabelManagerEditView */
-        'click [data-action="hideCategory"]': function (e) {
-            const name = $(e.currentTarget).data('name');
+        setup: function () {
+            this.scope = this.options.scope;
+            this.language = this.options.language;
 
-            this.hideCategory(name);
-        },
-        /** @this LabelManagerEditView */
-        'click [data-action="cancel"]': function () {
-            this.actionCancel();
-        },
-        /** @this LabelManagerEditView */
-        'click [data-action="save"]': function () {
-            this.actionSave();
-        },
-        /** @this LabelManagerEditView */
-        'change input.label-value': function (e) {
-            const name = $(e.currentTarget).data('name');
-            const value = $(e.currentTarget).val();
+            this.dirtyLabelList = [];
 
-            this.setLabelValue(name, value);
-        },
-    }
+            this.wait(true);
 
-    data() {
-        return {
-            categoryList: this.getCategoryList(),
-            scope: this.scope,
-        };
-    }
-
-    setup() {
-        this.scope = this.options.scope;
-        this.language = this.options.language;
-
-        this.categoryShownMap = {};
-        this.dirtyLabelList = [];
-
-        this.wait(
             Espo.Ajax.postRequest('LabelManager/action/getScopeData', {
                 scope: this.scope,
                 language: this.language,
@@ -99,237 +76,141 @@ class LabelManagerEditView extends View {
                 this.scopeData = data;
 
                 this.scopeDataInitial = Espo.Utils.cloneDeep(this.scopeData);
+                this.wait(false);
+            });
+        },
 
-                Object.keys(this.scopeData).forEach(category => {
-                    this.createView(category, 'views/admin/label-manager/category', {
-                        selector: `.panel-body[data-name="${category}"]`,
-                        categoryData: this.getCategoryData(category),
-                        scope: this.scope,
-                        language: this.language,
-                    });
-                });
-            })
-        );
-    }
+        getCategoryList: function () {
+            var categoryList = Object.keys(this.scopeData).sort((v1, v2) => {
 
-    getCategoryList() {
-        return Object.keys(this.scopeData).sort((v1, v2) => {
-            return v1.localeCompare(v2);
-        });
-    }
+                return v1.localeCompare(v2);
+            });
 
-    setLabelValue(name, value) {
-        const category = name.split('[.]')[0];
+            return categoryList;
+        },
 
-        value = value.replace(/\\\\n/i, '\n');
-        value = value.trim();
+        setLabelValue: function (name, value) {
+            var category = name.split('[.]')[0];
 
-        this.scopeData[category][name] = value;
+            value = value.replace(/\\\\n/i, '\n');
 
-        this.dirtyLabelList.push(name);
-        this.setConfirmLeaveOut(true);
+            value = value.trim();
 
-        if (!this.getCategoryView(category)) {
-            return;
-        }
+            this.scopeData[category][name] = value;
 
-        this.getCategoryView(category).categoryData[name] = value;
-    }
+            this.dirtyLabelList.push(name);
+            this.setConfirmLeaveOut(true);
 
-    /**
-     * @param {string} category
-     * @return {import('./category').default}
-     */
-    getCategoryView(category) {
-        return this.getView(category);
-    }
-
-    setConfirmLeaveOut(value) {
-        this.getRouter().confirmLeaveOut = value;
-    }
-
-    afterRender() {
-        this.$save = this.$el.find('button[data-action="save"]');
-        this.$cancel = this.$el.find('button[data-action="cancel"]');
-
-        this.$panels = this.$el.find('.category-panel');
-        this.$noData = this.$el.find('.no-data');
-    }
-
-    actionSave() {
-        this.$save.addClass('disabled').attr('disabled');
-        this.$cancel.addClass('disabled').attr('disabled');
-
-        const data = {};
-
-        this.dirtyLabelList.forEach(name => {
-            const category = name.split('[.]')[0];
-
-            data[name] = this.scopeData[category][name];
-        });
-
-        Espo.Ui.notify(this.translate('saving', 'messages'));
-
-        Espo.Ajax.postRequest('LabelManager/action/saveLabels', {
-            scope: this.scope,
-            language: this.language,
-            labels: data,
-        })
-        .then(returnData => {
-            this.scopeDataInitial = Espo.Utils.cloneDeep(this.scopeData);
-            this.dirtyLabelList = [];
-            this.setConfirmLeaveOut(false);
-
-            this.$save.removeClass('disabled').removeAttr('disabled');
-            this.$cancel.removeClass('disabled').removeAttr('disabled');
-
-            for (const key in returnData) {
-                const name = key.split('[.]').splice(1).join('[.]');
-
-                this.$el.find(`input.label-value[data-name="${name}"]`).val(returnData[key]);
-            }
-
-            Espo.Ui.success(this.translate('Saved'));
-
-            this.getHelper().broadcastChannel.postMessage('update:language');
-            this.getLanguage().loadSkipCache();
-        })
-        .catch(() => {
-            this.$save.removeClass('disabled').removeAttr('disabled');
-            this.$cancel.removeClass('disabled').removeAttr('disabled');
-        });
-    }
-
-    actionCancel() {
-        this.scopeData = Espo.Utils.cloneDeep(this.scopeDataInitial);
-        this.dirtyLabelList = [];
-
-        this.setConfirmLeaveOut(false);
-
-        this.getCategoryList().forEach(category => {
-            if (!this.getCategoryView(category)) {
+            if (!this.hasView(category)) {
                 return;
             }
 
-            this.getCategoryView(category).categoryData = this.scopeData[category];
-            this.getCategoryView(category).reRender();
-        });
-    }
+            this.getView(category).categoryData[name] = value;
+        },
 
-    toggleCategory(category) {
+        setConfirmLeaveOut: function (value) {
+            this.getRouter().confirmLeaveOut = value;
+        },
 
-        !this.categoryShownMap[category] ?
-            this.showCategory(category) :
-            this.hideCategory(category);
-    }
+        afterRender: function () {
+            this.$save = this.$el.find('button[data-action="save"]');
+            this.$cancel = this.$el.find('button[data-action="cancel"]');
+        },
 
-    showCategory(category) {
-        this.$el.find(`a[data-action="showCategory"][data-name="${category}"]`).addClass('hidden');
+        actionSave: function () {
+            this.$save.addClass('disabled').attr('disabled');
+            this.$cancel.addClass('disabled').attr('disabled');
 
-        this.$el.find(`a[data-action="hideCategory"][data-name="${category}"]`).removeClass('hidden');
-        this.$el.find(`.panel-body[data-name="${category}"]`).removeClass('hidden');
+            var data = {};
 
-        this.categoryShownMap[category] = true;
-    }
+            this.dirtyLabelList.forEach(name => {
+                var category = name.split('[.]')[0];
+                var value = this.scopeData[category][name];
+                data[name] = value;
+            });
 
-    hideCategory(category) {
-        this.$el.find(`.panel-body[data-name="${category}"]`).addClass('hidden');
-        this.$el.find(`a[data-action="showCategory"][data-name="${category}"]`).removeClass('hidden');
-        this.$el.find(`a[data-action="hideCategory"][data-name="${category}"]`).addClass('hidden');
+            Espo.Ui.notify(this.translate('saving', 'messages'));
 
-        this.categoryShownMap[category] = false;
-    }
+            Espo.Ajax.postRequest('LabelManager/action/saveLabels', {
+                scope: this.scope,
+                language: this.language,
+                labels: data,
+            })
+            .then(returnData => {
+                this.scopeDataInitial = Espo.Utils.cloneDeep(this.scopeData);
+                this.dirtyLabelList = [];
+                this.setConfirmLeaveOut(false);
 
-    getCategoryData(category) {
-        return this.scopeData[category] || {};
-    }
+                this.$save.removeClass('disabled').removeAttr('disabled');
+                this.$cancel.removeClass('disabled').removeAttr('disabled');
 
-    processQuickSearch(text) {
-        text = text.trim();
-
-        if (!text) {
-            this.$panels.removeClass('hidden');
-            this.$panels.find('.row').removeClass('hidden');
-            this.$noData.addClass('hidden');
-
-            return;
-        }
-
-        const matchedCategoryList = [];
-        /** @type {Object.<string, string[]>} */
-        const matchedMapList = {};
-
-        const lowerCaseText = text.toLowerCase();
-
-        let anyMatched = false;
-
-        Object.keys(this.scopeData).forEach(/** string */category => {
-            matchedMapList[category] = []
-
-            Object.keys(this.scopeData[category]).forEach(/** string */item => {
-                let matched = false;
-
-                const value = /** @type {string} */this.scopeData[category][item];
-
-                if (
-                    value.toLowerCase().indexOf(lowerCaseText) === 0 ||
-                    item.toLowerCase().indexOf(lowerCaseText) === 0
-                ) {
-                    matched = true;
+                for (var key in returnData) {
+                    var name = key.split('[.]').splice(1).join('[.]');
+                    this.$el.find('input.label-value[data-name="'+name+'"]').val(returnData[key]);
                 }
 
-                if (!matched) {
-                    const wordList = value.split(' ').concat(value.split(' '));
+                Espo.Ui.success(this.translate('Saved'));
 
-                    for (const word of wordList) {
-                        if (word.toLowerCase().indexOf(lowerCaseText) === 0) {
-                            matched = true;
+                this.getHelper().broadcastChannel.postMessage('update:language');
 
-                            break;
-                        }
-                    }
-                }
+                this.getLanguage().loadSkipCache();
+            })
+            .catch(() => {
+                this.$save.removeClass('disabled').removeAttr('disabled');
+                this.$cancel.removeClass('disabled').removeAttr('disabled');
+            });
+        },
 
-                if (!matched) {
+        actionCancel: function () {
+            this.scopeData = Espo.Utils.cloneDeep(this.scopeDataInitial);
+            this.dirtyLabelList = [];
+
+            this.setConfirmLeaveOut(false);
+
+            this.getCategoryList().forEach(category => {
+                if (!this.hasView(category)) {
                     return;
                 }
 
-                anyMatched = true;
-
-                matchedMapList[category].push(item);
-
-                if (!matchedCategoryList.includes(category)) {
-                    matchedCategoryList.push(category);
-                }
+                this.getView(category).categoryData = this.scopeData[category];
+                this.getView(category).reRender();
             });
-        });
+        },
 
-        if (!anyMatched) {
-            this.$panels.addClass('hidden');
-            this.$panels.find('.row').addClass('hidden');
-            this.$noData.removeClass('hidden');
+        showCategory: function (category) {
+            this.$el.find('a[data-action="showCategory"][data-name="'+category+'"]').addClass('hidden');
 
-            return;
-        }
+            if (this.hasView(category)) {
+                this.$el.find('a[data-action="hideCategory"][data-name="'+category+'"]').removeClass('hidden');
+                this.$el.find('.panel-body[data-name="'+category+'"]').removeClass('hidden');
 
-        this.$noData.addClass('hidden');
+                return;
+            }
 
-        Object.keys(this.scopeData).forEach(/** string */category => {
-            const $categoryPanel = this.$panels.filter(`[data-name="${category}"]`);
-
-            Object.keys(this.scopeData[category]).forEach(/** string */item => {
-                const $row = $categoryPanel.find(`.row[data-name="${item}"]`);
-
-                matchedMapList[category].includes(item) ?
-                    $row.removeClass('hidden') :
-                    $row.addClass('hidden');
+            this.createView(category, 'views/admin/label-manager/category', {
+                selector: '.panel-body[data-name="'+category+'"]',
+                categoryData: this.getCategoryData(category),
+                scope: this.scope,
+                language: this.language,
+            }, view => {
+                this.$el.find('.panel-body[data-name="'+category+'"]').removeClass('hidden');
+                this.$el.find('a[data-action="hideCategory"][data-name="'+category+'"]').removeClass('hidden');
+                view.render();
             });
+        },
 
-            matchedCategoryList.includes(category) ?
-                $categoryPanel.removeClass('hidden') :
-                $categoryPanel.addClass('hidden');
-        });
-    }
-}
+        hideCategory: function (category) {
+            this.clearView(category);
 
-export default LabelManagerEditView;
+            this.$el.find('.panel-body[data-name="'+category+'"]').addClass('hidden');
+            this.$el.find('a[data-action="showCategory"][data-name="'+category+'"]').removeClass('hidden');
+            this.$el.find('a[data-action="hideCategory"][data-name="'+category+'"]').addClass('hidden');
+        },
+
+        getCategoryData: function (category) {
+            return this.scopeData[category] || {};
+        },
+    });
+});
+
+

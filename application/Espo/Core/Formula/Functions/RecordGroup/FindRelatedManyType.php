@@ -33,18 +33,15 @@ use Espo\Core\ORM\Entity as CoreEntity;
 use Espo\Core\Formula\ArgumentList;
 use Espo\Core\Formula\Functions\BaseFunction;
 use Espo\Core\Di;
-use Espo\Core\Select\Helpers\RandomStringGenerator;
 
 class FindRelatedManyType extends BaseFunction implements
     Di\EntityManagerAware,
     Di\SelectBuilderFactoryAware,
-    Di\MetadataAware,
-    Di\InjectableFactoryAware
+    Di\MetadataAware
 {
     use Di\EntityManagerSetter;
     use Di\SelectBuilderFactorySetter;
     use Di\MetadataSetter;
-    use Di\InjectableFactorySetter;
 
     public function process(ArgumentList $args)
     {
@@ -183,12 +180,10 @@ class FindRelatedManyType extends BaseFunction implements
             ]);
         }
         else {
-            $alias = $foreignLink . $this->generateRandomString();
-
             $queryBuilder
-                ->join($foreignLink, $alias)
+                ->join($foreignLink)
                 ->where([
-                    $alias . '.id' => $entity->getId(),
+                    $foreignLink . '.id' => $entity->getId(),
                 ]);
         }
 
@@ -211,12 +206,5 @@ class FindRelatedManyType extends BaseFunction implements
         }
 
         return $idList;
-    }
-
-    private function generateRandomString(): string
-    {
-        $generator =  $this->injectableFactory->create(RandomStringGenerator::class);
-
-        return $generator->generate();
     }
 }

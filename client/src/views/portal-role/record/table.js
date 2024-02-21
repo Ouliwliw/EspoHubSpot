@@ -51,23 +51,28 @@ define('views/portal-role/record/table', ['views/role/record/table'], function (
         ],
 
         type: 'aclPortal',
+
         lowestLevelByDefault: true,
 
         setupScopeList: function () {
             this.aclTypeMap = {};
             this.scopeList = [];
 
-            const scopeListAll = this.getSortedScopeList();
+            var scopeListAll = Object.keys(this.getMetadata().get('scopes'))
+                .sort((v1, v2) => {
+                     return this.translate(v1, 'scopeNamesPlural')
+                         .localeCompare(this.translate(v2, 'scopeNamesPlural'));
+                });
 
             scopeListAll.forEach(scope => {
                 if (
-                    this.getMetadata().get(`scopes.${scope}.disabled`) ||
-                    this.getMetadata().get(`scopes.${scope}.disabledPortal`)
+                    this.getMetadata().get('scopes.' + scope + '.disabled') ||
+                    this.getMetadata().get('scopes.' + scope + '.disabledPortal')
                 ) {
                     return;
                 }
 
-                const acl = this.getMetadata().get(`scopes.${scope}.aclPortal`);
+                var acl = this.getMetadata().get('scopes.' + scope + '.aclPortal');
 
                 if (acl) {
                     this.scopeList.push(scope);
@@ -78,10 +83,6 @@ define('views/portal-role/record/table', ['views/role/record/table'], function (
                     }
                 }
             });
-        },
-
-        isAclFieldLevelDisabledForScope: function (scope) {
-            return !!this.getMetadata().get(`scopes.${scope}.aclPortalFieldLevelDisabled`);
         },
     });
 });

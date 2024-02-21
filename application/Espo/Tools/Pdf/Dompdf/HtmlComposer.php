@@ -71,8 +71,6 @@ class HtmlComposer
             $titleHtml = "<title>" . htmlspecialchars($title) . "</title>";
         }
 
-        $templateStyle = $template->getStyle() ?? '';
-
         /** @noinspection HtmlRequiredTitleElement */
         return "
             <head>
@@ -85,10 +83,6 @@ class HtmlComposer
 
             body {
                 font-size: {$fontSize}pt;
-            }
-
-            table.bordered, table.bordered td, table.bordered th {
-                border: 1px solid;
             }
 
             > header {
@@ -116,8 +110,6 @@ class HtmlComposer
             > footer .page-number:after {
                 content: counter(page);
             }
-
-            $templateStyle
             </style>
         ";
     }

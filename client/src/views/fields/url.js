@@ -45,7 +45,6 @@ class UrlFieldView extends VarcharFieldView {
     ]
 
     noSpellCheck = true
-    optionalProtocol = true
 
     DEFAULT_MAX_LENGTH =255
 
@@ -137,10 +136,8 @@ class UrlFieldView extends VarcharFieldView {
             return false;
         }
 
-        const patternName = this.optionalProtocol ? 'uriOptionalProtocol' : 'uri';
-
         /** @var {string} */
-        const pattern = this.getMetadata().get(['app', 'regExpPatterns', patternName, 'pattern']);
+        const pattern = this.getMetadata().get(['app', 'regExpPatterns', 'uriOptionalProtocol', 'pattern']);
 
         const regExp = new RegExp('^' + pattern + '$');
 
@@ -149,7 +146,7 @@ class UrlFieldView extends VarcharFieldView {
         }
 
         const msg = this.translate('fieldInvalid', 'messages')
-            .replace('{field}', this.getLabelText());
+            .replace('{field}', this.translate(this.name, 'fields', this.entityType));
 
         this.showValidationMessage(msg);
 
@@ -172,7 +169,7 @@ class UrlFieldView extends VarcharFieldView {
 
         const msg = this.translate('fieldUrlExceedsMaxLength', 'messages')
             .replace('{maxLength}', maxLength)
-            .replace('{field}', this.getLabelText());
+            .replace('{field}', this.translate(this.name, 'fields', this.entityType));
 
         this.showValidationMessage(msg);
 

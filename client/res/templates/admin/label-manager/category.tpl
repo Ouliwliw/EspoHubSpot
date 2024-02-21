@@ -1,7 +1,9 @@
 {{#each categoryDataList}}
-<div class="row" data-name="{{name}}">
+<div class="row">
     <div class="cell col-md-5 form-group">
-        <div class="field detail-field-container">{{label}}</div>
+        <div class="field">
+            {{label}}
+        </div>
     </div>
     <div class="cell col-md-7 form-group" data-name="{{name}}">
         <div class="field">

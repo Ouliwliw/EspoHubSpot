@@ -30,38 +30,53 @@
 namespace Espo\Tools\Email;
 
 use Espo\Core\Acl;
-use Espo\Core\Exceptions\BadRequest;
-use Espo\Core\Exceptions\Forbidden;
+use Espo\Core\Acl\Table;
 use Espo\Core\Select\SelectBuilderFactory;
 use Espo\Core\Select\Text\MetadataProvider as TextMetadataProvider;
 use Espo\Core\Templates\Entities\Company;
 use Espo\Core\Templates\Entities\Person;
 use Espo\Core\Utils\Config;
 use Espo\Core\Utils\Metadata;
-use Espo\Entities\EmailAddress;
-use Espo\Entities\InboundEmail;
+use Espo\Entities\EmailAddress as EmailAddressEntity;
+use Espo\Entities\InboundEmail as InboundEmailEntity;
 use Espo\Entities\User;
+use Espo\Entities\User as UserEntity;
 use Espo\Modules\Crm\Entities\Account;
 use Espo\Modules\Crm\Entities\Contact;
 use Espo\Modules\Crm\Entities\Lead;
 use Espo\ORM\EntityManager;
-use Espo\ORM\Query\SelectBuilder;
-use Espo\Repositories\EmailAddress as EmailAddressRepository;
-use RuntimeException;
+use Espo\ORM\Query\SelectBuilder as QueryBuilder;
+use Espo\Repositories\EmailAddress as Repository;
 
 class AddressService
 {
     private const ERASED_PREFIX = 'ERASED:';
 
+    private Config $config;
+    private Acl $acl;
+    private Metadata $metadata;
+    private SelectBuilderFactory $selectBuilderFactory;
+    private EntityManager $entityManager;
+    private User $user;
+    private TextMetadataProvider $textMetadataProvider;
+
     public function __construct(
-        private Config $config,
-        private Acl $acl,
-        private Metadata $metadata,
-        private SelectBuilderFactory $selectBuilderFactory,
-        private EntityManager $entityManager,
-        private User $user,
-        private TextMetadataProvider $textMetadataProvider
-    ) {}
+        Config $config,
+        Acl $acl,
+        Metadata $metadata,
+        SelectBuilderFactory $selectBuilderFactory,
+        EntityManager $entityManager,
+        User $user,
+        TextMetadataProvider $textMetadataProvider
+    ) {
+        $this->config = $config;
+        $this->acl = $acl;
+        $this->metadata = $metadata;
+        $this->selectBuilderFactory = $selectBuilderFactory;
+        $this->entityManager = $entityManager;
+        $this->user = $user;
+        $this->textMetadataProvider = $textMetadataProvider;
+    }
 
     /**
      * @return array<int, array<string, mixed>>
@@ -86,7 +101,7 @@ class AddressService
             $this->findInAddressBookByEntityType($query, $limit, $entityType, $result, $onlyActual);
         }
 
-        $this->findInInboundEmail($query, $result);
+        $this->findInInboundEmail($query, $limit, $result);
 
         $finalResult = [];
 
@@ -101,7 +116,7 @@ class AddressService
         }
 
         usort($finalResult, function ($item1, $item2) use ($query) {
-            if (!str_contains($query, '@')) {
+            if (strpos($query, '@') === false) {
                 return 0;
             }
 
@@ -172,7 +187,7 @@ class AddressService
 
         $byEmailAddress = false;
 
-        if (str_contains($filter, '@')) {
+        if (strpos($filter, '@') !== false) {
             $byEmailAddress = true;
         }
 
@@ -202,16 +217,11 @@ class AddressService
             $selectBuilder->withTextFilter($textFilter);
         }
 
-        try {
-            $builder = $selectBuilder
-                ->buildQueryBuilder()
-                ->where($whereClause)
-                ->order('name')
-                ->limit(0, $limit);
-        }
-        catch (BadRequest|Forbidden $e) {
-            throw new RuntimeException($e->getMessage());
-        }
+        $builder = $selectBuilder
+            ->buildQueryBuilder()
+            ->where($whereClause)
+            ->order('name')
+            ->limit(0, $limit);
 
         if ($textFilter) {
             $builder
@@ -220,7 +230,7 @@ class AddressService
         }
 
         if ($entityType === User::ENTITY_TYPE) {
-            $this->handleQueryBuilderUser($builder);
+            $this->handleQueryBuilderUser($filter, $builder);
         }
 
         $select = [
@@ -256,7 +266,7 @@ class AddressService
                 continue;
             }
 
-            if (str_starts_with($emailAddress, self::ERASED_PREFIX)) {
+            if (strpos($emailAddress, self::ERASED_PREFIX) === 0) {
                 $skipPrimaryEmailAddress = true;
             }
 
@@ -290,7 +300,7 @@ class AddressService
                     continue;
                 }
 
-                if (str_starts_with($item->emailAddress, self::ERASED_PREFIX)) {
+                if (strpos($item->emailAddress, self::ERASED_PREFIX) === 0) {
                     continue;
                 }
 
@@ -317,14 +327,14 @@ class AddressService
     /**
      * @param array<int, array<string, mixed>> $result
      */
-    private function findInInboundEmail(string $query, array &$result): void
+    protected function findInInboundEmail(string $query, int $limit, array &$result): void
     {
         if ($this->user->isPortal()) {
             return;
         }
 
         $list = $this->entityManager
-            ->getRDBRepository(InboundEmail::ENTITY_TYPE)
+            ->getRDBRepository(InboundEmailEntity::ENTITY_TYPE)
             ->select([
                 'id',
                 'name',
@@ -340,7 +350,7 @@ class AddressService
             $result[] = [
                 'emailAddress' => $item->getEmailAddress(),
                 'entityName' => $item->getName(),
-                'entityType' => InboundEmail::ENTITY_TYPE,
+                'entityType' => InboundEmailEntity::ENTITY_TYPE,
                 'entityId' => $item->getId(),
             ];
         }
@@ -351,27 +361,26 @@ class AddressService
         return $this->textMetadataProvider->hasFullTextSearch($entityType);
     }
 
-    private function handleQueryBuilderUser(SelectBuilder $queryBuilder): void
+    private function handleQueryBuilderUser(string $filter, QueryBuilder $queryBuilder): void
     {
-        /*if ($this->acl->getPermissionLevel('portalPermission') === Table::LEVEL_NO) {
+        if ($this->acl->getPermissionLevel('portalPermission') === Table::LEVEL_NO) {
             $queryBuilder->where([
-                'type!=' => User::TYPE_PORTAL,
+                'type!=' => UserEntity::TYPE_PORTAL,
             ]);
-        }*/
+        }
 
         $queryBuilder->where([
             'type!=' => [
-                User::TYPE_PORTAL,
-                User::TYPE_API,
-                User::TYPE_SYSTEM,
-                User::TYPE_SUPER_ADMIN,
+                UserEntity::TYPE_API,
+                UserEntity::TYPE_SYSTEM,
+                UserEntity::TYPE_SUPER_ADMIN,
             ],
         ]);
     }
 
-    private function getEmailAddressRepository(): EmailAddressRepository
+    private function getEmailAddressRepository(): Repository
     {
-        /** @var EmailAddressRepository */
-        return $this->entityManager->getRepository(EmailAddress::ENTITY_TYPE);
+        /** @var Repository */
+        return $this->entityManager->getRepository(EmailAddressEntity::ENTITY_TYPE);
     }
 }

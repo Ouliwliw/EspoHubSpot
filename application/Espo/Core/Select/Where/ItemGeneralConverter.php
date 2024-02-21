@@ -30,10 +30,9 @@
 namespace Espo\Core\Select\Where;
 
 use DateTimeZone;
-use Espo\Core\Exceptions\BadRequest;
 use Espo\Core\Field\DateTime;
-use Espo\Core\Select\Where\Item\Data;
 use Espo\Core\Select\Where\Item\Type;
+use Espo\Core\Exceptions\Error;
 use Espo\Core\Select\Helpers\RandomStringGenerator;
 use Espo\Core\Utils\Config;
 use Espo\Core\Utils\DateTime as DateTimeUtil;
@@ -70,7 +69,7 @@ class ItemGeneralConverter implements ItemConverter
     ) {}
 
     /**
-     * @throws BadRequest
+     * @throws Error
      */
     public function convert(QueryBuilder $queryBuilder, Item $item): WhereClauseItem
     {
@@ -87,7 +86,7 @@ class ItemGeneralConverter implements ItemConverter
         }
 
         if (!$type) {
-            throw new BadRequest("Bad where item. No 'type'.");
+            throw new Error("Bad where item. No 'type'.");
         }
 
         if (
@@ -117,7 +116,7 @@ class ItemGeneralConverter implements ItemConverter
         }
 
         if (!$attribute) {
-            throw new BadRequest("Bad where item. No 'attribute'.");
+            throw new Error("Bad where item. No 'attribute'.");
         }
 
         switch ($type) {
@@ -191,35 +190,35 @@ class ItemGeneralConverter implements ItemConverter
         }
 
         if ($type === Type::TODAY) {
-            return WhereClause::fromRaw($this->processToday($attribute, $item->getData()));
+            return WhereClause::fromRaw($this->processToday($attribute));
         }
 
         if ($type === Type::PAST) {
-            return WhereClause::fromRaw($this->processPast($attribute, $item->getData()));
+            return WhereClause::fromRaw($this->processPast($attribute));
         }
 
         if ($type === Type::FUTURE) {
-            return WhereClause::fromRaw($this->processFuture($attribute, $item->getData()));
+            return WhereClause::fromRaw($this->processFuture($attribute));
         }
 
         if ($type === Type::LAST_SEVEN_DAYS) {
-            return WhereClause::fromRaw($this->processLastSevenDays($attribute, $item->getData()));
+            return WhereClause::fromRaw($this->processLastSevenDays($attribute));
         }
 
         if ($type === Type::LAST_X_DAYS) {
-            return WhereClause::fromRaw($this->processLastXDays($attribute, $value, $item->getData()));
+            return WhereClause::fromRaw($this->processLastXDays($attribute, $value));
         }
 
         if ($type === Type::NEXT_X_DAYS) {
-            return WhereClause::fromRaw($this->processNextXDays($attribute, $value, $item->getData()));
+            return WhereClause::fromRaw($this->processNextXDays($attribute, $value));
         }
 
         if ($type === Type::OLDER_THAN_X_DAYS) {
-            return WhereClause::fromRaw($this->processOlderThanXDays($attribute, $value, $item->getData()));
+            return WhereClause::fromRaw($this->processOlderThanXDays($attribute, $value));
         }
 
         if ($type === Type::AFTER_X_DAYS) {
-            return WhereClause::fromRaw($this->processAfterXDays($attribute, $value, $item->getData()));
+            return WhereClause::fromRaw($this->processAfterXDays($attribute, $value));
         }
 
         if ($type === Type::CURRENT_MONTH) {
@@ -343,7 +342,7 @@ class ItemGeneralConverter implements ItemConverter
         }
 
         if (!$this->itemConverterFactory->hasForType($type)) {
-            throw new BadRequest("Unknown where item type '$type'.");
+            throw new Error("Unknown where item type '$type'.");
         }
 
         $converter = $this->itemConverterFactory->createForType($type, $this->entityType, $this->user);
@@ -354,12 +353,12 @@ class ItemGeneralConverter implements ItemConverter
     /**
      * @param mixed $value
      * @return array<string|int, mixed>
-     * @throws BadRequest
+     * @throws Error
      */
     private function groupProcessAndOr(QueryBuilder $queryBuilder, string $type, $value): array
     {
         if (!is_array($value)) {
-            throw new BadRequest("Bad where item.");
+            throw new Error("Bad where item.");
         }
 
         $whereClause = [];
@@ -384,12 +383,12 @@ class ItemGeneralConverter implements ItemConverter
     /**
      * @param mixed $value
      * @return array<string|int, mixed>
-     * @throws BadRequest
+     * @throws Error
      */
     private function groupProcessSubQuery(string $type, $value): array
     {
         if (!is_array($value)) {
-            throw new BadRequest("Bad where item.");
+            throw new Error("Bad where item.");
         }
 
         $sqQueryBuilder = QueryBuilder::create()
@@ -422,7 +421,7 @@ class ItemGeneralConverter implements ItemConverter
     /**
      * @param mixed $value
      * @return array<string|int, mixed>
-     * @throws BadRequest
+     * @throws Error
      */
     private function groupProcessColumn(
         QueryBuilder $queryBuilder,
@@ -435,7 +434,7 @@ class ItemGeneralConverter implements ItemConverter
         $column = $this->metadata->get(['entityDefs', $this->entityType, 'fields', $attribute, 'column']);
 
         if (!$column || !$link) {
-            throw new BadRequest("Bad where item 'column'.");
+            throw new Error("Bad where item 'column'.");
         }
 
         $alias =  $link . 'ColumnFilter' . $this->randomStringGenerator->generate();
@@ -487,13 +486,13 @@ class ItemGeneralConverter implements ItemConverter
             ];
         }
 
-        throw new BadRequest("Bad where item 'column'.");
+        throw new Error("Bad where item 'column'.");
     }
 
     /**
      * @param mixed $value
      * @return array<string|int, mixed>
-     * @throws BadRequest
+     * @throws Error
      */
     private function groupProcessArray(
         QueryBuilder $queryBuilder,
@@ -527,7 +526,7 @@ class ItemGeneralConverter implements ItemConverter
             }
 
             if (!$arrayAttributeLink || !$arrayAttribute) {
-                throw new BadRequest("Bad where item.");
+                throw new Error("Bad where item.");
             }
 
             $arrayEntityType = $entityDefs->getRelation($arrayAttributeLink)->getForeignEntityType();
@@ -548,7 +547,7 @@ class ItemGeneralConverter implements ItemConverter
 
         if ($type === Type::ARRAY_ANY_OF) {
             if (!$value && !is_array($value)) {
-                throw new BadRequest("Bad where item. No value.");
+                throw new Error("Bad where item. No value.");
             }
 
             $subQuery = QueryBuilder::create()
@@ -566,7 +565,7 @@ class ItemGeneralConverter implements ItemConverter
 
         if ($type === Type::ARRAY_NONE_OF) {
             if (!$value && !is_array($value)) {
-                throw new BadRequest("Bad where item 'array'. No value.");
+                throw new Error("Bad where item 'array'. No value.");
             }
 
             return Cond::not(
@@ -616,7 +615,7 @@ class ItemGeneralConverter implements ItemConverter
 
         if ($type === Type::ARRAY_ALL_OF) {
             if (!$value && !is_array($value)) {
-                throw new BadRequest("Bad where item 'array'. No value.");
+                throw new Error("Bad where item 'array'. No value.");
             }
 
             if (!is_array($value)) {
@@ -643,7 +642,7 @@ class ItemGeneralConverter implements ItemConverter
             return $whereList;
         }
 
-        throw new BadRequest("Bad where item 'array'.");
+        throw new Error("Bad where item 'array'.");
     }
 
     /**
@@ -835,12 +834,12 @@ class ItemGeneralConverter implements ItemConverter
     /**
      * @param mixed $value
      * @return array<string|int, mixed>
-     * @throws BadRequest
+     * @throws Error
      */
     private function processIn(string $attribute, $value): array
     {
         if (!is_array($value)) {
-            throw new BadRequest("Bad where item 'in'.");
+            throw new Error("Bad where item 'in'.");
         }
 
         return [
@@ -851,12 +850,12 @@ class ItemGeneralConverter implements ItemConverter
     /**
      * @param mixed $value
      * @return array<string|int, mixed>
-     * @throws BadRequest
+     * @throws Error
      */
     private function processNotIn(string $attribute, $value): array
     {
         if (!is_array($value)) {
-            throw new BadRequest("Bad where item 'notIn'.");
+            throw new Error("Bad where item 'notIn'.");
         }
 
         return [
@@ -867,12 +866,12 @@ class ItemGeneralConverter implements ItemConverter
     /**
      * @param mixed $value
      * @return array<string|int, mixed>
-     * @throws BadRequest
+     * @throws Error
      */
     private function processBetween(string $attribute, $value): array
     {
         if (!is_array($value) || count($value) < 2) {
-            throw new BadRequest("Bad where item 'between'.");
+            throw new Error("Bad where item 'between'.");
         }
 
         return [
@@ -953,12 +952,11 @@ class ItemGeneralConverter implements ItemConverter
 
     /**
      * @return array<string|int, mixed>
-     * @throws BadRequest
      */
-    private function processToday(string $attribute, ?Data $data): array
+    private function processToday(string $attribute): array
     {
-        $timeZone = $this->getTimeZone($data);
-        $today = DateTime::createNow()->withTimezone($timeZone);
+        $today = DateTime::createNow()
+            ->withTimezone($this->getSystemTimeZone());
 
         return [
             $attribute . '=' => $today->toDateTime()->format(DateTimeUtil::SYSTEM_DATE_FORMAT),
@@ -967,12 +965,11 @@ class ItemGeneralConverter implements ItemConverter
 
     /**
      * @return array<string|int, mixed>
-     * @throws BadRequest
      */
-    private function processPast(string $attribute, ?Data $data): array
+    private function processPast(string $attribute): array
     {
-        $timeZone = $this->getTimeZone($data);
-        $today = DateTime::createNow()->withTimezone($timeZone);
+        $today = DateTime::createNow()
+            ->withTimezone($this->getSystemTimeZone());
 
         return [
             $attribute . '<' => $today->toDateTime()->format(DateTimeUtil::SYSTEM_DATE_FORMAT),
@@ -981,12 +978,11 @@ class ItemGeneralConverter implements ItemConverter
 
     /**
      * @return array<string|int, mixed>
-     * @throws BadRequest
      */
-    private function processFuture(string $attribute, ?Data $data): array
+    private function processFuture(string $attribute): array
     {
-        $timeZone = $this->getTimeZone($data);
-        $today = DateTime::createNow()->withTimezone($timeZone);
+        $today = DateTime::createNow()
+            ->withTimezone($this->getSystemTimeZone());
 
         return [
             $attribute . '>' => $today->toDateTime()->format(DateTimeUtil::SYSTEM_DATE_FORMAT),
@@ -995,12 +991,11 @@ class ItemGeneralConverter implements ItemConverter
 
     /**
      * @return array<string|int, mixed>
-     * @throws BadRequest
      */
-    private function processLastSevenDays(string $attribute, ?Data $data): array
+    private function processLastSevenDays(string $attribute): array
     {
-        $timeZone = $this->getTimeZone($data);
-        $today = DateTime::createNow()->withTimezone($timeZone);
+        $today = DateTime::createNow()
+            ->withTimezone($this->getSystemTimeZone());
 
         $from = $today->addDays(-7);
 
@@ -1013,13 +1008,13 @@ class ItemGeneralConverter implements ItemConverter
     }
 
     /**
+     * @param mixed $value
      * @return array<string|int, mixed>
-     * @throws BadRequest
      */
-    private function processLastXDays(string $attribute, mixed $value, ?Data $data): array
+    private function processLastXDays(string $attribute, $value): array
     {
-        $timeZone = $this->getTimeZone($data);
-        $today = DateTime::createNow()->withTimezone($timeZone);
+        $today = DateTime::createNow()
+            ->withTimezone($this->getSystemTimeZone());
 
         $number = intval($value);
 
@@ -1034,13 +1029,13 @@ class ItemGeneralConverter implements ItemConverter
     }
 
     /**
+     * @param mixed $value
      * @return array<string|int, mixed>
-     * @throws BadRequest
      */
-    private function processNextXDays(string $attribute, mixed $value, ?Data $data): array
+    private function processNextXDays(string $attribute, $value): array
     {
-        $timeZone = $this->getTimeZone($data);
-        $today = DateTime::createNow()->withTimezone($timeZone);
+        $today = DateTime::createNow()
+            ->withTimezone($this->getSystemTimeZone());
 
         $number = intval($value);
 
@@ -1055,17 +1050,16 @@ class ItemGeneralConverter implements ItemConverter
     }
 
     /**
+     * @param mixed $value
      * @return array<string|int, mixed>
-     * @throws BadRequest
      */
-    private function processOlderThanXDays(string $attribute, mixed $value, ?Data $data): array
+    private function processOlderThanXDays(string $attribute, $value): array
     {
-        $timeZone = $this->getTimeZone($data);
-        $today = DateTime::createNow()->withTimezone($timeZone);
-
         $number = intval($value);
 
-        $date = $today->addDays(- $number);
+        $date = DateTime::createNow()
+            ->withTimezone($this->getSystemTimeZone())
+            ->addDays(- $number);
 
         return [
             $attribute . '<' =>  $date->toDateTime()->format(DateTimeUtil::SYSTEM_DATE_FORMAT),
@@ -1073,17 +1067,16 @@ class ItemGeneralConverter implements ItemConverter
     }
 
     /**
+     * @param mixed $value
      * @return array<string|int, mixed>
-     * @throws BadRequest
      */
-    private function processAfterXDays(string $attribute, mixed $value, ?Data $data): array
+    private function processAfterXDays(string $attribute, $value): array
     {
-        $timeZone = $this->getTimeZone($data);
-        $today = DateTime::createNow()->withTimezone($timeZone);
-
         $number = intval($value);
 
-        $date = $today->addDays($number);
+        $date = DateTime::createNow()
+            ->withTimezone($this->getSystemTimeZone())
+            ->addDays($number);
 
         return [
             $attribute . '>' => $date->toDateTime()->format(DateTimeUtil::SYSTEM_DATE_FORMAT),
@@ -1459,14 +1452,14 @@ class ItemGeneralConverter implements ItemConverter
     /**
      * @param mixed $value
      * @return array<string|int, mixed>
-     * @throws BadRequest
+     * @throws Error
      */
     private function processLinkedWith(string $attribute, $value): array
     {
         $link = $attribute;
 
         if (!$this->ormDefs->getEntity($this->entityType)->hasRelation($link)) {
-            throw new BadRequest("Not existing link '$link' in where item.");
+            throw new Error("Not existing link '$link' in where item.");
         }
 
         $defs = $this->ormDefs->getEntity($this->entityType)->getRelation($link);
@@ -1474,7 +1467,7 @@ class ItemGeneralConverter implements ItemConverter
         $alias =  $link . 'LinkedWithFilter' . $this->randomStringGenerator->generate();
 
         if (!$value && !is_array($value)) {
-            throw new BadRequest("Bad where item. Empty value.");
+            throw new Error("Bad where item. Empty value.");
         }
 
         // @todo Add check for foreign record existence.
@@ -1529,20 +1522,20 @@ class ItemGeneralConverter implements ItemConverter
             return [$key => $value];
         }
 
-        throw new BadRequest("Bad where item. Not supported relation type.");
+        throw new Error("Bad where item. Not supported relation type.");
     }
 
     /**
      * @param mixed $value
      * @return array<string|int, mixed>
-     * @throws BadRequest
+     * @throws Error
      */
     private function processNotLinkedWith(string $attribute, $value): array
     {
         $link = $attribute;
 
         if (!$this->ormDefs->getEntity($this->entityType)->hasRelation($link)) {
-            throw new BadRequest("Not existing link '$link' in where item.");
+            throw new Error("Not existing link '$link' in where item.");
         }
 
         $defs = $this->ormDefs->getEntity($this->entityType)->getRelation($link);
@@ -1550,7 +1543,7 @@ class ItemGeneralConverter implements ItemConverter
         $alias =  $link . 'NotLinkedWithFilter' . $this->randomStringGenerator->generate();
 
         if (is_null($value)) {
-            throw new BadRequest("Bad where item. Empty value.");
+            throw new Error("Bad where item. Empty value.");
         }
 
         $relationType = $defs->getType();
@@ -1602,24 +1595,24 @@ class ItemGeneralConverter implements ItemConverter
             return [$key . '!=' => $value];
         }
 
-        throw new BadRequest("Bad where item. Not supported relation type.");
+        throw new Error("Bad where item. Not supported relation type.");
     }
 
     /**
      * @param mixed $value
      * @return array<string|int, mixed>
-     * @throws BadRequest
+     * @throws Error
      */
     private function processLinkedWithAll(string $attribute, $value): array
     {
         $link = $attribute;
 
         if (!$this->ormDefs->getEntity($this->entityType)->hasRelation($link)) {
-            throw new BadRequest("Not existing link '$link' in where item.");
+            throw new Error("Not existing link '$link' in where item.");
         }
 
         if (!$value && !is_array($value)) {
-            throw new BadRequest("Bad where item. Empty value.");
+            throw new Error("Bad where item. Empty value.");
         }
 
         if (!is_array($value)) {
@@ -1669,7 +1662,7 @@ class ItemGeneralConverter implements ItemConverter
             return $whereList;
         }
 
-        throw new BadRequest("Bad where item. Not supported relation type.");
+        throw new Error("Bad where item. Not supported relation type.");
     }
 
     private function getSystemTimeZone(): DateTimeZone
@@ -1681,25 +1674,6 @@ class ItemGeneralConverter implements ItemConverter
         }
         catch (Exception $e) {
             throw new RuntimeException($e->getMessage());
-        }
-    }
-
-    /**
-     * @throws BadRequest
-     */
-    private function getTimeZone(?Data $data): DateTimeZone
-    {
-        $timeZone = $data instanceof Data\Date ? $data->getTimeZone() : null;
-
-        if (!$timeZone) {
-            return $this->getSystemTimeZone();
-        }
-
-        try {
-            return new DateTimeZone($timeZone);
-        }
-        catch (Exception $e) {
-            throw new BadRequest($e->getMessage());
         }
     }
 }

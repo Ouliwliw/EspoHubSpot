@@ -26,31 +26,30 @@
  * these Appropriate Legal Notices must retain the display of the "EspoCRM" word.
  ************************************************************************/
 
-import View from 'view'
+define('views/admin/field-manager/header', ['view'], function (Dep) {
 
-class FieldManagerHeaderView extends View {
+    return Dep.extend({
 
-    template = 'admin/field-manager/header'
+        template: 'admin/field-manager/header',
 
-    data() {
-        return {
-            scope: this.scope,
-            field: this.field,
-        };
-    }
+        data: function () {
+            return {
+                scope: this.scope,
+                field: this.field,
+            };
+        },
 
-    setup() {
-        this.scope = this.options.scope;
-        this.field = this.options.field;
-    }
+        setup: function () {
+            this.scope = this.options.scope;
+            this.field = this.options.field;
+        },
 
-    setField(field) {
-        this.field = field;
+        setField: function (field) {
+            this.field = field;
 
-        if (this.isRendered()) {
-            this.reRender();
-        }
-    }
-}
-
-export default FieldManagerHeaderView;
+            if (this.isRendered()) {
+                this.reRender();
+            }
+        },
+    });
+});

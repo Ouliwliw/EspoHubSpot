@@ -30,7 +30,6 @@
 
 import BaseFieldView from 'views/fields/base';
 import RecordModal from 'helpers/record-modal';
-import Autocomplete from 'ui/autocomplete';
 
 /**
  * A link-multiple field (for has-many relations).
@@ -468,16 +467,6 @@ class LinkMultipleFieldView extends BaseFieldView {
                         url += '&' + $.param({where: advanced});
                     }
 
-                    const orderBy = filters.orderBy || this.panelDefs.selectOrderBy;
-                    const orderDirection = filters.orderBy ? filters.order : this.panelDefs.selectOrderDirection;
-
-                    if (orderBy) {
-                        url += '&' + $.param({
-                            orderBy: orderBy,
-                            order: orderDirection || 'asc',
-                        });
-                    }
-
                     resolve(url);
                 });
             });
@@ -502,15 +491,6 @@ class LinkMultipleFieldView extends BaseFieldView {
             url += '&' + $.param({'where': notSelectedFilter});
         }
 
-        if (this.panelDefs.selectOrderBy) {
-            const direction = this.panelDefs.selectOrderDirection || 'asc';
-
-            url += '&' + $.param({
-                orderBy: this.panelDefs.selectOrderBy,
-                order: direction,
-            });
-        }
-
         return url;
     }
 
@@ -519,17 +499,69 @@ class LinkMultipleFieldView extends BaseFieldView {
         if (this.isEditMode() || this.isSearchMode()) {
             this.$element = this.$el.find('input.main-element');
 
+            const $element = this.$element;
+
             if (!this.autocompleteDisabled) {
-                const autocomplete = new Autocomplete(this.$element.get(0), {
-                    minChars: this.autocompleteOnEmpty ? 0 : 1,
-                    focusOnSelect: true,
-                    handleFocusMode: 3,
+                // Does not work well with autocompleteOnEmpty.
+                /*this.$element.on('blur', () => {
+                    setTimeout(() => this.$element.autocomplete('clear'), 300);
+                });*/
+
+                const minChar = this.autocompleteOnEmpty ? 0 : 1;
+
+                this.$element.autocomplete({
+                    lookup: (q, callback) => {
+                        Promise.resolve(this.getAutocompleteUrl(q))
+                            .then(url => {
+                                Espo.Ajax
+                                    .getRequest(url, {q: q})
+                                    .then(response => {
+                                        callback(this._transformAutocompleteResult(response));
+                                    });
+                            });
+                    },
+                    minChars: minChar,
+                    paramName: 'q',
+                    noCache: true,
                     autoSelectFirst: true,
                     triggerSelectOnValidInput: false,
-                    forceHide: true,
-                    onSelect: item => {
+                    beforeRender: $c => {
+                        if (this.$element.hasClass('input-sm')) {
+                            $c.addClass('small');
+                        }
+
+                        // Prevent an issue that suggestions are shown and not hidden
+                        // when clicking outside the window and then focusing back on the document.
+                        if (this.$element.get(0) !== document.activeElement) {
+                            setTimeout(() => this.$element.autocomplete('hide'), 30);
+                        }
+                    },
+                    formatResult: suggestion => {
+                        // noinspection JSUnresolvedReference
+                        return this.getHelper().escapeString(suggestion.name);
+                    },
+                    transformResult: response => {
+                        response = JSON.parse(response);
+
+                        const list = [];
+
+                        response.list.forEach((item) => {
+                            list.push({
+                                id: item.id,
+                                name: item.name || item.id,
+                                data: item.id,
+                                value: item.name || item.id,
+                            });
+                        });
+
+                        return {
+                            suggestions: list
+                        };
+                    },
+                    onSelect: s => {
                         this.getModelFactory().create(this.foreignScope, model => {
-                            model.set(item.attributes);
+                            // noinspection JSUnresolvedReference
+                            model.set(s.attributes);
 
                             this.select([model])
 
@@ -537,19 +569,22 @@ class LinkMultipleFieldView extends BaseFieldView {
                             this.$element.focus();
                         });
                     },
-                    lookupFunction: query => {
-                        return Espo.Ajax.getRequest(this.getAutocompleteUrl(query), {q: query})
-                            .then(/** {list: Record[]} */response => {
-                                return response.list.map(item => ({
-                                    value: item.name,
-                                    attributes: item,
-                                }));
-                            });
-                    },
                 });
 
-                this.once('render remove', () => autocomplete.dispose());
+                this.$element.attr('autocomplete', 'espo-' + this.name);
+
+                this.once('render', () => {
+                    $element.autocomplete('dispose');
+                });
+
+                this.once('remove', () => {
+                    $element.autocomplete('dispose');
+                });
             }
+
+            $element.on('change', () => {
+                $element.val('');
+            });
 
             this.renderLinks();
 
@@ -941,9 +976,6 @@ class LinkMultipleFieldView extends BaseFieldView {
             null;
 
         this._getSelectFilters().then(filters => {
-            const orderBy = filters.orderBy || this.panelDefs.selectOrderBy;
-            const orderDirection = filters.orderBy ? filters.order : this.panelDefs.selectOrderDirection;
-
             this.createView('dialog', viewName, {
                 scope: this.foreignScope,
                 createButton: createButton,
@@ -956,8 +988,6 @@ class LinkMultipleFieldView extends BaseFieldView {
                 forceSelectAllAttributes: this.forceSelectAllAttributes,
                 createAttributesProvider: createAttributesProvider,
                 layoutName: this.panelDefs.selectLayout,
-                orderBy: orderBy,
-                orderDirection: orderDirection,
             }, dialog => {
                 dialog.render();
 
@@ -1067,6 +1097,25 @@ class LinkMultipleFieldView extends BaseFieldView {
                     });
                 });
         });
+    }
+
+    /**
+     * @private
+     */
+    _transformAutocompleteResult(response) {
+        const list = [];
+
+        response.list.forEach(item => {
+            list.push({
+                id: item.id,
+                name: item.name || item.id,
+                data: item.id,
+                value: item.name || item.id,
+                attributes: item,
+            });
+        });
+
+        return {suggestions: list};
     }
 
     actionCreateLink() {

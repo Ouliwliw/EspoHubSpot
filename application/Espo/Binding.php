@@ -64,6 +64,11 @@ class Binding implements BindingProcessor
         );
 
         $binder->bindService(
+            'Espo\\Core\\Container',
+            'container'
+        );
+
+        $binder->bindService(
             'Psr\\Container\\ContainerInterface',
             'container'
         );

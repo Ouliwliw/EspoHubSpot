@@ -72,7 +72,7 @@ class ModalView extends View {
      */
 
     /**
-     * @param {module:views/modal~Options | Record} [options] Options.
+     * @param {module:views/modal~Options | Option.<string, *>} [options] Options.
      */
     constructor(options) {
         super(options);
@@ -569,14 +569,15 @@ class ModalView extends View {
      */
     actionCancel() {
         this.trigger('cancel');
-        this.close();
+        this.dialog.close();
     }
 
     /**
      * A `close` action.
      */
     actionClose() {
-        this.actionCancel();
+        this.trigger('cancel');
+        this.dialog.close();
     }
 
     /**
@@ -584,16 +585,6 @@ class ModalView extends View {
      */
     close() {
         this.dialog.close();
-
-        if (!this.getParentView()) {
-            return;
-        }
-
-        const key = this.getParentView().getViewKey(this);
-
-        if (key) {
-            this.getParentView().clearView(key);
-        }
     }
 
     /**

@@ -1,6 +1,6 @@
 {
   "fields": {
-    "name": "Ad",
+    "name": "İsim",
     "description": "Açıklama",
     "entryCount": "Giriş sayısı",
     "campaigns": "Kampanyalar",

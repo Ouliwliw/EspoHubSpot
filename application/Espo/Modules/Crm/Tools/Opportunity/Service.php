@@ -30,8 +30,7 @@
 namespace Espo\Modules\Crm\Tools\Opportunity;
 
 use Espo\Core\Acl;
-use Espo\Core\Exceptions\BadRequest;
-use Espo\Core\Exceptions\Forbidden;
+use Espo\Core\Exceptions\ForbiddenSilent;
 use Espo\Core\Field\EmailAddress;
 use Espo\Core\Record\ServiceContainer;
 use Espo\Core\Select\SelectBuilderFactory;
@@ -41,21 +40,29 @@ use Espo\Modules\Crm\Entities\Opportunity;
 use Espo\ORM\Collection;
 use Espo\ORM\EntityManager;
 use Espo\Tools\Email\EmailAddressEntityPair;
-use RuntimeException;
 
 class Service
 {
+    private ServiceContainer $serviceContainer;
+    private Acl $acl;
+    private EntityManager $entityManager;
+    private SelectBuilderFactory $selectBuilderFactory;
 
     public function __construct(
-        private ServiceContainer $serviceContainer,
-        private Acl $acl,
-        private EntityManager $entityManager,
-        private SelectBuilderFactory $selectBuilderFactory
-    ) {}
+        ServiceContainer $serviceContainer,
+        Acl $acl,
+        EntityManager $entityManager,
+        SelectBuilderFactory $selectBuilderFactory
+    ) {
+        $this->serviceContainer = $serviceContainer;
+        $this->acl = $acl;
+        $this->entityManager = $entityManager;
+        $this->selectBuilderFactory = $selectBuilderFactory;
+    }
 
     /**
+     * @throws ForbiddenSilent
      * @return EmailAddressEntityPair[]
-     * @throws Forbidden
      */
     public function getEmailAddressList(string $id): array
     {
@@ -64,10 +71,12 @@ class Service
             ->get(Opportunity::ENTITY_TYPE)
             ->getEntity($id);
 
+        $forbiddenFieldList = $this->acl->getScopeForbiddenFieldList(Opportunity::ENTITY_TYPE);
+
         $list = [];
 
         if (
-            $this->acl->checkField(Opportunity::ENTITY_TYPE, 'contacts') &&
+            !in_array('contacts', $forbiddenFieldList) &&
             $this->acl->checkScope(Contact::ENTITY_TYPE)
         ) {
             foreach ($this->getContactEmailAddressList($entity) as $item) {
@@ -77,7 +86,7 @@ class Service
 
         if (
             $list === [] &&
-            $this->acl->checkField(Opportunity::ENTITY_TYPE, 'account') &&
+            !in_array('account', $forbiddenFieldList) &&
             $this->acl->checkScope(Account::ENTITY_TYPE)
         ) {
             $item = $this->getAccountEmailAddress($entity, $list);
@@ -140,7 +149,9 @@ class Service
             return [];
         }
 
-        if (!$this->acl->checkField(Contact::ENTITY_TYPE, 'emailAddress')) {
+        $contactForbiddenFieldList = $this->acl->getScopeForbiddenFieldList(Contact::ENTITY_TYPE);
+
+        if (in_array('emailAddress', $contactForbiddenFieldList)) {
             return [];
         }
 
@@ -148,25 +159,20 @@ class Service
 
         $emailAddressList = [];
 
-        try {
-            $query = $this->selectBuilderFactory
-                ->create()
-                ->from(Contact::ENTITY_TYPE)
-                ->withStrictAccessControl()
-                ->buildQueryBuilder()
-                ->select([
-                    'id',
-                    'emailAddress',
-                    'name',
-                ])
-                ->where([
-                    'id' => $contactIdList,
-                ])
-                ->build();
-        }
-        catch (BadRequest|Forbidden $e) {
-            throw new RuntimeException($e->getMessage());
-        }
+        $query = $this->selectBuilderFactory
+            ->create()
+            ->from(Contact::ENTITY_TYPE)
+            ->withStrictAccessControl()
+            ->buildQueryBuilder()
+            ->select([
+                'id',
+                'emailAddress',
+                'name',
+            ])
+            ->where([
+                'id' => $contactIdList,
+            ])
+            ->build();
 
         /** @var Collection<Contact> $contactCollection */
         $contactCollection = $this->entityManager

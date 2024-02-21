@@ -1,11 +1,11 @@
 {
   "fields": {
-    "name": "Ad",
+    "name": "İsim",
     "number": "Numara",
     "status": "Durum",
     "account": "Hesap",
     "contact": "Bağlantı",
-    "contacts": "Bağlantılar",
+    "contacts": "İletişim ",
     "priority": "Öncelik",
     "type": "Tür",
     "description": "Açıklama",
@@ -20,7 +20,7 @@
     "meetings": "Toplantılar",
     "calls": "Aramalar",
     "tasks": "Görevler",
-    "emails": "Emailler",
+    "emails": "E-postalar ",
     "articles": "Bilgi Bankası Makaleleri",
     "lead": "Müşteri Potansiyeli",
     "attachments": "Ekler",
@@ -42,18 +42,19 @@
     },
     "type": {
       "Question": "Soru",
-      "Incident": "Olay"
+      "Incident": "Olay",
+      "Problem": "sorun"
     }
   },
   "labels": {
     "Create Case": "Dosya Oluştur",
-    "Close": "Kapalı",
-    "Reject": "Reddedildi",
-    "Closed": "Kapalı",
+    "Close": "Kapat ",
+    "Reject": "Reddet  ",
+    "Closed": "Kapalı ",
     "Rejected": "Reddedildi"
   },
   "presetFilters": {
-    "open": "Açık",
-    "closed": "Kapalı"
+    "open": "Aç ",
+    "closed": "Kapalı "
   }
 }

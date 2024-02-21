@@ -42,20 +42,19 @@ class ViewHelper {
 
         /** @private */
         this.mdBeforeList = [
-            /*{
-                regex: /```\n?([\s\S]*?)```/g,
-                value: (s, string) => {
-                    return '```\n' + string.replace(/\\\>/g, '>') + '```';
-                },
-            },*/
             {
-                // Also covers triple-backtick blocks.
-                regex: /`([\s\S]*?)`/g,
-                value: (s, string) => {
-                    // noinspection RegExpRedundantEscape
-                    return '`' + string.replace(/\\\</g, '<') + '`';
-                },
+                regex: /&#x60;&#x60;&#x60;\n?([\s\S]*?)&#x60;&#x60;&#x60;/g,
+                value: function (s, string) {
+                    return '<pre><code>' +string.replace(/\*/g, '&#42;').replace(/~/g, '&#126;') +
+                        '</code></pre>';
+                }
             },
+            {
+                regex: /&#x60;([\s\S]*?)&#x60;/g,
+                value: function (s, string) {
+                    return '<code>' + string.replace(/\*/g, '&#42;').replace(/~/g, '&#126;') + '</code>';
+                }
+            }
         ];
 
         marked.setOptions({
@@ -531,7 +530,7 @@ class ViewHelper {
             return translationHash[name] || name;
         });
 
-        Handlebars.registerHelper('options', (/** any[] */list, value, options) => {
+        Handlebars.registerHelper('options', (list, value, options) => {
             if (typeof value === 'undefined') {
                 value = false;
             }
@@ -547,10 +546,10 @@ class ViewHelper {
                     return value.indexOf(name) !== -1;
                 }
 
-                return value === name || (!value && !name && name !== 0);
+                return value === name || !value && !name;
             };
 
-            options.hash = /** @type {Record} */options.hash || {};
+            options.hash = /** @type {Object.<string, *>} */ options.hash || {};
 
             const scope = options.hash.scope || false;
             const category = options.hash.category || false;
@@ -558,7 +557,7 @@ class ViewHelper {
             const styleMap = options.hash.styleMap || {};
 
             if (!multiple && options.hash.includeMissingOption && (value || value === '')) {
-                if (!list.includes(value)) {
+                if (!~list.indexOf(value)) {
                     list = Espo.Utils.clone(list);
 
                     list.push(value);
@@ -570,15 +569,16 @@ class ViewHelper {
                 null;
 
             if (translationHash === null) {
-                translationHash = {};
-
                 if (!category && field) {
                     translationHash = this.language
-                        .translate(/** @type {string} */field, 'options', /** @type {string} */scope) || {};
+                        .translate(/** @type {string}*/field, 'options', /** @type {string}*/scope) || {};
 
                     if (typeof translationHash !== 'object') {
                         translationHash = {};
                     }
+                }
+                else {
+                    translationHash = {};
                 }
             }
 
@@ -690,8 +690,7 @@ class ViewHelper {
     transformMarkdownText(text, options) {
         text = text || '';
 
-        // noinspection RegExpRedundantEscape
-        text = text.replace(/\</g, '\\<');
+        text = Handlebars.Utils.escapeExpression(text).replace(/&gt;+/g, '>');
 
         this.mdBeforeList.forEach(item => {
             text = text.replace(item.regex, item.value);
@@ -699,9 +698,12 @@ class ViewHelper {
 
         options = options || {};
 
-        text = options.inline ?
-            marked.parseInline(text) :
-            marked.parse(text);
+        if (options.inline) {
+            text = marked.parseInline(text);
+        }
+        else {
+            text = marked.parse(text);
+        }
 
         text = DOMPurify.sanitize(text, {}).toString();
 

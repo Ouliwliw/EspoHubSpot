@@ -29,7 +29,6 @@
 
 namespace Espo\Modules\Crm\Tools\MassEmail;
 
-use Espo\Tools\EmailTemplate\Result;
 use Laminas\Mail\Message;
 
 use Espo\Core\Mail\Account\GroupAccount\AccountFactory;
@@ -87,13 +86,64 @@ class SendingProcessor
      */
     public function process(MassEmail $massEmail, bool $isTest = false): void
     {
-        $maxSize = 0;
+        $hourMaxSize = $this->config->get('massEmailMaxPerHourCount', self::MAX_PER_HOUR_COUNT);
+        $batchMaxSize = $this->config->get('massEmailMaxPerBatchCount');
 
-        if ($this->handleMaxSize($isTest, $maxSize)) {
+        if (!$isTest) {
+            $threshold = new DateTime();
+            $threshold->modify('-1 hour');
+
+            $sentLastHourCount = $this->entityManager
+                ->getRDBRepositoryByClass(EmailQueueItem::class)
+                ->where([
+                    'status' => EmailQueueItem::STATUS_SENT,
+                    'sentAt>' => $threshold->format(DateTimeUtil::SYSTEM_DATE_TIME_FORMAT),
+                ])
+                ->count();
+
+            if ($sentLastHourCount >= $hourMaxSize) {
+                return;
+            }
+
+            $hourMaxSize = $hourMaxSize - $sentLastHourCount;
+        }
+
+        $maxSize = $hourMaxSize;
+
+        if ($batchMaxSize) {
+            $maxSize = min($batchMaxSize, $maxSize);
+        }
+
+        $queueItemList = $this->entityManager
+            ->getRDBRepositoryByClass(EmailQueueItem::class)
+            ->sth()
+            ->where([
+                'status' => EmailQueueItem::STATUS_PENDING,
+                'massEmailId' => $massEmail->getId(),
+                'isTest' => $isTest,
+            ])
+            ->limit(0, $maxSize)
+            ->find();
+
+        $templateId = $massEmail->getEmailTemplateId();
+
+        if (!$templateId) {
+            $this->setFailed($massEmail);
+
             return;
         }
 
-        $emailTemplate = $this->getEmailTemplate($massEmail);
+        $campaign = null;
+
+        $campaignId = $massEmail->getCampaignId();
+
+        if ($campaignId) {
+            $campaign = $this->entityManager->getEntityById(Campaign::ENTITY_TYPE, $campaignId);
+        }
+
+        $emailTemplate = $this->entityManager
+            ->getRDBRepositoryByClass(EmailTemplate::class)
+            ->getById($templateId);
 
         if (!$emailTemplate) {
             $this->setFailed($massEmail);
@@ -101,10 +151,37 @@ class SendingProcessor
             return;
         }
 
-        $campaign = $this->getCampaign($massEmail);
-        $attachmentList = $this->getAttachments($emailTemplate);
-        [$smtpParams, $senderParams] = $this->getSenderParams($massEmail);
-        $queueItemList = $this->getQueueItems($massEmail, $isTest, $maxSize);
+        /** @var Collection<Attachment> $attachmentList */
+        $attachmentList = $this->entityManager
+            ->getRDBRepositoryByClass(EmailTemplate::class)
+            ->getRelation($emailTemplate, 'attachments')
+            ->find();
+
+        $smtpParams = null;
+        $senderParams = SenderParams::create();
+
+        $inboundEmailId = $massEmail->getInboundEmailId();
+
+        if ($inboundEmailId) {
+            $account = $this->accountFactory->create($inboundEmailId);
+
+            $smtpParams = $account->getSmtpParams();
+
+            if (
+                !$account->isAvailableForSending() ||
+                !$account->getEntity()->smtpIsForMassEmail() ||
+                !$smtpParams
+            ) {
+                throw new Error("Mass Email: Group email account $inboundEmailId can't be used for mass email.");
+            }
+
+            if ($account->getEntity()->getReplyToAddress()) {
+                $senderParams = $senderParams
+                    ->withReplyToAddress(
+                        $account->getEntity()->getReplyToAddress()
+                    );
+            }
+        }
 
         foreach ($queueItemList as $queueItem) {
             $this->sendQueueItem(
@@ -123,11 +200,20 @@ class SendingProcessor
             return;
         }
 
-        if ($this->getCountLeft($massEmail) !== 0) {
-            return;
-        }
+        $countLeft = $this->entityManager
+            ->getRDBRepositoryByClass(EmailQueueItem::class)
+            ->where([
+                'status' => EmailQueueItem::STATUS_PENDING,
+                'massEmailId' => $massEmail->getId(),
+                'isTest' => false,
+            ])
+            ->count();
 
-        $this->setComplete($massEmail);
+        if ($countLeft === 0) {
+            $massEmail->set('status', MassEmail::STATUS_COMPLETE);
+
+            $this->entityManager->saveEntity($massEmail);
+        }
     }
 
     /**
@@ -156,7 +242,52 @@ class SendingProcessor
                 ->withParent($target)
         );
 
-        $body = $this->prepareBody($emailData, $queueItem, $trackingUrlList, $massEmail);
+        $body = $emailData->getBody();
+
+        $optOutUrl = $this->getSiteUrl() . '?entryPoint=unsubscribe&id=' . $queueItem->getId();
+
+        $optOutLink =
+            '<a href="' . $optOutUrl . '">' .
+            $this->defaultLanguage->translateLabel('Unsubscribe', 'labels', Campaign::ENTITY_TYPE) .
+            '</a>';
+
+        $body = str_replace('{optOutUrl}', $optOutUrl, $body);
+        $body = str_replace('{optOutLink}', $optOutLink, $body);
+
+        foreach ($trackingUrlList as $trackingUrl) {
+            $url = $this->getSiteUrl() .
+                '?entryPoint=campaignUrl&id=' . $trackingUrl->getId() . '&queueItemId=' . $queueItem->getId();
+
+            $body = str_replace($trackingUrl->get('urlToUse'), $url, $body);
+        }
+
+        if (
+            !$this->config->get('massEmailDisableMandatoryOptOutLink') &&
+            stripos($body, '?entryPoint=unsubscribe&id') === false
+        ) {
+            if ($emailData->isHtml()) {
+                $body .= "<br><br>" . $optOutLink;
+            }
+            else {
+                $body .= "\n\n" . $optOutUrl;
+            }
+        }
+
+        $trackImageAlt = $this->defaultLanguage->translateLabel('Campaign', 'scopeNames');
+
+        $trackOpenedUrl = $this->getSiteUrl() . '?entryPoint=campaignTrackOpened&id=' . $queueItem->getId();
+
+        $trackOpenedHtml =
+            '<img alt="' . $trackImageAlt . '" width="1" height="1" border="0" src="' . $trackOpenedUrl . '">';
+
+        if (
+            $massEmail->getCampaignId() &&
+            $this->config->get('massEmailOpenTracking')
+        ) {
+            if ($emailData->isHtml()) {
+                $body .= '<br>' . $trackOpenedHtml;
+            }
+        }
 
         /** @var Email $email */
         $email = $this->entityManager
@@ -210,7 +341,7 @@ class SendingProcessor
 
     private function setFailed(MassEmail $massEmail): void
     {
-        $massEmail->setStatus(MassEmail::STATUS_FAILED);
+        $massEmail->set('status', MassEmail::STATUS_FAILED);
 
         $this->entityManager->saveEntity($massEmail);
 
@@ -223,7 +354,9 @@ class SendingProcessor
             ->find();
 
         foreach ($queueItemList as $queueItem) {
-            $this->setItemFailed($queueItem);
+            $queueItem->set('status', EmailQueueItem::STATUS_FAILED);
+
+            $this->entityManager->saveEntity($queueItem);
         }
     }
 
@@ -241,11 +374,19 @@ class SendingProcessor
         SenderParams $senderParams
     ): void {
 
-        if ($this->isNotPending($queueItem)) {
+        /** @var ?EmailQueueItem $queueItemFetched */
+        $queueItemFetched = $this->entityManager->getEntityById($queueItem->getEntityType(), $queueItem->getId());
+
+        if (
+            !$queueItemFetched ||
+            $queueItemFetched->getStatus() !== EmailQueueItem::STATUS_PENDING
+        ) {
             return;
         }
 
-        $this->setItemSending($queueItem);
+        $queueItem->set('status', EmailQueueItem::STATUS_SENDING);
+
+        $this->entityManager->saveEntity($queueItem);
 
         $target = $this->entityManager->getEntityById($queueItem->getTargetType(), $queueItem->getTargetId());
 
@@ -256,301 +397,47 @@ class SendingProcessor
             !$target->hasId() ||
             !$emailAddress
         ) {
-            $this->setItemFailed($queueItem);
+            $queueItem->set('status', EmailQueueItem::STATUS_FAILED);
+
+            $this->entityManager->saveEntity($queueItem);
 
             return;
         }
 
-        $emailAddressRecord = $this->getEmailAddressRepository()->getByAddress($emailAddress);
+        /** @var EmailAddressRepository $emailAddressRepository */
+        $emailAddressRepository = $this->entityManager->getRepository(EmailAddress::ENTITY_TYPE);
+
+        $emailAddressRecord = $emailAddressRepository->getByAddress($emailAddress);
 
         if (
-            $emailAddressRecord &&
-            ($emailAddressRecord->isInvalid() || $emailAddressRecord->isOptedOut())
+            $emailAddressRecord && (
+                $emailAddressRecord->isInvalid() ||
+                $emailAddressRecord->isOptedOut()
+            )
         ) {
-            $this->setItemFailed($queueItem);
+            $queueItem->set('status', EmailQueueItem::STATUS_FAILED);
+
+            $this->entityManager->saveEntity($queueItem);
 
             return;
         }
 
-        $email = $this->getPreparedEmail(
-            $queueItem,
-            $massEmail,
-            $emailTemplate,
-            $target,
-            $this->getTrackingUrls($campaign)
-        );
+        /** @var CampaignTrackingUrl[] $trackingUrlList */
+        $trackingUrlList = [];
+
+        if ($campaign) {
+            /** @var Collection<CampaignTrackingUrl> $trackingUrlList */
+            $trackingUrlList = $this->entityManager
+                ->getRDBRepositoryByClass(Campaign::class)
+                ->getRelation($campaign, 'trackingUrls')
+                ->find();
+        }
+
+        $email = $this->getPreparedEmail($queueItem, $massEmail, $emailTemplate, $target, $trackingUrlList);
 
         if (!$email) {
             return;
         }
-
-        $senderParams = $this->prepareItemSenderParams($email, $senderParams, $campaign, $massEmail);
-
-        $queueItem->incrementAttemptCount();
-
-        $sender = $this->emailSender->create();
-
-        if ($smtpParams) {
-            $sender->withSmtpParams($smtpParams);
-        }
-
-        $message = new Message();
-
-        try {
-            $this->prepareQueueItemMessage($queueItem, $sender, $message, $senderParams);
-
-            $sender
-                ->withParams($senderParams)
-                ->withMessage($message)
-                ->withAttachments($attachmentList)
-                ->send($email);
-        }
-        catch (Exception $e) {
-            $this->processException($queueItem, $e);
-
-            return;
-        }
-
-        $emailObject = $emailTemplate;
-
-        if ($massEmail->storeSentEmails() && !$isTest) {
-            $this->entityManager->saveEntity($email);
-
-            $emailObject = $email;
-        }
-
-        $this->setItemSent($queueItem, $emailAddress);
-
-        if ($campaign) {
-            $this->campaignService->logSent($campaign->getId(), $queueItem, $emailObject);
-        }
-    }
-
-    private function getSiteUrl(): string
-    {
-        return
-            $this->config->get('massEmailSiteUrl') ??
-            $this->config->get('siteUrl');
-    }
-
-    /**
-     * @throws Error
-     * @throws NoSmtp
-     * @return array{?SmtpParams, SenderParams}
-     */
-    private function getSenderParams(MassEmail $massEmail): array
-    {
-        $smtpParams = null;
-        $senderParams = SenderParams::create();
-
-        $inboundEmailId = $massEmail->getInboundEmailId();
-
-        if (!$inboundEmailId) {
-            return [$smtpParams, $senderParams];
-        }
-
-        $account = $this->accountFactory->create($inboundEmailId);
-
-        $smtpParams = $account->getSmtpParams();
-
-        if (
-            !$account->isAvailableForSending() ||
-            !$account->getEntity()->smtpIsForMassEmail() ||
-            !$smtpParams
-        ) {
-            throw new Error("Mass Email: Group email account $inboundEmailId can't be used for mass email.");
-        }
-
-        if ($account->getEntity()->getReplyToAddress()) {
-            $senderParams = $senderParams
-                ->withReplyToAddress($account->getEntity()->getReplyToAddress());
-        }
-
-        return [$smtpParams, $senderParams];
-    }
-
-    private function getCountLeft(MassEmail $massEmail): int
-    {
-        return $this->entityManager
-            ->getRDBRepositoryByClass(EmailQueueItem::class)
-            ->where([
-                'status' => EmailQueueItem::STATUS_PENDING,
-                'massEmailId' => $massEmail->getId(),
-                'isTest' => false,
-            ])
-            ->count();
-    }
-
-    private function processException(EmailQueueItem $queueItem, Exception $e): void
-    {
-        $maxAttemptCount = $this->config->get('massEmailMaxAttemptCount', self::MAX_ATTEMPT_COUNT);
-
-        $queueItem->getAttemptCount() >= $maxAttemptCount ?
-            $queueItem->setStatus(EmailQueueItem::STATUS_FAILED) :
-            $queueItem->setStatus(EmailQueueItem::STATUS_PENDING);
-
-        $this->entityManager->saveEntity($queueItem);
-
-        $this->log->error("Mass Email, send item: {$e->getCode()}, {$e->getMessage()}");
-    }
-
-    private function getEmailAddressRepository(): EmailAddressRepository
-    {
-        /** @var EmailAddressRepository */
-        return $this->entityManager->getRepository(EmailAddress::ENTITY_TYPE);
-    }
-
-    private function isNotPending(EmailQueueItem $queueItem): bool
-    {
-        /** @var ?EmailQueueItem $queueItemFetched */
-        $queueItemFetched = $this->entityManager->getEntityById(EmailQueueItem::ENTITY_TYPE, $queueItem->getId());
-
-        if (!$queueItemFetched) {
-            return true;
-        }
-
-        return $queueItemFetched->getStatus() !== EmailQueueItem::STATUS_PENDING;
-    }
-
-    /**
-     * @return Collection<EmailQueueItem>
-     */
-    private function getQueueItems(MassEmail $massEmail, bool $isTest, int $maxSize): Collection
-    {
-        return $this->entityManager
-            ->getRDBRepositoryByClass(EmailQueueItem::class)
-            ->sth()
-            ->where([
-                'status' => EmailQueueItem::STATUS_PENDING,
-                'massEmailId' => $massEmail->getId(),
-                'isTest' => $isTest,
-            ])
-            ->limit(0, $maxSize)
-            ->find();
-    }
-
-    private function getCampaign(MassEmail $massEmail): ?Campaign
-    {
-        $campaignId = $massEmail->getCampaignId();
-
-        if (!$campaignId) {
-            return null;
-        }
-
-        return $this->entityManager->getRDBRepositoryByClass(Campaign::class)->getById($campaignId);
-    }
-
-    /**
-     * @return Collection<Attachment>
-     */
-    private function getAttachments(EmailTemplate $emailTemplate): Collection
-    {
-        /** @var Collection<Attachment> */
-        return $this->entityManager
-            ->getRDBRepositoryByClass(EmailTemplate::class)
-            ->getRelation($emailTemplate, 'attachments')
-            ->find();
-    }
-
-    /**
-     * @return bool Whether to skip.
-     */
-    private function handleMaxSize(bool $isTest, int &$maxSize): bool
-    {
-        $hourMaxSize = $this->config->get('massEmailMaxPerHourCount', self::MAX_PER_HOUR_COUNT);
-        $batchMaxSize = $this->config->get('massEmailMaxPerBatchCount');
-
-        if (!$isTest) {
-            $threshold = new DateTime();
-            $threshold->modify('-1 hour');
-
-            $sentLastHourCount = $this->entityManager
-                ->getRDBRepositoryByClass(EmailQueueItem::class)
-                ->where([
-                    'status' => EmailQueueItem::STATUS_SENT,
-                    'sentAt>' => $threshold->format(DateTimeUtil::SYSTEM_DATE_TIME_FORMAT),
-                ])
-                ->count();
-
-            if ($sentLastHourCount >= $hourMaxSize) {
-                return true;
-            }
-
-            $hourMaxSize = $hourMaxSize - $sentLastHourCount;
-        }
-
-        $maxSize = $hourMaxSize;
-
-        if ($batchMaxSize) {
-            $maxSize = min($batchMaxSize, $maxSize);
-        }
-
-        return false;
-    }
-
-    private function getEmailTemplate(MassEmail $massEmail): ?EmailTemplate
-    {
-        $id = $massEmail->getEmailTemplateId();
-
-        if (!$id) {
-            return null;
-        }
-
-        return $this->entityManager->getRDBRepositoryByClass(EmailTemplate::class)->getById($id);
-    }
-
-    private function setComplete(MassEmail $massEmail): void
-    {
-        $massEmail->setStatus(MassEmail::STATUS_COMPLETE);
-
-        $this->entityManager->saveEntity($massEmail);
-    }
-
-    private function setItemSending(EmailQueueItem $queueItem): void
-    {
-        $queueItem->setStatus(EmailQueueItem::STATUS_SENDING);
-
-        $this->entityManager->saveEntity($queueItem);
-    }
-
-    private function setItemFailed(EmailQueueItem $queueItem): void
-    {
-        $queueItem->setStatus(EmailQueueItem::STATUS_FAILED);
-
-        $this->entityManager->saveEntity($queueItem);
-    }
-
-    private function setItemSent(EmailQueueItem $queueItem, string $emailAddress): void
-    {
-        $queueItem->setEmailAddress($emailAddress);
-        $queueItem->setStatus(EmailQueueItem::STATUS_SENT);
-        $queueItem->setSentAtNow();
-
-        $this->entityManager->saveEntity($queueItem);
-    }
-
-    /**
-     * @return iterable<CampaignTrackingUrl>
-     */
-    private function getTrackingUrls(?Campaign $campaign): iterable
-    {
-        if (!$campaign) {
-            return [];
-        }
-
-        /** @var Collection<CampaignTrackingUrl>  */
-        return $this->entityManager
-            ->getRDBRepositoryByClass(Campaign::class)
-            ->getRelation($campaign, 'trackingUrls')
-            ->find();
-    }
-
-    private function prepareItemSenderParams(
-        Email $email,
-        SenderParams $senderParams,
-        ?Campaign $campaign,
-        MassEmail $massEmail
-    ): SenderParams {
 
         if ($email->get('replyToAddress')) { // @todo Revise.
             $senderParams = $senderParams->withReplyToAddress(null);
@@ -573,81 +460,65 @@ class SendingProcessor
             $senderParams = $senderParams->withReplyToName($massEmail->getReplyToName());
         }
 
-        return $senderParams;
-    }
+        try {
+            $attemptCount = $queueItem->getAttemptCount();
+            $attemptCount++;
 
-    private function getOptOutUrl(EmailQueueItem $queueItem): string
-    {
-        return "{$this->getSiteUrl()}?entryPoint=unsubscribe&id={$queueItem->getId()}";
-    }
+            $queueItem->set('attemptCount', $attemptCount);
 
-    private function getOptOutLink(string $optOutUrl): string
-    {
-        $label = $this->defaultLanguage->translateLabel('Unsubscribe', 'labels', Campaign::ENTITY_TYPE);
+            $sender = $this->emailSender->create();
 
-        return "<a href=\"$optOutUrl\">$label</a>";
-    }
-
-    private function getTrackUrl(mixed $trackingUrl, EmailQueueItem $queueItem): string
-    {
-        $siteUrl = $this->getSiteUrl();
-        $id1 = $trackingUrl->getId();
-        $id2 = $queueItem->getId();
-
-        return "$siteUrl?entryPoint=campaignUrl&id=$id1&queueItemId=$id2";
-    }
-
-    /**
-     * @param iterable<CampaignTrackingUrl> $trackingUrlList
-     */
-    private function prepareBody(
-        Result $emailData,
-        EmailQueueItem $queueItem,
-        $trackingUrlList,
-        MassEmail $massEmail
-    ): string {
-
-        $body = $emailData->getBody();
-
-        $optOutUrl = $this->getOptOutUrl($queueItem);
-        $optOutLink = $this->getOptOutLink($optOutUrl);
-
-        $body = str_replace('{optOutUrl}', $optOutUrl, $body);
-        $body = str_replace('{optOutLink}', $optOutLink, $body);
-
-        foreach ($trackingUrlList as $trackingUrl) {
-            $url = $this->getTrackUrl($trackingUrl, $queueItem);
-
-            $body = str_replace($trackingUrl->getUrlToUse(), $url, $body);
-        }
-
-        if (
-            !$this->config->get('massEmailDisableMandatoryOptOutLink') &&
-            stripos($body, '?entryPoint=unsubscribe&id') === false
-        ) {
-            if ($emailData->isHtml()) {
-                $body .= "<br><br>" . $optOutLink;
-            } else {
-                $body .= "\n\n" . $optOutUrl;
+            if ($smtpParams) {
+                $sender->withSmtpParams($smtpParams);
             }
+
+            $message = new Message();
+
+            $this->prepareQueueItemMessage($queueItem, $sender, $message, $senderParams);
+
+            $sender
+                ->withParams($senderParams)
+                ->withMessage($message)
+                ->withAttachments($attachmentList)
+                ->send($email);
+        }
+        catch (Exception $e) {
+            $maxAttemptCount = $this->config->get('massEmailMaxAttemptCount', self::MAX_ATTEMPT_COUNT);
+
+            $queueItem->getAttemptCount() >= $maxAttemptCount ?
+                $queueItem->set('status', EmailQueueItem::STATUS_FAILED) :
+                $queueItem->set('status', EmailQueueItem::STATUS_PENDING);
+
+            $this->entityManager->saveEntity($queueItem);
+
+            $this->log->error("Mass Email, send item: {$e->getCode()}, " . $e->getMessage());
+
+            return;
         }
 
-        $trackImageAlt = $this->defaultLanguage->translateLabel('Campaign', 'scopeNames');
+        $emailObject = $emailTemplate;
 
-        $trackOpenedUrl = $this->getSiteUrl() . '?entryPoint=campaignTrackOpened&id=' . $queueItem->getId();
+        if ($massEmail->storeSentEmails() && !$isTest) {
+            $this->entityManager->saveEntity($email);
 
-        /** @noinspection HtmlDeprecatedAttribute */
-        $trackOpenedHtml = "<img alt=\"$trackImageAlt\" width=\"1\" height=\"1\" border=\"0\" src=\"$trackOpenedUrl\">";
-
-        if (
-            $massEmail->getCampaignId() &&
-            $this->config->get('massEmailOpenTracking')
-        ) {
-            if ($emailData->isHtml()) {
-                $body .= '<br>' . $trackOpenedHtml;
-            }
+            $emailObject = $email;
         }
 
-        return $body;
+        $queueItem->set('emailAddress', $target->get('emailAddress'));
+        $queueItem->set('status', EmailQueueItem::STATUS_SENT);
+        $queueItem->set('sentAt', date(DateTimeUtil::SYSTEM_DATE_TIME_FORMAT));
+
+        $this->entityManager->saveEntity($queueItem);
+
+        if ($campaign) {
+            $this->campaignService->logSent($campaign->getId(), $queueItem, $emailObject);
+        }
+    }
+
+    private function getSiteUrl(): string
+    {
+        return
+            $this->config->get('massEmailSiteUrl') ??
+            $this->config->get('siteUrl');
     }
 }

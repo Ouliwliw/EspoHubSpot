@@ -1,6 +1,6 @@
 {
   "fields": {
-    "name": "Ad",
+    "name": "İsim",
     "status": "Durum",
     "body": "Mesaj",
     "subject": "Konu",

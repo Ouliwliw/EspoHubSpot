@@ -91,6 +91,9 @@
         "dashboardTemplate": {
             "onlyAdmin": true
         },
+        "preferences": {
+            "onlyAdmin": true
+        },
         "userData": {
             "forbidden": true
         }

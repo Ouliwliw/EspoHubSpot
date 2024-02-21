@@ -85,26 +85,11 @@ class SanitizeManager
      */
     private function getSanitizerList(string $entityType, string $field): array
     {
-        $classNameList = $this->getClassNameList($entityType, $field);
-
-        return array_map(
-            fn ($className) => $this->injectableFactory->createWith($className, ['entityType' => $entityType]),
-            $classNameList
-        );
-    }
-
-    /**
-     * @return class-string<Sanitizer>[]
-     */
-    private function getClassNameList(string $entityType, string $field): array
-    {
         $fieldType = $this->fieldUtil->getFieldType($entityType, $field);
 
         if (!$fieldType) {
             return [];
         }
-
-        $classNameList = [];
 
         /** @var ?class-string<Sanitizer> $className */
         $className = $this->metadata->get("fields.$fieldType.sanitizerClassName");
@@ -113,14 +98,17 @@ class SanitizeManager
             $classNameList[] = $className;
         }
 
-        /** @var class-string<Sanitizer>[] $typeClassNameList */
-        $typeClassNameList = $this->metadata->get("fields.$fieldType.sanitizerClassNameList") ?? [];
+        /** @var class-string<Sanitizer>[] $classNameList */
+        $classNameList = $this->metadata->get("entityDefs.$entityType.fields.$field.sanitizerClassNameList") ?? [];
 
-        $classNameList = array_merge($classNameList, $typeClassNameList);
+        $classNameList = array_merge(
+            $className ? [$className] : [],
+            $classNameList
+        );
 
-        /** @var class-string<Sanitizer>[] $fieldClassNameList */
-        $fieldClassNameList = $this->metadata->get("entityDefs.$entityType.fields.$field.sanitizerClassNameList") ?? [];
-
-        return array_merge($classNameList, $fieldClassNameList);
+        return array_map(
+            fn ($className) => $this->injectableFactory->createWith($className, ['entityType' => $entityType]),
+            $classNameList
+        );
     }
 }

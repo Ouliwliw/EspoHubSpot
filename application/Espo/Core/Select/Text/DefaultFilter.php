@@ -29,6 +29,7 @@
 
 namespace Espo\Core\Select\Text;
 
+use Espo\Core\Exceptions\Error;
 use Espo\Core\Select\Text\Filter\Data;
 use Espo\ORM\Query\SelectBuilder as QueryBuilder;
 use Espo\ORM\Query\Part\Where\OrGroup;
@@ -37,7 +38,6 @@ use Espo\ORM\Query\Part\Where\Comparison as Cmp;
 use Espo\ORM\Query\Part\Expression as Expr;
 
 use Espo\ORM\Entity;
-use RuntimeException;
 
 class DefaultFilter implements Filter
 {
@@ -47,6 +47,9 @@ class DefaultFilter implements Filter
         private ConfigProvider $config
     ) {}
 
+    /**
+     * @throws Error
+     */
     public function apply(QueryBuilder $queryBuilder, Data $data): void
     {
         $orGroupBuilder = OrGroup::createBuilder();
@@ -73,6 +76,7 @@ class DefaultFilter implements Filter
     }
 
     /**
+     * @throws Error
      * @todo AttributeFilterFactory.
      */
     private function applyAttribute(
@@ -145,15 +149,18 @@ class DefaultFilter implements Filter
         );
     }
 
+    /**
+     * @throws Error
+     */
     private function getAttributeTypeAndApplyJoin(QueryBuilder $queryBuilder, string $attribute): string
     {
         if (str_contains($attribute, '.')) {
-            [$link, $foreignField] = explode('.', $attribute);
+            list($link, $foreignField) = explode('.', $attribute);
 
             $foreignEntityType = $this->metadataProvider->getRelationEntityType($this->entityType, $link);
 
             if (!$foreignEntityType) {
-                throw new RuntimeException("Bad relation in text filter field '$attribute'.");
+                throw new Error("Bad relation in text filter field '{$attribute}'.");
             }
 
             if ($this->metadataProvider->getRelationType($this->entityType, $link) === Entity::HAS_MANY) {

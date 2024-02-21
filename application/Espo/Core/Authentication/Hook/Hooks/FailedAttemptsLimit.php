@@ -40,12 +40,7 @@ use Espo\ORM\EntityManager;
 use Espo\Entities\AuthLogRecord;
 
 use DateTime;
-use Exception;
-use RuntimeException;
 
-/**
- * @noinspection PhpUnused
- */
 class FailedAttemptsLimit implements BeforeLogin
 {
     public function __construct(
@@ -75,12 +70,7 @@ class FailedAttemptsLimit implements BeforeLogin
 
         $requestTime = intval($request->getServerParam('REQUEST_TIME_FLOAT'));
 
-        try {
-            $requestTimeFrom = (new DateTime('@' . $requestTime))->modify('-' . $failedAttemptsPeriod);
-        }
-        catch (Exception $e) {
-            throw new RuntimeException($e->getMessage());
-        }
+        $requestTimeFrom = (new DateTime('@' . $requestTime))->modify('-' . $failedAttemptsPeriod);
 
         $ip = $this->util->obtainIpFromRequest($request);
 
@@ -109,7 +99,7 @@ class FailedAttemptsLimit implements BeforeLogin
             return;
         }
 
-        $this->log->warning("AUTH: Max failed login attempts exceeded for IP '$ip'.");
+        $this->log->warning("AUTH: Max failed login attempts exceeded for IP '{$ip}'.");
 
         throw new Forbidden("Max failed login attempts exceeded.");
     }

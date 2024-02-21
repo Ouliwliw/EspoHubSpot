@@ -29,7 +29,6 @@
 
 namespace Espo\Entities;
 
-use Espo\Core\Field\LinkParent;
 use Espo\Core\ORM\Entity;
 
 use Espo\Core\Field\DateTime;
@@ -125,11 +124,6 @@ class Note extends Entity
         return $this->get('post');
     }
 
-    public function getNumber(): int
-    {
-        return $this->get('number');
-    }
-
     public function getCreatedAt(): ?DateTime
     {
         /** @var ?DateTime */
@@ -215,42 +209,6 @@ class Note extends Entity
     public function getCreatedById(): ?string
     {
         return $this->get('createdById');
-    }
-
-    public function setType(string $type): self
-    {
-        $this->set('type', $type);
-
-        return $this;
-    }
-
-    public function setParent(LinkParent $parent): self
-    {
-        $this->setValueObject('parent', $parent);
-
-        return $this;
-    }
-
-    public function setRelated(LinkParent $related): self
-    {
-        $this->setValueObject('related', $related);
-
-        return $this;
-    }
-
-    public function setSuperParent(LinkParent $superParent): self
-    {
-        $this->set('superParentId', $superParent->getId());
-        $this->set('superParentType', $superParent->getEntityType());
-
-        return $this;
-    }
-
-    public function setPost(?string $post): self
-    {
-        $this->set('post', $post);
-
-        return $this;
     }
 
     public function loadAdditionalFields(): void

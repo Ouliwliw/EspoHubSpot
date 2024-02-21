@@ -35,7 +35,7 @@ use Espo\Core\Utils\Config;
 
 class SmsSender
 {
-    private ?Sender $sender = null;
+    private ?Sender $sender;
 
     public function __construct(
         private InjectableFactory $injectableFactory,

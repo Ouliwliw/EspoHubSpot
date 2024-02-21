@@ -1,64 +1,38 @@
 [
     {
-        "tabBreak": true,
-        "tabLabel": "$label:System",
+        "label": "System",
         "rows": [
-            [{"name": "siteUrl"}, false]
+            [{"name": "useCache"}, {"name": "siteUrl"}],
+            [{"name": "maintenanceMode"}, {"name": "cronDisabled"}],
+            [{"name": "useWebSocket"}, false]
         ]
     },
     {
+        "label": "Search",
         "rows": [
-            [{"name": "useCache"}, {"name": "useWebSocket"}],
-            [{"name": "maintenanceMode"}, {"name": "cronDisabled"}]
+            [{"name": "textFilterUseContainsForVarchar"}, {"name": "globalSearchEntityList"}]
         ]
     },
     {
-        "tabBreak": true,
-        "tabLabel": "$label:Locale",
-        "rows": [
-            [{"name": "language"}, false]
-        ]
-    },
-    {
-        "rows": [
-            [{"name": "timeZone"}, {"name": "weekStart"}],
-            [{"name": "dateFormat"}, {"name": "fiscalYearShift"}],
-            [{"name": "timeFormat"}, false]
-        ]
-    },
-    {
-        "rows": [
-            [{"name": "thousandSeparator"}, {"name": "decimalMark"}]
-        ]
-    },
-    {
-        "rows": [
-            [{"name": "personNameFormat"}, false]
-        ]
-    },
-    {
-        "rows": [
-            [{"name": "addressFormat"}, {"name": "addressPreview"}],
-            [{"name": "addressCountryList"}],
-            [{"name": "addressCityList"}],
-            [{"name": "addressStateList"}]
-        ]
-    },
-    {
-        "tabBreak": true,
-        "tabLabel": "$label:Misc",
+        "label": "Misc",
         "rows": [
             [{"name": "followCreatedEntities"}, {"name": "emailAddressIsOptedOutByDefault"}],
             [{"name": "aclAllowDeleteCreated"}, {"name": "cleanupDeletedRecords"}],
             [{"name": "exportDisabled"}, {"name": "b2cMode"}],
             [{"name": "pdfEngine"}, false]
         ]
-
     },
     {
-        "label": "Search",
+        "label": "Locale",
         "rows": [
-            [{"name": "textFilterUseContainsForVarchar"}, {"name": "globalSearchEntityList"}]
+            [{"name": "language"}, {"name": "timeZone"}],
+            [{"name": "dateFormat"}, {"name": "weekStart"}],
+            [{"name": "timeFormat"},  {"name": "thousandSeparator"}],
+            [{"name": "fiscalYearShift"}, {"name": "decimalMark"}],
+            [{"name": "personNameFormat"}, false],
+            [{"name": "addressFormat"}, {"name": "addressPreview"}],
+            [{"name": "addressCountryList"}, {"name": "addressCityList"}],
+            [{"name": "addressStateList"}, false]
         ]
     },
     {

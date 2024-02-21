@@ -1,6 +1,6 @@
 {
   "fields": {
-    "name": "Ad",
+    "name": "İsim",
     "roles": "Görevler",
     "assignmentPermission": "Görevlendirme Yetkisi",
     "userPermission": "Kullanıcı Yetkisi",
@@ -10,8 +10,7 @@
     "dataPrivacyPermission": "Veri Gizliliği İzni",
     "massUpdatePermission": "Toplu Güncelleme Yetkisi",
     "data": "Veri",
-    "fieldData": "Alan Verileri",
-    "messagePermission": "Mesaj İzni"
+    "fieldData": "Alan Verileri"
   },
   "links": {
     "users": "Kullanıcılar",
@@ -35,9 +34,9 @@
       "account": "Hesap",
       "contact": "Kişi",
       "own": "kendi",
-      "no": "yok",
-      "yes": "evet",
-      "not-set": "ayarlanmamış"
+      "no": "NO",
+      "yes": "Evet",
+      "not-set": "Ayarlanmamış"
     }
   },
   "actions": {
@@ -51,8 +50,6 @@
     "changesAfterClearCache": "Erişim kontrolündeki tüm değişiklikler, önbellek silindikten sonra uygulanır."
   },
   "tooltips": {
-    "dataPrivacyPermission": "Kişisel verileri görüntülemeye ve silmeye izin verir.",
-    "exportPermission": "Kayıtların dışa aktarılmasına izin ver.",
-    "massUpdatePermission": "Kayıtlar toplu olarak güncellenir"
+    "dataPrivacyPermission": "Kişisel verileri görüntülemeye ve silmeye izin verir."
   }
 }

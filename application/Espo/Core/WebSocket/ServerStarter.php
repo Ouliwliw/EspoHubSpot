@@ -91,11 +91,12 @@ class ServerStarter
             $socketServer = new SocketSecureServer($socketServer, $loop, $sslParams);
         }
 
-        $wsServer = new WsServer(new WampServer($pusher));
-        $wsServer->enableKeepAlive($loop, 60);
-
         new IoServer(
-            new HttpServer($wsServer),
+            new HttpServer(
+                new WsServer(
+                    new WampServer($pusher)
+                )
+            ),
             $socketServer
         );
 

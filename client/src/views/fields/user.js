@@ -27,7 +27,6 @@
  ************************************************************************/
 
 import LinkFieldView from 'views/fields/link';
-import Autocomplete from 'ui/autocomplete';
 
 class UserFieldView extends LinkFieldView {
 
@@ -99,40 +98,60 @@ class UserFieldView extends LinkFieldView {
         super.afterRender();
 
         if (this.mode === this.MODE_SEARCH) {
-            const $elementTeams = this.$el.find('input.element-teams');
+            let $elementTeams = this.$el.find('input.element-teams');
 
-            const autocomplete = new Autocomplete($elementTeams.get(0), {
+
+            $elementTeams.autocomplete({
+                beforeRender: $c => {
+                    if (this.$elementName.hasClass('input-sm')) {
+                        $c.addClass('small');
+                    }
+                },
+                serviceUrl: () => {
+                    return 'Team?&maxSize=' + this.getAutocompleteMaxCount() + '&select=id,name';
+                },
                 minChars: 1,
-                focusOnSelect: true,
-                handleFocusMode: 3,
-                autoSelectFirst: true,
-                forceHide: true,
-                onSelect: item => {
-                    this.addLinkTeams(item.id, item.name);
+                triggerSelectOnValidInput: false,
+                paramName: 'q',
+                noCache: true,
+                formatResult: suggestion => {
+                    // noinspection JSUnresolvedReference
+                    return this.getHelper().escapeString(suggestion.name);
+                },
+                transformResult: response => {
+                    response = JSON.parse(response);
+                    let list = [];
+
+                    response.list.forEach(item => {
+                        list.push({
+                            id: item.id,
+                            name: item.name,
+                            data: item.id,
+                            value: item.name,
+                        });
+                    });
+
+                    return {suggestions: list};
+                },
+                onSelect: /** {id: string, name: string } */s => {
+                    this.addLinkTeams(s.id, s.name);
 
                     $elementTeams.val('');
-                },
-                lookupFunction: query => {
-                    return Espo.Ajax
-                        .getRequest('Team', {
-                            maxSize: this.getAutocompleteMaxCount(),
-                            select: 'id,name',
-                            q: query,
-                        })
-                        .then(/** {list: Record[]} */response => {
-                            return response.list.map(item => ({
-                                id: item.id,
-                                name: item.name,
-                                data: item.id,
-                                value: item.name,
-                            }));
-                        });
+                    $elementTeams.focus();
                 },
             });
 
-            this.once('render remove', () => autocomplete.dispose());
+            $elementTeams.attr('autocomplete', 'espo-' + this.name);
 
-            const type = this.$el.find('select.search-type').val();
+            this.once('render', () => {
+                $elementTeams.autocomplete('dispose');
+            });
+
+            this.once('remove', () => {
+                $elementTeams.autocomplete('dispose');
+            });
+
+            let type = this.$el.find('select.search-type').val();
 
             if (type === 'isFromTeams') {
                 this.searchData.teamIdList.forEach(id => {

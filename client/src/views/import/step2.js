@@ -289,56 +289,59 @@ class Step2ImportView extends View {
                 continue;
             }
 
-            const defs = /** @type {Object.<string, *>} */fields[field];
+            const d = /** @type {Object.<string, *>} */fields[field];
 
             if (
-                !this.allowedFieldList.includes(field) &&
-                (defs.disabled && !defs.importNotDisabled || defs.importDisabled)
+                !~this.allowedFieldList.indexOf(field) &&
+                (d.disabled && !d.importNotDisabled || d.importDisabled)
             ) {
                 continue;
             }
 
-            if (defs.type === 'phone') {
-                attributeList.push(field);
+            if (d.type === 'phone') {
+                attributeList
+                    .push(field);
 
-                (this.getMetadata().get(`entityDefs.${this.scope}.fields.${field}.typeList`) || [])
-                    .map(item => item.replace(/\s/g, '_'))
-                    .forEach(item => {
+                (this.getMetadata().get('entityDefs.' + this.scope + '.fields.' + field + '.typeList') || [])
+                    .map((item) => {
+                        return item.replace(/\s/g, '_');
+                    })
+                    .forEach((item) => {
                         attributeList.push(field + Espo.Utils.upperCaseFirst(item));
                     });
 
                 continue;
             }
 
-            if (defs.type === 'email') {
+            if (d.type === 'email') {
                 attributeList.push(field + '2');
                 attributeList.push(field + '3');
                 attributeList.push(field + '4');
             }
 
-            if (defs.type === 'link') {
+            if (d.type === 'link') {
                 attributeList.push(field + 'Name');
                 attributeList.push(field + 'Id');
             }
 
-            if (defs.type === 'foreign' && !defs.relateOnImport) {
+            if (~['foreign'].indexOf(d.type)) {
                 continue;
             }
 
-            if (defs.type === 'personName') {
+            if (d.type === 'personName') {
                 attributeList.push(field);
             }
 
-            const type = defs.type;
+            const type = d.type;
             let actualAttributeList = this.getFieldManager().getActualAttributeList(type, field);
 
             if (!actualAttributeList.length) {
                 actualAttributeList = [field];
             }
 
-            actualAttributeList.forEach(it => {
-                if (attributeList.indexOf(it) === -1) {
-                    attributeList.push(it);
+            actualAttributeList.forEach((f) => {
+                if (attributeList.indexOf(f) === -1) {
+                    attributeList.push(f);
                 }
             });
         }
@@ -442,7 +445,7 @@ class Step2ImportView extends View {
                     $option.prop('selected', true);
                 }
                 else {
-                    if (name.toLowerCase().replace(/_/g, '') === field.toLowerCase()) {
+                    if (name.toLowerCase().replace('_', '') === field.toLowerCase()) {
                         $option.prop('selected', true);
                     }
                 }

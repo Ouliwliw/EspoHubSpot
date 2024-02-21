@@ -64,8 +64,6 @@ class CalendarView extends View {
     ]
     defaultMode = 'agendaWeek'
     slotDuration = 30
-    scrollToNowSlots = 6;
-    scrollHour = 6
     titleFormat = {
         month: 'MMMM YYYY',
         week: 'MMMM YYYY',
@@ -155,17 +153,17 @@ class CalendarView extends View {
     }
 
     setup() {
-        this.wait(Espo.loader.requirePromise('lib!@fullcalendar/moment'));
-        this.wait(Espo.loader.requirePromise('lib!@fullcalendar/moment-timezone'));
+        this.wait(
+            Espo.loader.requirePromise('lib!@fullcalendar/moment')
+        );
 
-        this.suppressLoadingAlert = this.options.suppressLoadingAlert;
+        this.wait(
+            Espo.loader.requirePromise('lib!@fullcalendar/moment-timezone')
+        );
 
         this.date = this.options.date || null;
         this.mode = this.options.mode || this.defaultMode;
         this.header = ('header' in this.options) ? this.options.header : this.header;
-
-        this.scrollToNowSlots = this.options.scrollToNowSlots !== undefined ?
-            this.options.scrollToNowSlots : this.scrollToNowSlots;
 
         this.setupMode();
 
@@ -184,11 +182,8 @@ class CalendarView extends View {
             .get('clientDefs.Calendar.allDayScopeList') || this.allDayScopeList;
 
         this.slotDuration = this.options.slotDuration ||
-            this.getPreferences().get('calendarSlotDuration') ||
             this.getMetadata().get('clientDefs.Calendar.slotDuration') ||
             this.slotDuration;
-
-        this.setupScrollHour();
 
         this.colors = {...this.colors, ...this.getHelper().themeManager.getParam('calendarColors')};
 
@@ -234,29 +229,6 @@ class CalendarView extends View {
                 scopeList: this.scopeList,
                 mode: this.mode,
             });
-        }
-    }
-
-    /**
-     * @private
-     */
-    setupScrollHour() {
-        if (this.options.scrollHour !== undefined) {
-            this.scrollHour = this.options.scrollHour;
-
-            return;
-        }
-
-        const scrollHour = this.getPreferences().get('calendarScrollHour');
-
-        if (scrollHour !== null) {
-            this.scrollHour = scrollHour;
-
-            return;
-        }
-
-        if (this.slotDuration < 30) {
-            this.scrollHour = 8;
         }
     }
 
@@ -393,7 +365,7 @@ class CalendarView extends View {
 
         const todayUnix = moment().unix();
         const startUnix = moment(view.activeStart).unix();
-        const endUnix = moment(view.activeEnd).unix();
+        const endUnix = moment(view.activeStart).unix();
 
         return startUnix <= todayUnix && todayUnix < endUnix;
     }
@@ -502,6 +474,10 @@ class CalendarView extends View {
 
         if (end && start) {
             event.duration = end.unix() - start.unix();
+
+            if (event.duration < 1800) {
+                end = start.clone().add(30, 'm');
+            }
         }
 
         if (start) {
@@ -771,7 +747,6 @@ class CalendarView extends View {
 
         /** @type {CalendarOptions & Object.<string, *>} */
         const options = {
-            scrollTime: this.scrollHour + ':00',
             headerToolbar: false,
             slotLabelFormat: slotLabelFormat,
             eventTimeFormat: timeFormat,
@@ -786,7 +761,6 @@ class CalendarView extends View {
             firstDay: this.getDateTime().weekStart,
             slotEventOverlap: true,
             slotDuration: slotDuration,
-            slotLabelInterval: '01:00',
             snapDuration: this.slotDuration * 60 * 1000,
             timeZone: this.getDateTime().timeZone || undefined,
             longPressDelay: 300,
@@ -1072,32 +1046,12 @@ class CalendarView extends View {
 
             this.calendar.render();
 
-            this.handleScrollToNow();
             this.updateDate();
 
             if (this.$container && this.$container.length) {
                 this.adjustSize();
             }
         }, 150);
-    }
-
-    handleScrollToNow() {
-        if (!(this.mode === 'agendaWeek' || this.mode === 'agendaDay')) {
-            return;
-        }
-
-        if (!this.isToday()) {
-            return;
-        }
-
-        const scrollHour = this.getDateTime().getNowMoment().hours() -
-            Math.floor(this.slotDuration * this.scrollToNowSlots / 60);
-
-        if (scrollHour < 0) {
-            return;
-        }
-
-        this.calendar.scrollToTime(scrollHour + ':00');
     }
 
     /**
@@ -1177,10 +1131,6 @@ class CalendarView extends View {
 
         url += '&agenda=' + encodeURIComponent(agenda);
 
-        if (!this.suppressLoadingAlert) {
-            Espo.Ui.notify(' ... ');
-        }
-
         Espo.Ajax.getRequest(url).then(data => {
             const events = this.convertToFcEvents(data);
 
@@ -1190,7 +1140,6 @@ class CalendarView extends View {
         });
 
         this.fetching = true;
-        this.suppressLoadingAlert = false;
 
         setTimeout(() => this.fetching = false, 50)
     }
@@ -1290,14 +1239,12 @@ class CalendarView extends View {
     actionPrevious() {
         this.calendar.prev();
 
-        this.handleScrollToNow();
         this.updateDate();
     }
 
     actionNext() {
         this.calendar.next();
 
-        this.handleScrollToNow();
         this.updateDate();
     }
 
@@ -1344,7 +1291,6 @@ class CalendarView extends View {
 
         this.calendar.today();
 
-        this.handleScrollToNow();
         this.updateDate();
     }
 }

@@ -35,8 +35,6 @@ use Espo\ORM\Query\SelectBuilder;
 
 class Planned implements Filter
 {
-    public const NAME = 'planned';
-
     public function __construct(
         private string $entityType,
         private Metadata $metadata

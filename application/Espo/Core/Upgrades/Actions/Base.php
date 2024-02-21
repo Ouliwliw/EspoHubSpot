@@ -283,7 +283,7 @@ abstract class Base
     }
 
     /**
-     * @param mixed $data
+     * @param never $data
      * @return mixed
      */
     abstract public function run($data);

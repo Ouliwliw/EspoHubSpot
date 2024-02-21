@@ -50,11 +50,10 @@ class WysiwygFieldView extends TextFieldView {
     fetchEmptyValueAsNull = false
     validationElementSelector = '.note-editor'
     htmlPurificationDisabled = false
-    htmlPurificationForEditDisabled = false
     tableClassName = 'table table-bordered'
+    tableBorderWidth
+    tableCellPadding
     noStylesheet = false
-    useIframe = false
-    handlebars = false
 
     events = {
         /** @this WysiwygFieldView */
@@ -175,9 +174,6 @@ class WysiwygFieldView extends TextFieldView {
     setupToolbar() {
         this.buttons = {};
 
-        const codeviewName = this.getConfig().get('wysiwygCodeEditorDisabled') ?
-            'codeview' : 'aceCodeview';
-
         this.toolbar = this.params.toolbar || this.toolbar || [
             ['style', ['style']],
             ['style', ['bold', 'italic', 'underline', 'clear']],
@@ -186,7 +182,7 @@ class WysiwygFieldView extends TextFieldView {
             ['para', ['ul', 'ol', 'paragraph']],
             ['height', ['height']],
             ['table', ['espoTable', 'espoLink', 'espoImage', 'hr']],
-            ['misc', [codeviewName, 'fullscreen']],
+            ['misc', ['codeview', 'fullscreen']],
         ];
 
         if (this.params.toolbar) {
@@ -207,6 +203,12 @@ class WysiwygFieldView extends TextFieldView {
                 tooltip: this.translate('Attach File'),
                 click: () => {
                     this.attachFile();
+
+                    this.listenToOnce(this.model, 'attachment-uploaded:attachments', () => {
+                        if (this.isEditMode()) {
+                            Espo.Ui.success(this.translate('Attached'));
+                        }
+                    });
                 }
             });
 
@@ -278,10 +280,6 @@ class WysiwygFieldView extends TextFieldView {
             else {
                 this.$element.removeClass('hidden');
             }
-
-            if (this.params.attachmentField && this.isInlineEditMode()) {
-                this.$el.find('.note-attachment').addClass('hidden');
-            }
         }
 
         if (this.isReadMode()) {
@@ -320,11 +318,11 @@ class WysiwygFieldView extends TextFieldView {
 
         const documentElement = iframeElement.contentWindow.document;
 
-        let bodyHtml = this.sanitizeHtml(this.model.get(this.name) || '');
+        let body = this.sanitizeHtml(this.model.get(this.name) || '');
 
-        const useFallbackStylesheet = this.getThemeManager().getParam('isDark') && this.htmlHasColors(bodyHtml);
+        const useFallbackStylesheet = this.getThemeManager().getParam('isDark') && this.htmlHasColors(body);
         const addFallbackClass = this.getThemeManager().getParam('isDark') &&
-            (this.htmlHasColors(bodyHtml) || this.noStylesheet);
+            (this.htmlHasColors(body) || this.noStylesheet);
 
         const $iframeContainer = $iframe.parent();
 
@@ -343,23 +341,10 @@ class WysiwygFieldView extends TextFieldView {
                     this.getThemeManager().getIframeStylesheet()
             );
 
-            bodyHtml = linkElement.outerHTML + bodyHtml;
+            body = linkElement.outerHTML + body;
         }
 
-        let headHtml = '';
-
-        if (this.noStylesheet) {
-            const styleElement = documentElement.createElement('style');
-
-            styleElement.textContent = `\ntable.bordered, table.bordered td, table.bordered th {border: 1px solid;}\n`;
-
-            headHtml = styleElement.outerHTML;
-        }
-
-        // noinspection HtmlRequiredTitleElement
-        const documentHtml = `<head>${headHtml}</head><body>${bodyHtml}</body>`
-
-        documentElement.write(documentHtml);
+        documentElement.write(body);
         documentElement.close();
 
         const $body = $iframe.contents().find('html body');
@@ -573,10 +558,6 @@ class WysiwygFieldView extends TextFieldView {
 
         // noinspection JSUnusedGlobalSymbols
         const options = {
-            handlebars: this.handlebars,
-            prettifyHtml: false, // should not be true
-            disableResizeEditor: true,
-            isDark: this.getThemeManager().getParam('isDark'),
             espoView: this,
             lang: this.getConfig().get('language'),
             keyMap: keyMap,
@@ -594,9 +575,6 @@ class WysiwygFieldView extends TextFieldView {
                             Espo.Ui.notify(false);
                         });
                 },
-                /*onBlurCodeview: () => {
-                    this.trigger('change');
-                },*/
                 onBlur: () => {
                     this.trigger('change');
                 },
@@ -615,8 +593,8 @@ class WysiwygFieldView extends TextFieldView {
             dialogsInBody: this.$el,
             codeviewFilter: true,
             tableClassName: this.tableClassName,
-            // Dnd has issues.
-            disableDragAndDrop: true,
+            tableBorderWidth: this.tableBorderWidth,
+            tableCellPadding: this.tableCellPadding,
         };
 
         if (this.height) {
@@ -695,7 +673,6 @@ class WysiwygFieldView extends TextFieldView {
 
     destroySummernote() {
         if (this.summernoteIsInitialized && this.$summernote) {
-            this.$summernote.summernote('destroyAceCodeview');
             this.$summernote.summernote('destroy');
             this.summernoteIsInitialized = false;
         }
@@ -846,18 +823,7 @@ class WysiwygFieldView extends TextFieldView {
     attachFile() {
         const $form = this.$el.closest('.record');
 
-        $form.find(`.field[data-name="${this.params.attachmentField}"] input.file`).click();
-
-        this.stopListening(this.model, 'attachment-uploaded:attachments');
-
-        this.listenToOnce(this.model, 'attachment-uploaded:attachments', /** module:model[] */attachments => {
-            if (this.isEditMode()) {
-                const msg = this.translate('Attached') + '\n' +
-                    attachments.map(m => m.attributes.name).join('\n');
-
-                Espo.Ui.notify(msg, 'success', 3000);
-            }
-        });
+        $form.find('.field[data-name="' + this.params.attachmentField + '"] input.file').click();
     }
 
     initEspoPlugin() {

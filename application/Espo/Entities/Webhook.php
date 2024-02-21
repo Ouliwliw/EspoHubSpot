@@ -29,9 +29,7 @@
 
 namespace Espo\Entities;
 
-use Espo\Core\ORM\Entity;
-
-class Webhook extends Entity
+class Webhook extends \Espo\Core\ORM\Entity
 {
     public const ENTITY_TYPE = 'Webhook';
 
@@ -48,20 +46,5 @@ class Webhook extends Entity
     public function getUrl(): ?string
     {
         return $this->get('url');
-    }
-
-    public function isActive(): bool
-    {
-        return $this->get('isActive');
-    }
-
-    public function getUserId(): ?string
-    {
-        return $this->get('userId');
-    }
-
-    public function getTargetEntityType(): string
-    {
-        return $this->get('entityType');
     }
 }

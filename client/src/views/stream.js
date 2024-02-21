@@ -30,14 +30,18 @@ import View from 'view';
 
 class StreamView extends View {
 
-    template = 'stream'
+    template ='stream'
     filterList = ['all', 'posts', 'updates']
     filter = false
 
     events = {
         /** @this StreamView */
         'click button[data-action="refresh"]': function () {
-            this.actionRefresh();
+            if (!this.getRecordView()) {
+                return;
+            }
+
+            this.getRecordView().showNewRecords();
         },
         /** @this StreamView */
         'click button[data-action="selectFilter"]': function (e) {
@@ -54,21 +58,27 @@ class StreamView extends View {
             filter = 'all';
         }
 
-        const hasGlobalStreamAccess = this.getAcl().checkScope('GlobalStream');
-
         return {
             displayTitle: this.options.displayTitle,
             filterList: this.filterList,
             filter: filter,
-            hasMenu: hasGlobalStreamAccess,
-            hasGlobalStreamAccess: hasGlobalStreamAccess,
         };
     }
 
     setup() {
         this.filter = this.options.filter || this.filter;
 
-        this.addActionHandler('createPost', () => this.actionCreatePost());
+        this.wait(
+            this.getModelFactory().create('Note', model => {
+                this.createView('createPost', 'views/stream/record/edit', {
+                    selector: '.create-post-container',
+                    model: model,
+                    interactiveMode: true,
+                }, view => {
+                    this.listenTo(view, 'after:save', () => this.getRecordView().showNewRecords());
+                });
+            })
+        );
     }
 
     afterRender() {
@@ -117,8 +127,8 @@ class StreamView extends View {
         this.filter = internalFilter;
         this.setFilter(this.filter);
 
-        this.filterList.forEach(item => {
-            const $el = this.$el.find('.button-container button[data-action="selectFilter"][data-name="' + item + '"]');
+        this.filterList.forEach((item) => {
+            const $el = this.$el.find('.page-header button[data-action="selectFilter"][data-name="' + item + '"]');
 
             if (item === filter) {
                 $el.addClass('active');
@@ -154,37 +164,6 @@ class StreamView extends View {
 
         this.collection.offset = 0;
         this.collection.maxSize = this.getConfig().get('recordsPerPage') || this.collection.maxSize;
-    }
-
-    actionCreatePost() {
-        this.createView('dialog', 'views/stream/modals/create-post', {}, view => {
-            view.render();
-
-            this.listenToOnce(view, 'after:save', () => {
-                view.close();
-
-                this.getRecordView().showNewRecords();
-            });
-        });
-    }
-
-    actionRefresh() {
-        if (!this.getRecordView()) {
-            return;
-        }
-
-        const iconEl = this.element.querySelector('button[data-action="refresh"] .icon');
-
-        if (iconEl) {
-            iconEl.classList.add('animation-spin-fast');
-
-            setTimeout(() => iconEl.classList.remove('animation-spin-fast'), 500);
-        }
-
-        Espo.Ui.notify(' ... ');
-
-        this.getRecordView().showNewRecords()
-            .then(() => Espo.Ui.notify(false));
     }
 }
 

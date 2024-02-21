@@ -30,7 +30,6 @@
 namespace Espo\Services;
 
 use Espo\Core\Acl\Table;
-use Espo\Core\Exceptions\BadRequest;
 use Espo\ORM\Collection;
 use Espo\ORM\Entity;
 
@@ -77,7 +76,6 @@ class RecordTree extends Record
      * @param array<string, mixed> $params
      * @return ?Collection<Entity>
      * @throws Forbidden
-     * @throws BadRequest
      */
     public function getTree(
         string $parentId = null,
@@ -89,15 +87,12 @@ class RecordTree extends Record
             throw new Forbidden();
         }
 
-        /** @noinspection PhpRedundantOptionalArgumentInspection */
         return $this->getTreeInternal($parentId, $params, $maxDepth, 0);
     }
 
     /**
      * @param array<string, mixed> $params
      * @return ?Collection<Entity>
-     * @throws BadRequest
-     * @throws Forbidden
      */
     protected function getTreeInternal(
         string $parentId = null,
@@ -158,7 +153,7 @@ class RecordTree extends Record
         foreach ($collection as $entity) {
             $childList = $this->getTreeInternal($entity->getId(), $params, $maxDepth, $level + 1);
 
-            $entity->set('childList', $childList?->getValueMapList());
+            $entity->set('childList', $childList ? $childList->getValueMapList() : null);
         }
 
         return $collection;
@@ -180,10 +175,6 @@ class RecordTree extends Record
         return false;
     }
 
-    /**
-     * @throws BadRequest
-     * @throws Forbidden
-     */
     protected function checkItemIsEmpty(Entity $entity): bool
     {
         if (!$this->categoryField) {
@@ -208,7 +199,6 @@ class RecordTree extends Record
         $one = $this->entityManager
             ->getRDBRepository($this->subjectEntityType)
             ->clone($query)
-            ->select(['id'])
             ->findOne();
 
         if ($one) {
@@ -302,10 +292,6 @@ class RecordTree extends Record
         return false;
     }
 
-    /**
-     * @throws Forbidden
-     * @throws Error
-     */
     protected function beforeCreateEntity(Entity $entity, $data)
     {
         parent::beforeCreateEntity($entity, $data);
@@ -344,7 +330,6 @@ class RecordTree extends Record
     /**
      * @return string[]
      * @throws Forbidden
-     * @throws BadRequest
      */
     public function getLastChildrenIdList(?string $parentId = null): array
     {

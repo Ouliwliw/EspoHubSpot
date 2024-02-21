@@ -29,9 +29,7 @@
 
 namespace Espo\Entities;
 
-use Espo\Core\ORM\Entity;
-
-class PortalRole extends Entity
+class PortalRole extends \Espo\Core\ORM\Entity
 {
     public const ENTITY_TYPE = 'PortalRole';
 }

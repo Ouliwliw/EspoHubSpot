@@ -13,7 +13,6 @@
             class="btn btn-default btn-icon"
             type="button"
             tabindex="-1"
-            title="{{translate 'Select'}}"
         ><i class="fas fa-angle-up"></i></button>
     </span>
 </div>

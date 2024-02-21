@@ -51,12 +51,14 @@ class AssignedUserFieldView extends UserWithAvatarFieldView {
     }
 
     getEmptyAutocompleteResult() {
-        return [
-            {
-                id: this.getUser().id,
-                name: this.getUser().get('name'),
-            },
-        ];
+        return {
+            list: [
+                {
+                    id: this.getUser().id,
+                    name: this.getUser().get('name'),
+                }
+            ]
+        };
     }
 }
 

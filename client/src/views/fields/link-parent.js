@@ -31,7 +31,6 @@
 import BaseFieldView from 'views/fields/base';
 import RecordModal from 'helpers/record-modal';
 import Select from 'ui/select';
-import Autocomplete from 'ui/autocomplete';
 
 /**
  * A link-parent field (belongs-to-parent relation).
@@ -51,21 +50,21 @@ class LinkParentFieldView extends BaseFieldView {
      *
      * @type {string}
      */
-    nameName
+    nameName = null
 
     /**
      * An ID attribute name.
      *
      * @type {string}
      */
-    idName
+    idName = null
 
     /**
      * A type attribute name.
      *
      * @type {string}
      */
-    typeName
+    typeName = null
 
     /**
      * A current foreign entity type.
@@ -160,14 +159,6 @@ class LinkParentFieldView extends BaseFieldView {
     /** @inheritDoc */
     initialSearchIsNotIdle = true
 
-    /**
-     * Trigger autocomplete on empty input.
-     *
-     * @protected
-     * @type {boolean}
-     */
-    autocompleteOnEmpty
-
     /** @inheritDoc */
     events = {
         /** @this LinkParentFieldView */
@@ -176,7 +167,7 @@ class LinkParentFieldView extends BaseFieldView {
                 return;
             }
 
-            const isCombination = e.button === 1 && (e.ctrlKey || e.metaKey);
+            let isCombination = e.button === 1 && (e.ctrlKey || e.metaKey);
 
             if (!isCombination) {
                 return;
@@ -189,7 +180,6 @@ class LinkParentFieldView extends BaseFieldView {
         },
     }
 
-    // noinspection JSCheckFunctionSignatures
     data() {
         let nameValue = this.model.get(this.nameName);
 
@@ -209,7 +199,6 @@ class LinkParentFieldView extends BaseFieldView {
             iconHtml = this.getHelper().getScopeColorIconHtml(this.foreignScope);
         }
 
-        // noinspection JSValidateTypes
         return {
             ...super.data(),
             idName: this.idName,
@@ -297,8 +286,6 @@ class LinkParentFieldView extends BaseFieldView {
             this.foreignScope = this.model.get(this.typeName) || this.foreignScopeList[0];
         });
 
-        this.autocompleteOnEmpty = this.params.autocompleteOnEmpty || this.autocompleteOnEmpty;
-
         if ('createDisabled' in this.options) {
             this.createDisabled = this.options.createDisabled;
         }
@@ -307,10 +294,11 @@ class LinkParentFieldView extends BaseFieldView {
             this.addActionHandler('selectLink', () => {
                 Espo.Ui.notify(' ... ');
 
-                const viewName = this.getMetadata().get(`clientDefs.${this.foreignScope}.modalViews.select`) ||
+                let viewName = this.getMetadata()
+                        .get('clientDefs.' + this.foreignScope + '.modalViews.select') ||
                     this.selectRecordsView;
 
-                const createButton = !this.createDisabled && this.isEditMode();
+                let createButton = !this.createDisabled && this.isEditMode();
 
                 this.createView('dialog', viewName, {
                     scope: this.foreignScope,
@@ -355,7 +343,7 @@ class LinkParentFieldView extends BaseFieldView {
 
     /** @inheritDoc */
     setupSearch() {
-        const type = this.getSearchParamsData().type;
+        let type = this.getSearchParamsData().type;
 
         if (type === 'is' || !type) {
             this.searchData.idValue = this.getSearchParamsData().idValue ||
@@ -367,7 +355,7 @@ class LinkParentFieldView extends BaseFieldView {
         }
 
         this.events['change select.search-type'] = e => {
-            const type = $(e.currentTarget).val();
+            let type = $(e.currentTarget).val();
 
             this.handleSearchType(type);
         };
@@ -380,7 +368,7 @@ class LinkParentFieldView extends BaseFieldView {
      * @param {string} type A type.
      */
     handleSearchType(type) {
-        if (['is'].includes(type)) {
+        if (~['is'].indexOf(type)) {
             this.$el.find('div.primary').removeClass('hidden');
         } else {
             this.$el.find('div.primary').addClass('hidden');
@@ -435,15 +423,13 @@ class LinkParentFieldView extends BaseFieldView {
         return this.getConfig().get('recordsPerPage');
     }
 
-    // noinspection JSUnusedLocalSymbols
     /**
      * Compose an autocomplete URL. Can be extended.
      *
      * @protected
-     * @type {string} [q]
      * @return {string}
      */
-    getAutocompleteUrl(q) {
+    getAutocompleteUrl() {
         let url = this.foreignScope + '?maxSize=' + this.getAutocompleteMaxCount();
 
         if (!this.isForceSelectAllAttributes()) {
@@ -456,13 +442,13 @@ class LinkParentFieldView extends BaseFieldView {
             url += '&select=' + select.join(',');
         }
 
-        const boolList = this.getSelectBoolFilterList();
+        let boolList = this.getSelectBoolFilterList();
 
         if (boolList) {
             url += '&' + $.param({'boolFilterList': boolList});
         }
 
-        const primary = this.getSelectPrimaryFilterName();
+        let primary = this.getSelectPrimaryFilterName();
 
         if (primary) {
             url += '&' + $.param({'primaryFilter': primary});
@@ -499,45 +485,77 @@ class LinkParentFieldView extends BaseFieldView {
                         e.currentTarget.value = this.model.get(this.nameName) || '';
                     }
                 }, 100);
+
+                if (!this.autocompleteDisabled) {
+                    setTimeout(() => this.$elementName.autocomplete('clear'), 300);
+                }
             });
 
             if (!this.autocompleteDisabled) {
-                const autocomplete = new Autocomplete(this.$elementName.get(0), {
-                    name: this.name,
-                    focusOnSelect: true,
-                    handleFocusMode: 2,
-                    autoSelectFirst: true,
+                this.$elementName.autocomplete({
+                    serviceUrl: (q) => {
+                        return this.getAutocompleteUrl(q);
+                    },
+                    minChars: 1,
+                    paramName: 'q',
+                    noCache: true,
                     triggerSelectOnValidInput: false,
-                    forceHide: true,
-                    minChars: this.autocompleteOnEmpty ? 0 : 1,
-                    onSelect: item => {
-                        this.getModelFactory().create(this.foreignScope, model => {
-                            model.set(item.attributes);
+                    autoSelectFirst: true,
+                    beforeRender: ($c) => {
+                        if (this.$elementName.hasClass('input-sm')) {
+                            $c.addClass('small');
+                        }
+                    },
+                    formatResult: (suggestion) => {
+                        return this.getHelper().escapeString(suggestion.name);
+                    },
+                    transformResult: (response) => {
+                        response = JSON.parse(response);
+                        let list = [];
+
+                        response.list.forEach(item => {
+                            list.push({
+                                id: item.id,
+                                name: item.name || item.id,
+                                data: item.id,
+                                value: item.name || item.id,
+                                attributes: item,
+                            });
+                        });
+
+                        return {suggestions: list};
+                    },
+                    onSelect: (s) => {
+                        this.getModelFactory().create(this.foreignScope, (model) => {
+                            model.set(s.attributes);
 
                             this.select(model);
                             this.$elementName.focus();
                         });
                     },
-                    lookupFunction: query => {
-                        return Promise.resolve(this.getAutocompleteUrl(query))
-                            .then(url => Espo.Ajax.getRequest(url, {q: query}))
-                            .then(/** {list: Record[]} */response => {
-                                return response.list.map(item => ({
-                                    value: item.name,
-                                    attributes: item,
-                                }));
-                            });
-                    },
                 });
 
-                this.once('render remove', () => autocomplete.dispose());
+                this.$elementName.off('focus.autocomplete');
+                this.$elementName.on('focus', () => this.$elementName.get(0).select());
+
+                this.$elementName.attr('autocomplete', 'espo-' + this.name);
 
                 Select.init(this.$elementType, {});
             }
+
+            let $elementName = this.$elementName;
+
+            this.once('render', () => {
+                $elementName.autocomplete('dispose');
+            });
+
+            this.once('remove', () => {
+                $elementName.autocomplete('dispose');
+            });
         }
 
-        if (this.isSearchMode()) {
-            const type = this.$el.find('select.search-type').val();
+        if (this.mode === 'search') {
+            let type = this.$el.find('select.search-type').val();
 
             this.handleSearchType(type);
 
@@ -556,7 +574,7 @@ class LinkParentFieldView extends BaseFieldView {
     validateRequired() {
         if (this.isRequired()) {
             if (this.model.get(this.idName) === null || !this.model.get(this.typeName)) {
-                const msg = this.translate('fieldIsRequired', 'messages')
+                let msg = this.translate('fieldIsRequired', 'messages')
                     .replace('{field}', this.getLabelText());
 
                 this.showValidationMessage(msg);
@@ -568,7 +586,7 @@ class LinkParentFieldView extends BaseFieldView {
 
     /** @inheritDoc */
     fetch() {
-        const data = {};
+        let data = {};
 
         data[this.typeName] = this.$elementType.val() || null;
         data[this.nameName] = this.$elementName.val() || null;
@@ -583,7 +601,7 @@ class LinkParentFieldView extends BaseFieldView {
 
     /** @inheritDoc */
     fetchSearch() {
-        const type = this.$el.find('select.search-type').val();
+        let type = this.$el.find('select.search-type').val();
 
         if (type === 'isEmpty') {
             return {
@@ -605,9 +623,9 @@ class LinkParentFieldView extends BaseFieldView {
             };
         }
 
-        const entityType = this.$elementType.val();
-        const entityName = this.$elementName.val();
-        const entityId = this.$elementId.val();
+        let entityType = this.$elementType.val();
+        let entityName = this.$elementName.val()
+        let entityId = this.$elementId.val();
 
         if (!entityType) {
             return null;
@@ -668,14 +686,14 @@ class LinkParentFieldView extends BaseFieldView {
      * @protected
      */
     quickView() {
-        const id = this.model.get(this.idName);
-        const entityType = this.model.get(this.typeName);
+        let id = this.model.get(this.idName);
+        let entityType = this.model.get(this.typeName);
 
         if (!id || !entityType) {
             return;
         }
 
-        const helper = new RecordModal(this.getMetadata(), this.getAcl());
+        let helper = new RecordModal(this.getMetadata(), this.getAcl());
 
         helper.showDetail(this, {
             id: id,

@@ -26,890 +26,781 @@
  * these Appropriate Legal Notices must retain the display of the "EspoCRM" word.
  ************************************************************************/
 
-import View from 'view';
-import Select from 'ui/select';
+define('views/role/record/table', ['view'], function (Dep) {
 
-class RoleRecordTableView extends View {
+    return Dep.extend({
 
-    template = 'role/table'
+        template: 'role/table',
 
-    /** @type {string[]} */
-    scopeList
-    type = 'acl'
-    /** @type {'detail'|'string'} */
-    mode = 'detail'
-    lowestLevelByDefault = false
+        scopeList: null,
 
-    actionList = ['create', 'read', 'edit', 'delete', 'stream']
-    accessList = ['not-set', 'enabled', 'disabled']
-    fieldLevelList = ['yes', 'no']
-    fieldActionList = ['read', 'edit']
-    levelList = ['yes', 'all', 'team', 'own', 'no']
-    booleanLevelList = ['yes', 'no']
-    booleanActionList = ['create']
+        actionList: ['create', 'read', 'edit', 'delete', 'stream'],
 
-    levelListMap = {
-        'recordAllTeamOwnNo': ['all', 'team', 'own', 'no'],
-        'recordAllTeamNo': ['all', 'team', 'no'],
-        'recordAllOwnNo': ['all', 'own', 'no'],
-        'recordAllNo': ['all', 'no'],
-        'record': ['all', 'team', 'own', 'no'],
-    }
+        accessList: ['not-set', 'enabled', 'disabled'],
 
-    defaultLevels = {
-        delete: 'no',
-    }
+        fieldLevelList: ['yes', 'no'],
 
-    styleMap = {
-        yes: 'success',
-        all: 'success',
-        account: 'info',
-        contact: 'info',
-        team: 'info',
-        own: 'warning',
-        no: 'danger',
-        enabled: 'success',
-        disabled: 'danger',
-        'not-set': 'muted',
-    }
+        fieldActionList: ['read', 'edit'],
 
-    /**
-     * @private
-     * @type {Object.<Record>}
-     */
-    scopeLevelMemory
-
-    data() {
-        const data = {};
-
-        data.styleMap = this.styleMap;
-        data.editMode = this.mode === 'edit';
-        data.actionList = this.actionList;
-        data.accessList = this.accessList;
-        data.fieldActionList = this.fieldActionList;
-        data.fieldLevelList = this.fieldLevelList;
-
-        data.tableDataList = this.getTableDataList();
-        data.fieldTableDataList = this.fieldTableDataList;
-
-        let hasFieldLevelData = false;
-
-        this.fieldTableDataList.forEach((d) => {
-            if (d.list.length) {
-                hasFieldLevelData = true;
-            }
-        });
-
-        data.hasFieldLevelData = hasFieldLevelData;
-
-        return data;
-    }
-
-    events = {
-        /** @this FieldManagerListView */
-        'keyup input[data-name="quick-search"]': function (e) {
-            this.processQuickSearch(e.currentTarget.value);
+        levelListMap: {
+            'recordAllTeamOwnNo': ['all', 'team', 'own', 'no'],
+            'recordAllTeamNo': ['all', 'team', 'no'],
+            'recordAllOwnNo': ['all', 'own', 'no'],
+            'recordAllNo': ['all', 'no'],
+            'record': ['all', 'team', 'own', 'no'],
         },
-        /** @this RoleRecordTableView */
-        'click .action[data-action="addField"]': function (e) {
-            const scope = $(e.currentTarget).data().scope;
 
-            this.showAddFieldModal(scope);
+        type: 'acl',
+
+        levelList: ['yes', 'all', 'team', 'own', 'no'],
+
+        booleanLevelList: ['yes', 'no'],
+
+        booleanActionList: ['create'],
+
+        defaultLevels: {
+            delete: 'no',
         },
-        /** @this RoleRecordTableView */
-        'click .action[data-action="removeField"]': function (e) {
-            const scope = $(e.currentTarget).data().scope;
-            const field = $(e.currentTarget).data().field;
 
-            this.removeField(scope, field);
+        colors: {
+            yes: '#6BC924',
+            all: '#6BC924',
+            account: '#999900',
+            contact: '#999900',
+            team: '#999900',
+            own: '#CC9900',
+            no: '#F23333',
+            enabled: '#6BC924',
+            disabled: '#F23333',
+            'not-set': '#A8A8A8',
         },
-        /** @this RoleRecordTableView */
-        'change select[data-type="access"]': function (e) {
-            const $current = $(e.currentTarget);
 
-            const scope = $current.attr('name');
-            const value = $current.val();
+        mode: 'detail',
 
-            this.onSelectAccess(scope, value);
+        tableData: null,
+
+        data: function () {
+            var data = {};
+            data.editMode = this.mode === 'edit';
+            data.actionList = this.actionList;
+            data.accessList = this.accessList;
+            data.fieldActionList = this.fieldActionList;
+            data.fieldLevelList = this.fieldLevelList;
+            data.colors = this.colors;
+
+            data.tableDataList = this.getTableDataList();
+            data.fieldTableDataList = this.fieldTableDataList;
+
+            var hasFieldLevelData = false;
+
+            this.fieldTableDataList.forEach((d) => {
+                if (d.list.length) {
+                    hasFieldLevelData = true;
+                }
+            });
+
+            data.hasFieldLevelData = hasFieldLevelData;
+
+            return data;
         },
-    }
 
-    getTableDataList() {
-        const aclData = this.acl.data;
-        const aclDataList = [];
+        events: {
+            'click .action[data-action="addField"]': function (e) {
+                var scope = $(e.currentTarget).data().scope;
 
-        let currentModule = null
+                this.showAddFieldModal(scope);
+            },
+            'click .action[data-action="removeField"]': function (e) {
+                var scope = $(e.currentTarget).data().scope;
+                var field = $(e.currentTarget).data().field;
 
-        this.scopeList.forEach(scope => {
-            const module = this.getMetadata().get(`scopes.${scope}.module`);
+                this.removeField(scope, field);
+            },
+            'change select[data-type="access"]': function (e) {
+                var scope = $(e.currentTarget).attr('name');
+                var $dropdowns = this.$el.find('select[data-scope="' + scope + '"]');
 
-            if (currentModule !== module) {
-                currentModule = module;
+                if ($(e.currentTarget).val() === 'enabled') {
+                    $dropdowns.removeAttr('disabled');
+                    $dropdowns.removeClass('hidden');
 
-                aclDataList.push(false);
-            }
+                    $dropdowns.each((i, select) => {
+                        let $select = $(select);
 
-            let access = 'not-set';
+                        if (this.lowestLevelByDefault) {
+                            $select.find('option').last().prop('selected', true);
+                        } else {
+                            var setFirst = true;
+                            var action = $select.data('role-action');
+                            var defaultLevel = null;
 
-            if (this.final) {
-                access = 'enabled';
-            }
+                            if (action) {
+                                defaultLevel = this.defaultLevels[action];
+                            }
 
-            if (scope in aclData) {
-                access = aclData[scope] === false ? 'disabled' : 'enabled';
-            }
-
-            const list = [];
-            const type = this.aclTypeMap[scope];
-
-            if (this.aclTypeMap[scope] !== 'boolean') {
-                this.actionList.forEach(action => {
-                    const allowedActionList = /** @type {string[]} */
-                        this.getMetadata().get(['scopes', scope, this.type + 'ActionList']);
-
-                    if (allowedActionList) {
-                        if (!allowedActionList.includes(action)) {
-                            list.push({
-                                action: action,
-                                levelList: false,
-                                level: null,
-                            });
-
-                            return;
-                        }
-                    }
-
-                    if (action === 'stream') {
-                        if (!this.getMetadata().get(`scopes.${scope}.stream`)) {
-                            list.push({
-                                action: 'stream',
-                                levelList: false,
-                                level: null,
-                            });
-
-                            return;
-                        }
-                    }
-
-                    let level = null;
-
-                    if (scope in aclData) {
-                        if (access === 'enabled') {
-                            if (aclData[scope] !== true) {
-                                if (action in aclData[scope]) {
-                                    level = aclData[scope][action];
+                            if (defaultLevel) {
+                                var $option = $select.find('option[value="'+defaultLevel+'"]');
+                                if ($option.length) {
+                                    $option.prop('selected', true);
+                                    setFirst = false;
                                 }
                             }
-                        } else {
+
+                            if (setFirst) {
+                                $select.find('option').first().prop('selected', true);
+                            }
+                        }
+
+                        $select.trigger('change');
+
+                        this.controlSelectColor($select);
+                    });
+                } else {
+                    $dropdowns.attr('disabled', 'disabled');
+                    $dropdowns.addClass('hidden');
+                }
+
+                this.controlSelectColor($(e.currentTarget));
+            },
+            'change select.scope-action': function (e) {
+                this.controlSelectColor($(e.currentTarget));
+            },
+            'change select.field-action': function (e) {
+                this.controlSelectColor($(e.currentTarget));
+            },
+        },
+
+        getTableDataList: function () {
+            var aclData = this.acl.data;
+            var aclDataList = [];
+
+            this.scopeList.forEach(scope => {
+
+                var access = 'not-set';
+
+                if (this.final) {
+                    access = 'enabled';
+                }
+
+                if (scope in aclData) {
+                    if (aclData[scope] === false) {
+                        access = 'disabled';
+                    } else {
+                        access = 'enabled';
+                    }
+                }
+
+                var list = [];
+                var type = this.aclTypeMap[scope];
+
+                if (this.aclTypeMap[scope] !== 'boolean') {
+                    this.actionList.forEach(action => {
+                        var allowedActionList = this.getMetadata().get(['scopes', scope, this.type + 'ActionList']);
+
+                        if (allowedActionList) {
+                            if (!~allowedActionList.indexOf(action)) {
+                                list.push({
+                                    action: action,
+                                    levelList: false,
+                                    level: null,
+                                });
+
+                                return;
+                            }
+                        }
+
+                        if (action === 'stream') {
+                            if (!this.getMetadata().get('scopes.' + scope + '.stream')) {
+                                list.push({
+                                    action: 'stream',
+                                    levelList: false,
+                                    level: null,
+                                });
+
+                                return;
+                            }
+                        }
+
+                        var level = 'no';
+
+                        if (~this.booleanActionList.indexOf(action)) {
                             level = 'no';
+                        }
+
+                        if (scope in aclData) {
+                            if (access === 'enabled') {
+                                if (aclData[scope] !== true) {
+                                    if (action in aclData[scope]) {
+                                        level = aclData[scope][action];
+                                    }
+                                }
+                            } else {
+                                level = 'no';
+                            }
+                        }
+
+                        var levelList =
+                            this.getMetadata().get(['scopes', scope, this.type + 'ActionLevelListMap', action]) ||
+                            this.getMetadata().get(['scopes', scope, this.type + 'LevelList']) ||
+                            this.levelListMap[type] ||
+                            [];
+
+                        if (~this.booleanActionList.indexOf(action)) {
+                            levelList = this.booleanLevelList;
+                        }
+
+                        list.push({
+                            level: level,
+                            name: scope + '-' + action,
+                            action: action,
+                            levelList: levelList,
+                        });
+                    });
+                }
+
+                aclDataList.push({
+                    list: list,
+                    access: access,
+                    name: scope,
+                    type: type,
+                });
+            });
+
+            return aclDataList;
+        },
+
+        setup: function () {
+            this.mode = this.options.mode || 'detail';
+
+            this.final = this.options.final || false;
+
+            this.setupData();
+
+            this.listenTo(this.model, 'change', () => {
+                if (this.model.hasChanged('data') || this.model.hasChanged('fieldData')) {
+                    this.setupData();
+                }
+            });
+
+            this.listenTo(this.model, 'sync', () => {
+                this.setupData();
+
+                if (this.isRendered()) {
+                    this.reRender();
+                }
+            });
+
+            this.template = 'role/table';
+
+            if (this.mode === 'edit') {
+                this.template = 'role/table-edit';
+            }
+
+            this.once('remove', () => {
+                $(window).off('scroll.scope-' + this.cid);
+                $(window).off('resize.scope-' + this.cid);
+                $(window).off('scroll.field-' + this.cid);
+                $(window).off('resize.field-' + this.cid);
+            });
+        },
+
+        setupData: function () {
+            this.acl = {};
+
+            if (this.options.acl) {
+                this.acl.data = this.options.acl.data;
+            } else {
+                this.acl.data = Espo.Utils.cloneDeep(this.model.get('data') || {});
+            }
+
+            if (this.options.acl) {
+                this.acl.fieldData = this.options.acl.fieldData;
+            } else {
+                this.acl.fieldData = Espo.Utils.cloneDeep(this.model.get('fieldData') || {});
+            }
+
+            this.setupScopeList();
+            this.setupFieldTableDataList();
+        },
+
+        setupScopeList: function () {
+            this.aclTypeMap = {};
+            this.scopeList = [];
+
+            var scopeListAll = Object.keys(this.getMetadata().get('scopes'))
+                .sort((v1, v2) => {
+                     return this.translate(v1, 'scopeNamesPlural')
+                         .localeCompare(this.translate(v2, 'scopeNamesPlural'));
+                });
+
+            scopeListAll.forEach(scope => {
+                if (this.getMetadata().get('scopes.' + scope + '.disabled')) {
+                    return;
+                }
+
+                var acl = this.getMetadata().get('scopes.' + scope + '.acl');
+
+                if (acl) {
+                    this.scopeList.push(scope);
+                    this.aclTypeMap[scope] = acl;
+
+                    if (acl === true) {
+                        this.aclTypeMap[scope] = 'record';
+                    }
+                }
+            });
+        },
+
+        setupFieldTableDataList: function () {
+            this.fieldTableDataList = [];
+
+            this.scopeList.forEach(scope => {
+                var d = this.getMetadata().get('scopes.' + scope) || {};
+
+                if (!d.entity) {
+                    return;
+                }
+
+                if (!(scope in this.acl.fieldData)) {
+                    if (this.mode === 'edit') {
+                        this.fieldTableDataList.push({
+                            name: scope,
+                            list: [],
+                        });
+
+                        return;
+                    }
+
+                    return;
+                }
+
+                var scopeData = this.acl.fieldData[scope];
+                var fieldList = this.getFieldManager().getEntityTypeFieldList(scope);
+
+                this.getLanguage().sortFieldList(scope, fieldList);
+
+                var fieldDataList = [];
+
+                fieldList.forEach(field => {
+                    if (!(field in scopeData)) {
+                        return;
+                    }
+
+                    var list = [];
+
+                    this.fieldActionList.forEach(action => {
+                        list.push({
+                            name: action,
+                            value: scopeData[field][action] || 'yes',
+                        })
+                    });
+
+                    if (this.mode === 'detail') {
+                        if (!list.length) {
+                            return;
                         }
                     }
 
-                    list.push({
-                        level: level,
-                        name: scope + '-' + action,
-                        action: action,
-                        levelList: this.getLevelList(scope, action),
+                    fieldDataList.push({
+                        name: field,
+                        list: list
                     });
                 });
-            }
 
-            aclDataList.push({
-                list: list,
-                access: access,
-                name: scope,
-                type: type,
+                this.fieldTableDataList.push({
+                    name: scope,
+                    list: fieldDataList,
+                });
             });
-        });
+        },
 
-        return aclDataList;
-    }
+        fetchScopeData: function () {
+            var data = {};
 
-    getLevelList(scope, action) {
-        if (this.booleanActionList.includes(action)) {
-            return this.booleanLevelList;
-        }
+            var scopeList = this.scopeList;
+            var actionList = this.actionList;
+            var aclTypeMap = this.aclTypeMap;
 
-        const type = this.aclTypeMap[scope];
+            for (var i in scopeList) {
+                var scope = scopeList[i];
 
-        return this.getMetadata().get(['scopes', scope, this.type + 'ActionLevelListMap', action]) ||
-            this.getMetadata().get(['scopes', scope, this.type + 'LevelList']) ||
-            this.levelListMap[type] ||
-            [];
-    }
-
-    setup() {
-        this.mode = this.options.mode || 'detail';
-        this.final = this.options.final || false;
-
-        this.scopeLevelMemory = {};
-
-        this.setupData();
-
-        this.listenTo(this.model, 'change', () => {
-            if (this.model.hasChanged('data') || this.model.hasChanged('fieldData')) {
-                this.setupData();
-            }
-        });
-
-        this.listenTo(this.model, 'sync', () => {
-            this.setupData();
-
-            if (this.isRendered()) {
-                this.reRenderPreserveSearch();
-            }
-        });
-
-        this.template = 'role/table';
-
-        if (this.mode === 'edit') {
-            this.template = 'role/table-edit';
-        }
-
-        this.once('remove', () => {
-            $(window).off('scroll.scope-' + this.cid);
-            $(window).off('resize.scope-' + this.cid);
-            $(window).off('scroll.field-' + this.cid);
-            $(window).off('resize.field-' + this.cid);
-        });
-    }
-
-    setupData() {
-        this.acl = {};
-
-        if (this.options.acl) {
-            this.acl.data = this.options.acl.data;
-        } else {
-            this.acl.data = Espo.Utils.cloneDeep(this.model.get('data') || {});
-        }
-
-        if (this.options.acl) {
-            this.acl.fieldData = this.options.acl.fieldData;
-        } else {
-            this.acl.fieldData = Espo.Utils.cloneDeep(this.model.get('fieldData') || {});
-        }
-
-        this.setupScopeList();
-        this.setupFieldTableDataList();
-    }
-
-    /**
-     * @return {string[]} scopeList
-     */
-    getSortedScopeList() {
-        const moduleList = [null, 'Crm'];
-
-        const scopes = /** @type {Object.<{module: string}>} */this.getMetadata().get('scopes');
-
-        Object.keys(scopes).forEach(scope => {
-            const module = scopes[scope].module;
-
-            if (!module || module === 'Custom' || moduleList.includes(module)) {
-                return;
-            }
-
-            moduleList.push(module);
-        });
-
-        moduleList.push('Custom');
-
-        return Object.keys(scopes)
-            .sort((v1, v2) => {
-                const module1 = scopes[v1].module || null;
-                const module2 = scopes[v2].module || null;
-
-                if (module1 !== module2) {
-                    const index1 = moduleList.findIndex(m => m === module1);
-                    const index2 = moduleList.findIndex(m => m === module2);
-
-                    return index1 - index2;
+                if (this.$el.find('select[name="' + scope + '"]').val() === 'not-set') {
+                    continue;
                 }
 
-                return this.translate(v1, 'scopeNamesPlural')
-                    .localeCompare(this.translate(v2, 'scopeNamesPlural'));
-            });
-    }
+                if (this.$el.find('select[name="' + scope + '"]').val() === 'disabled') {
+                    data[scope] = false;
+                } else {
+                    var o = true;
 
-    setupScopeList() {
-        this.aclTypeMap = {};
-        this.scopeList = [];
+                    if (aclTypeMap[scope] !== 'boolean') {
+                        o = {};
 
-        this.getSortedScopeList().forEach(scope => {
-            if (this.getMetadata().get(`scopes.${scope}.disabled`)) {
-                return;
-            }
+                        for (var j in actionList) {
+                            var action = actionList[j];
 
-            const acl = this.getMetadata().get(`scopes.${scope}.acl`);
+                            o[action] = this.$el.find('select[name="' + scope + '-' + action + '"]').val();
+                        }
+                    }
 
-            if (acl) {
-                this.scopeList.push(scope);
-                this.aclTypeMap[scope] = acl;
-
-                if (acl === true) {
-                    this.aclTypeMap[scope] = 'record';
+                    data[scope] = o;
                 }
             }
-        });
-    }
 
-    setupFieldTableDataList() {
-        /**
-         * @type {
-         *     {
-         *         name: string,
-         *         list: {
-         *             name: string,
-         *             list: {name: 'read'|'edit', value: 'yes'|'no'}[],
-         *          }[],
-         *     }[]
-         * } */
-        this.fieldTableDataList = [];
+            return data;
+        },
 
-        this.scopeList.forEach(scope => {
-            const defs = /** @type {Record} */this.getMetadata().get(`scopes.${scope}`) || {};
+        fetchFieldData: function () {
+            var data = {};
 
-            if (!defs.entity || defs.aclFieldLevelDisabled) {
-                return;
-            }
+            this.fieldTableDataList.forEach(scopeData => {
+                var scopeObj = {};
+                var scope = scopeData.name;
 
-            if (this.isAclFieldLevelDisabledForScope(scope)) {
-                return;
-            }
+                scopeData.list.forEach(fieldData => {
+                    var field = fieldData.name;
+                    var fieldObj = {};
 
-            if (!(scope in this.acl.fieldData)) {
-                if (this.mode === 'edit') {
-                    this.fieldTableDataList.push({
-                        name: scope,
-                        list: [],
+                    this.fieldActionList.forEach(action =>{
+                        var $select = this.$el
+                            .find('select[data-scope="'+scope+'"][data-field="'+field+'"][data-action="'+action+'"]');
+
+                        if (!$select.length) {
+                            return;
+                        }
+
+                        fieldObj[action] = $select.val();
                     });
 
-                    return;
-                }
-
-                return;
-            }
-
-            const scopeData = this.acl.fieldData[scope];
-            const fieldList = this.getFieldManager().getEntityTypeFieldList(scope);
-
-            this.getLanguage().sortFieldList(scope, fieldList);
-
-            const fieldDataList = [];
-
-            fieldList.forEach(field => {
-                if (!(field in scopeData)) {
-                    return;
-                }
-
-                const list = [];
-
-                this.fieldActionList.forEach(action => {
-                    list.push({
-                        name: action,
-                        value: scopeData[field][action] || 'yes',
-                    })
+                    scopeObj[field] = fieldObj;
                 });
 
-                if (this.mode === 'detail') {
-                    if (!list.length) {
-                        return;
-                    }
-                }
-
-                fieldDataList.push({
-                    name: field,
-                    list: list
-                });
+                data[scope] = scopeObj;
             });
 
-            this.fieldTableDataList.push({
-                name: scope,
-                list: fieldDataList,
-            });
-        });
-    }
+            return data;
+        },
 
-    isAclFieldLevelDisabledForScope(scope) {
-        return !!this.getMetadata().get(`scopes.${scope}.aclFieldLevelDisabled`);
-    }
-
-    /**
-     *
-     * @param {string} [onlyScope]
-     * @return {Object.<Record>}
-     */
-    fetchScopeData(onlyScope) {
-        const data = {};
-
-        const scopeList = this.scopeList;
-        const actionList = this.actionList;
-        const aclTypeMap = this.aclTypeMap;
-
-        const $table = this.$el.find(`table.scope-level`);
-
-        for (const i in scopeList) {
-            const scope = scopeList[i];
-
-            if (onlyScope && scope !== onlyScope) {
-                continue;
-            }
-
-            const $rows = $table.find(`tr[data-name="${scope}"]`);
-
-            const value = $rows.find(`select[name="${scope}"]`).val();
-
-            if (!onlyScope && value === 'not-set') {
-                continue;
-            }
-
-            if (!onlyScope && value === 'disabled') {
-                data[scope] = false;
-
-                continue;
-            }
-
-            let o = true;
-
-            if (aclTypeMap[scope] !== 'boolean') {
-                o = {};
-
-                for (const j in actionList) {
-                    const action = actionList[j];
-
-                    const value = $rows.find(`select[name="${scope}-${action}"]`).val();
-
-                    if (value === undefined) {
-                        continue;
-                    }
-
-                    o[action] = value;
-                }
-            }
-
-            data[scope] = o;
-        }
-
-        return data;
-    }
-
-    fetchFieldData() {
-        const data = {};
-
-        this.fieldTableDataList.forEach(scopeData => {
-            const scopeObj = {};
-            const scope = scopeData.name;
-
-            const $rows = this.$el.find(`table.field-level tr[data-name="${scope}"]`);
-
-            scopeData.list.forEach(fieldData => {
-                const field = fieldData.name;
-                const fieldObj = {};
-
-                this.fieldActionList.forEach(action =>{
-                    const $select = $rows
-                        .find(`select[data-scope="${scope}"][data-field="${field}"][data-action="${action}"]`);
-
-                    if (!$select.length) {
-                        return;
-                    }
-
-                    fieldObj[action] = $select.val();
-                });
-
-                scopeObj[field] = fieldObj;
-            });
-
-            data[scope] = scopeObj;
-        });
-
-        return data;
-    }
-
-    afterRender() {
-        this.$quickSearch = this.$el.find('input[data-name="quick-search"]');
-
-        if (this.mode === 'edit') {
-            this.$el.find('select').each((i, el) => {
-                Select.init(el);
-            });
-
-            this.scopeList.forEach(scope => {
-                const $read = this.$el.find(`select[name="${scope}-read"]`);
-
-                $read.on('change', () => {
-                    const value = $read.val();
-
-                    this.controlSelect(scope, 'edit', value);
-                    this.controlSelect(scope, 'delete', value);
-                    this.controlSelect(scope, 'stream', value);
-                });
-
-                const $edit = this.$el.find(`select[name="${scope}-edit"]`);
-
-                $edit.on('change', () => {
-                    const value = $edit.val();
-
-                    this.controlSelect(scope, 'delete', value);
-                });
-
-                setTimeout(() => {
-                    this.controlSelect(scope, 'edit', $read.val(), true);
-                    this.controlSelect(scope, 'stream', $read.val(), true);
-                    this.controlSelect(scope, 'delete', $edit.val(), true);
-                }, 10);
-            });
-
-            this.fieldTableDataList.forEach(o => {
-                const scope = o.name;
-
-                o.list.forEach(f => {
-                    const field = f.name;
-
-                    const $read = this.$el
-                        .find('select[data-scope="' + scope + '"][data-field="' + field + '"][data-action="read"]');
+        afterRender: function () {
+            if (this.mode === 'edit') {
+                this.scopeList.forEach(scope => {
+                    var $read = this.$el.find('select[name="'+scope+'-read"]');
 
                     $read.on('change', () => {
-                        const value = $read.val();
+                        var value = $read.val();
 
-                        this.controlFieldEditSelect(scope, field, value);
+                        this.controlEditSelect(scope, value);
+                        this.controlDeleteSelect(scope, value);
+                        this.controlStreamSelect(scope, value);
                     });
 
-                    this.controlFieldEditSelect(scope, field, $read.val(), true);
+                    var $edit = this.$el.find('select[name="'+scope+'-edit"]');
+
+                    $edit.on('change', () => {
+                        var value = $edit.val();
+
+                        this.controlDeleteSelect(scope, value);
+                    });
+
+                    this.controlEditSelect(scope, $read.val(), true);
+                    this.controlStreamSelect(scope, $read.val(), true);
+                    this.controlDeleteSelect(scope, $edit.val(), true);
                 });
-            });
-        }
 
-        if (this.mode === 'edit' || this.mode === 'detail') {
-            this.initStickyHeader('scope');
-            this.initStickyHeader('field');
-        }
-    }
+                this.fieldTableDataList.forEach(o => {
+                    var scope = o.name;
 
-    controlFieldEditSelect(scope, field, limitValue, dontChange) {
-        const $select = this.$el.find(`select[data-scope="${scope}"][data-field="${field}"][data-action="edit"]`);
+                    o.list.forEach(f => {
+                        var field = f.name;
 
-        if (!$select.length) {
-            return;
-        }
+                        var $read = this.$el
+                            .find('select[data-scope="'+scope+'"][data-field="'+field+'"][data-action="read"]');
 
-        let value = $select.val();
+                        $read.on('change', () => {
+                            var value = $read.val();
 
-        if (
-            !dontChange &&
-            this.levelList.indexOf(value) < this.levelList.indexOf(limitValue)
-        ) {
-            value = limitValue;
-        }
+                            this.controlFieldEditSelect(scope, field, value);
+                        });
 
-        const options = this.fieldLevelList
-            .filter(item => {
-                return this.levelList.indexOf(item) >= this.levelList.indexOf(limitValue);
-            })
-            .map(item => {
-                return {
-                    value: item,
-                    text: this.translate(item, 'levelList', 'Role'),
-                };
-            });
+                        this.controlFieldEditSelect(scope, field, $read.val(), true);
+                    });
+                });
 
-        if (!dontChange) {
-            // Prevents issues.
-            Select.destroy($select);
-            Select.init($select);
-        }
+                this.setSelectColors();
+            }
 
-        Select.setValue($select, '');
-        Select.setOptions($select, options);
-        Select.setValue($select, value);
-    }
+            if (this.mode === 'edit' || this.mode === 'detail') {
+                this.initStickyHeader('scope');
+                this.initStickyHeader('field');
+            }
+        },
 
-    controlSelect(scope, action, limitValue, dontChange) {
-        const $select = this.$el.find(`select[name="${scope}-${action}"]`);
+        controlFieldEditSelect: function (scope, field, value, dontChange) {
+            var $edit = this.$el.find('select[data-scope="'+scope+'"][data-field="'+field+'"][data-action="edit"]');
 
-        if (!$select.length) {
-            return;
-        }
-
-        let value = $select.val();
-
-        if (
-            !dontChange &&
-            this.levelList.indexOf(value) < this.levelList.indexOf(limitValue)
-        ) {
-            value = limitValue;
-        }
-
-        const options = this.getLevelList(scope, action)
-            .filter(item => {
-                return this.levelList.indexOf(item) >= this.levelList.indexOf(limitValue);
-            }).
-            map(item => {
-                return {
-                    value: item,
-                    text: this.translate(item, 'levelList', 'Role'),
-                };
-            });
-
-        if (!dontChange) {
-            // Prevents issues.
-            Select.destroy($select);
-            Select.init($select);
-        }
-
-        Select.setValue($select, '');
-        Select.setOptions($select, options);
-        Select.setValue($select, value);
-    }
-
-    showAddFieldModal(scope) {
-        this.trigger('change');
-
-        const ignoreFieldList = Object.keys(this.acl.fieldData[scope] || {});
-
-        this.createView('dialog', 'views/role/modals/add-field', {
-            scope: scope,
-            ignoreFieldList: ignoreFieldList,
-            type: this.type,
-        }, view => {
-            view.render();
-
-            this.listenTo(view, 'add-fields', /** string[] */fields => {
-                this.clearView('dialog');
-
-                const scopeData = this.fieldTableDataList.find(it => it.name === scope);
-
-                if (!scopeData) {
-                    return;
+            if (!dontChange) {
+                if (this.fieldLevelList.indexOf($edit.val()) < this.fieldLevelList.indexOf(value)) {
+                    $edit.val(value);
                 }
+            }
 
-                fields.filter(field => !scopeData.list.find(it => it.name === field))
-                    .forEach(field => {
+            $edit.find('option').each((i, o) => {
+                var $o = $(o);
+
+                if (this.fieldLevelList.indexOf($o.val()) < this.fieldLevelList.indexOf(value)) {
+                    $o.attr('disabled', 'disabled');
+                } else {
+                    $o.removeAttr('disabled');
+                }
+            });
+
+            this.controlSelectColor($edit);
+        },
+
+        controlEditSelect: function (scope, value, dontChange) {
+            var $edit = this.$el.find('select[name="'+scope+'-edit"]');
+
+            if (!dontChange) {
+                if (this.levelList.indexOf($edit.val()) < this.levelList.indexOf(value)) {
+                    $edit.val(value);
+                }
+            }
+
+            $edit.find('option').each((i, o) => {
+                var $o = $(o);
+
+                if (this.levelList.indexOf($o.val()) < this.levelList.indexOf(value)) {
+                    $o.attr('disabled', 'disabled');
+                } else {
+                    $o.removeAttr('disabled');
+                }
+            });
+
+            this.controlSelectColor($edit);
+        },
+
+        controlStreamSelect: function (scope, value, dontChange) {
+            var $stream = this.$el.find('select[name="'+scope+'-stream"]');
+
+            if (!dontChange) {
+                if (this.levelList.indexOf($stream.val()) < this.levelList.indexOf(value)) {
+                    $stream.val(value);
+                }
+            }
+
+            $stream.find('option').each((i, o) => {
+                var $o = $(o);
+
+                if (this.levelList.indexOf($o.val()) < this.levelList.indexOf(value)) {
+                    $o.attr('disabled', 'disabled');
+                } else {
+                    $o.removeAttr('disabled');
+                }
+            });
+
+            this.controlSelectColor($stream);
+        },
+
+        controlDeleteSelect: function (scope, value, dontChange) {
+            var $delete = this.$el.find('select[name="'+scope+'-delete"]');
+
+            if (!dontChange) {
+                if (this.levelList.indexOf($delete.val()) < this.levelList.indexOf(value)) {
+                    $delete.val(value);
+                }
+            }
+
+            $delete.find('option').each((i, o) => {
+                var $o = $(o);
+
+                if (this.levelList.indexOf($o.val()) < this.levelList.indexOf(value)) {
+                    $o.attr('disabled', 'disabled');
+                } else {
+                    $o.removeAttr('disabled');
+                }
+            });
+
+            this.controlSelectColor($delete);
+        },
+
+        showAddFieldModal: function (scope) {
+            this.trigger('change');
+
+            var ignoreFieldList = Object.keys(this.acl.fieldData[scope] || {});
+
+            this.createView('addField', 'views/role/modals/add-field', {
+                scope: scope,
+                ignoreFieldList: ignoreFieldList,
+                type: this.type,
+            }, (view) => {
+                view.render();
+
+                this.listenTo(view, 'add-field', field => {
+                    view.close();
+
+                    this.fieldTableDataList.forEach(scopeData =>{
+                        if (scopeData.name !== scope) {
+                            return;
+                        }
+
+                        var found = false;
+
+                        scopeData.list.forEach(d => {
+                            if (d.name === field) {
+                                found = true;
+                            }
+                        });
+
+                        if (found) {
+                            return;
+                        }
+
                         scopeData.list.unshift({
                             name: field,
                             list: [
                                 {
                                     name: 'read',
-                                    value: 'no',
+                                    value: 'yes'
                                 },
                                 {
                                     name: 'edit',
-                                    value: 'no',
-                                },
+                                    value: 'yes'
+                                }
                             ]
                         });
                     });
 
-                this.reRenderPreserveSearch();
-            });
-        });
-    }
-
-    removeField(scope, field) {
-        this.trigger('change');
-
-        this.fieldTableDataList.forEach(scopeData => {
-            if (scopeData.name !== scope) {
-                return;
-            }
-
-            let index = -1;
-
-            scopeData.list.forEach((d, i) => {
-                if (d.name === field) {
-                    index = i;
-                }
-            });
-
-            if (~index) {
-                scopeData.list.splice(index, 1);
-
-                this.reRenderPreserveSearch();
-            }
-        });
-    }
-
-    reRenderPreserveSearch() {
-        const searchText = this.$quickSearch.val();
-
-        this.reRender()
-            .then(() => {
-                this.$quickSearch.val(searchText);
-                this.processQuickSearch(searchText);
-            });
-    }
-
-    initStickyHeader(type) {
-        const $sticky = this.$el.find('.sticky-header-' + type);
-        const $window = $(window);
-
-        const screenWidthXs = this.getThemeManager().getParam('screenWidthXs');
-
-        const $buttonContainer = $('.detail-button-container');
-        const $table = this.$el.find('table.' + type + '-level');
-
-        if (!$table.length) {
-            return;
-        }
-
-        if (!$buttonContainer.length) {
-            return;
-        }
-
-        const handle = () => {
-            if ($(window.document).width() < screenWidthXs) {
-                $sticky.addClass('hidden');
-
-                return;
-            }
-
-            const stickTopPosition = $buttonContainer.get(0).getBoundingClientRect().top +
-                $buttonContainer.outerHeight();
-
-            let topEdge = $table.position().top;
-
-            topEdge -= $buttonContainer.height();
-            topEdge += $table.find('tr > th').height();
-            topEdge -= this.getThemeManager().getParam('navbarHeight');
-
-            const bottomEdge = topEdge + $table.outerHeight(true) - $buttonContainer.height();
-            const scrollTop = $window.scrollTop();
-            const width = $table.width();
-
-            if (scrollTop > topEdge && scrollTop < bottomEdge) {
-                $sticky.css({
-                    position: 'fixed',
-                    marginTop: stickTopPosition + 'px',
-                    top: 0,
-                    width: width + 'px',
-                    marginLeft: '1px',
+                    this.reRender();
                 });
+            });
+        },
 
-                $sticky.removeClass('hidden');
-            } else {
-                $sticky.addClass('hidden');
-            }
-        };
+        removeField: function (scope, field) {
+            this.trigger('change');
 
-        $window.off('scroll.' + type + '-' + this.cid);
-        $window.on('scroll.' + type + '-' + this.cid, handle);
+            this.fieldTableDataList.forEach(scopeData => {
+                if (scopeData.name !== scope) {
+                    return;
+                }
 
-        $window.off('resize.' + type + '-' + this.cid);
-        $window.on('resize.' + type + '-' + this.cid, handle);
-    }
+                var index = -1;
 
-    /**
-     * @param {string} scope
-     * @param {string} value
-     */
-    onSelectAccess(scope, value) {
-        const $dropdowns = this.$el.find(`.scope-level select[data-scope="${scope}"]`);
-
-        if (value !== 'enabled') {
-            const fetchedData = this.fetchScopeData(scope);
-
-            $dropdowns.attr('disabled', 'disabled');
-            $dropdowns.addClass('hidden');
-            $dropdowns.parent().find('.selectize-control').addClass('hidden');
-
-            delete this.scopeLevelMemory[scope];
-
-            if (scope in fetchedData) {
-                this.scopeLevelMemory[scope] = fetchedData[scope] || {};
-            }
-
-            return;
-        }
-
-        $dropdowns.removeAttr('disabled');
-        $dropdowns.removeClass('hidden');
-        $dropdowns.parent().find('.selectize-control').removeClass('hidden');
-
-        this.actionList.forEach(action => {
-            const $select = this.$el.find(`select[name="${scope}-${action}"]`);
-
-            if (!$select.length) {
-                return;
-            }
-
-            const memoryData = this.scopeLevelMemory[scope] || {};
-            const levelInMemory = memoryData[action];
-
-            let level = levelInMemory || this.defaultLevels[action];
-
-            if (!level) {
-                level = this.getLevelList(scope, action)[0];
-            }
-
-            if (!levelInMemory && this.lowestLevelByDefault) {
-                level = [...this.getLevelList(scope, action)].pop();
-            }
-
-            Select.setValue($select, level);
-            $select.trigger('change');
-        });
-    }
-
-    processQuickSearch(text) {
-        text = text.trim();
-
-        if (!text) {
-            this.$el.find('table tr.item-row').removeClass('hidden');
-
-            return;
-        }
-
-        const matchedList = [];
-
-        const lowerCaseText = text.toLowerCase();
-
-        this.scopeList.forEach(/** string */item => {
-            let matched = false;
-
-            const translation = this.getLanguage().translate(item, 'scopeNamesPlural');
-
-            if (
-                translation.toLowerCase().indexOf(lowerCaseText) === 0 ||
-                item.toLowerCase().indexOf(lowerCaseText) === 0
-            ) {
-                matched = true;
-            }
-
-            if (!matched) {
-                const wordList = translation.split(' ')
-                    .concat(translation.split(' '));
-
-                wordList.forEach((word) => {
-                    if (word.toLowerCase().indexOf(lowerCaseText) === 0) {
-                        matched = true;
+                scopeData.list.forEach((d, i) => {
+                    if (d.name === field) {
+                        index = i;
                     }
                 });
-            }
 
-            if (matched) {
-                matchedList.push(item);
-            }
-        });
+                if (~index) {
+                    scopeData.list.splice(index, 1);
 
-        if (matchedList.length === 0) {
-            this.$el.find('table tr.item-row').addClass('hidden');
+                    this.reRender();
+                }
+            });
+        },
 
-            return;
-        }
+        initStickyHeader: function (type) {
+            var $sticky = this.$el.find('.sticky-header-' + type);
+            var $window = $(window);
 
-        this.$el.find('table tr.item-row[data-name="_"]').addClass('hidden');
+            var screenWidthXs = this.getThemeManager().getParam('screenWidthXs');
 
-        this.scopeList.forEach(/** string */item => {
-            const $row = this.$el.find(`table tr.item-row[data-name="${item}"]`);
+            var $buttonContainer = $('.detail-button-container');
+            var $table = this.$el.find('table.' + type + '-level');
 
-            if (!matchedList.includes(item)) {
-                $row.addClass('hidden');
-
+            if (!$table.length) {
                 return;
             }
 
-            $row.removeClass('hidden');
-        });
-    }
-}
+            if (!$buttonContainer.length) {
+                return;
+            }
 
-export default RoleRecordTableView;
+            var handle = () => {
+                if ($(window.document).width() < screenWidthXs) {
+                    $sticky.addClass('hidden');
+
+                    return;
+                }
+
+                let stickTopPosition = $buttonContainer.get(0).getBoundingClientRect().top +
+                    $buttonContainer.outerHeight();
+
+                let topEdge = $table.position().top;
+
+                topEdge -= $buttonContainer.height();
+                topEdge += $table.find('tr > th').height();
+                topEdge -= this.getThemeManager().getParam('navbarHeight');
+
+                let bottomEdge = topEdge + $table.outerHeight(true) - $buttonContainer.height();
+                let scrollTop = $window.scrollTop();
+                let width = $table.width();
+
+                if (scrollTop > topEdge && scrollTop < bottomEdge) {
+                    $sticky.css({
+                        position: 'fixed',
+                        marginTop: stickTopPosition + 'px',
+                        top: 0,
+                        width: width + 'px',
+                        marginLeft: '1px',
+                    });
+
+                    $sticky.removeClass('hidden');
+                } else {
+                    $sticky.addClass('hidden');
+                }
+            };
+
+            $window.off('scroll.' + type + '-' + this.cid);
+            $window.on('scroll.' + type + '-' + this.cid, handle);
+
+            $window.off('resize.' + type + '-' + this.cid);
+            $window.on('resize.' + type + '-' + this.cid, handle);
+        },
+
+        setSelectColors: function () {
+            this.$el.find('select[data-type="access"]').each((i, el) => {
+                var $select = $(el);
+                this.controlSelectColor($select);
+            });
+
+            this.$el.find('select.scope-action').each((i, el) => {
+                var $select = $(el);
+                this.controlSelectColor($select);
+            });
+
+            this.$el.find('select.field-action').each((i, el) => {
+                var $select = $(el);
+                this.controlSelectColor($select);
+            });
+        },
+
+        controlSelectColor: function ($select) {
+            var level = $select.val();
+            var color = this.colors[level] || '';
+
+            if (level === 'not-set') {
+                color = '';
+            }
+
+            $select.css('color', color);
+
+            $select.children().each((j, el) => {
+                var $o = $(el);
+                var level = $o.val();
+
+                var color = this.colors[level] || '';
+
+                if (level === 'not-set') {
+                    color = '';
+                }
+
+                if ($o.attr('disabled')) {
+                    color = '';
+                }
+
+                $o.css('color', color);
+            });
+        },
+    });
+});
