@@ -6976,8 +6976,7 @@ return [
       'modeList' => [
         0 => 'month',
         1 => 'agendaWeek',
-        2 => 'timeline',
-        3 => 'agendaDay'
+        2 => 'agendaDay'
       ],
       'sharedViewModeList' => [
         0 => 'basicWeek',

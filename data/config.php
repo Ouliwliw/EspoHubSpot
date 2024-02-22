@@ -247,8 +247,8 @@ return [
     0 => 'us',
     1 => 'de'
   ],
-  'cacheTimestamp' => 1708525701,
-  'microtime' => 1708525701.023134,
+  'cacheTimestamp' => 1708597042,
+  'microtime' => 1708597042.290215,
   'siteUrl' => 'http://localhost',
   'fullTextSearchMinLength' => 4,
   'appTimestamp' => 1708525323,
